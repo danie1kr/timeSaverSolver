@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+/.vs/timeSaverSolver
+/tss-tests/x64/Debug
+/tss-tests/tss-tests.vcxproj.user
+/x64/Debug
+/timeSaverSolver.vcxproj.user
