@@ -15,20 +15,13 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 #define TURNOUT_AC(id)  TimeSaver::TurnoutCondition(id, TimeSaver::TurnoutCondition::Direction::A_C)
 
 #define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i) "T" #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
+#define T(i) "T" #i "[" << (state.turnouts[i] == TimeSaver::TurnoutCondition::Direction::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
 
 namespace tsstests
 {
     using TSS = TimeSaver::Solver<5, 1>;
     using TSS_1car = TimeSaver::Solver<5, 2>;
     using TSS_2car = TimeSaver::Solver<5, 3>;
-
-
-    using TSS_oneTurnout = TimeSaver::Solver<6, 1>;
-    using TSS_oneTurnout_1car = TimeSaver::Solver<6, 2>;
-    using TSS_oneTurnout_2car = TimeSaver::Solver<6, 3>;
-
-    using TSS_LongTracks_2car = TimeSaver::Solver<8, 3>;
 
 	TEST_CLASS(straight)
 	{
@@ -117,6 +110,10 @@ namespace tsstests
 
     TEST_CLASS(oneTurnout)
     {
+        using TSS_oneTurnout = TimeSaver::Solver<6, 1>;
+        using TSS_oneTurnout_1car = TimeSaver::Solver<6, 2>;
+        using TSS_oneTurnout_2car = TimeSaver::Solver<6, 3>;
+
         /*
         0 = 1 = T2 = 3 = 4
                  \\
@@ -126,9 +123,9 @@ namespace tsstests
                 {0, {CONNECTION(1, FORWARD())}},
                 {1, {CONNECTION(0, BACKWARD()), CONNECTION(2, FORWARD())}},
                 {2, {CONNECTION(1, BACKWARD()), CONNECTION(3, FORWARD(), TURNOUT_AB(2)), CONNECTION(5, FORWARD(), TURNOUT_AC(2))}},
-                {3, {CONNECTION(2, BACKWARD()), CONNECTION(4, FORWARD())}},
+                {3, {CONNECTION(2, BACKWARD(), TURNOUT_AB(2)), CONNECTION(4, FORWARD())}},
                 {4, {CONNECTION(3, BACKWARD())}},
-                {5, {CONNECTION(2, BACKWARD())}},
+                {5, {CONNECTION(2, BACKWARD(), TURNOUT_AC(2))}},
             } };
         template<typename State>
         static void print(const unsigned int id, const State& state)
@@ -241,31 +238,33 @@ namespace tsstests
             Assert::IsTrue(steps == 0);
         }
     };
-    /*
+    
     TEST_CLASS(oneTurnoutLongTracks)
     {
+        using TSS_LongTracks_2car = TimeSaver::Solver<9, 3>;
         /*
-        0 = 1 = 2 = T1 = 3 = 4 = 5
+        0 = 1 = 2 = T3 = 4 = 5 = 6
                      \\
-                      6 = 7
-        *
-        TimeSaver::Nodes<8> turnout{ {
+                      7 = 8
+        */
+        TimeSaver::Nodes<9> turnout{ {
                 {0, {CONNECTION(1, FORWARD())}},
                 {1, {CONNECTION(0, BACKWARD()), CONNECTION(2, FORWARD())}},
-                {2, {CONNECTION(1, BACKWARD()), CONNECTION(3, FORWARD(), TURNOUT_AB(1)), CONNECTION(6, FORWARD(), TURNOUT_AC(1))}},
-                {3, {CONNECTION(2, BACKWARD(), TURNOUT_AB(1)), CONNECTION(4, FORWARD())}},
-                {4, {CONNECTION(3, BACKWARD()), CONNECTION(5, FORWARD())}},
-                {5, {CONNECTION(4, BACKWARD())}},
-                {6, {CONNECTION(2, BACKWARD(), TURNOUT_AC(1)), CONNECTION(7, FORWARD())}},
-                {7, {CONNECTION(6, BACKWARD())}},
+                {2, {CONNECTION(1, BACKWARD()), CONNECTION(3, FORWARD())}},
+                {3, {CONNECTION(2, BACKWARD()), CONNECTION(4, FORWARD(), TURNOUT_AB(3)), CONNECTION(7, FORWARD(), TURNOUT_AC(3))}},
+                {4, {CONNECTION(3, BACKWARD(), TURNOUT_AB(3)), CONNECTION(5, FORWARD())}},
+                {5, {CONNECTION(4, BACKWARD()), CONNECTION(6, FORWARD())}},
+                {6, {CONNECTION(5, BACKWARD())}},
+                {7, {CONNECTION(3, BACKWARD(), TURNOUT_AC(3)), CONNECTION(8, FORWARD())}},
+                {8, {CONNECTION(7, BACKWARD())}}
             } };
         template<typename State>
         static void print(const unsigned int id, const State& state)
         {
             std::stringstream s;
             s << std::setfill(' ') << "Step: " << id << "\n" <<
-                S(0) << " == " << S(1) << " == " << S(2) << " == T1 == " << S(3) << " == " << S(4) << " == " << S(5) << "\n" <<
-                "                         \\\\ " << S(6) << " == " << S(7) << "\n";
+                S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
+                "                                \\\\ " << S(7) << " == " << S(8) << "\n";
             Logger::WriteMessage(s.str().c_str());
         };
 
@@ -289,7 +288,7 @@ namespace tsstests
             TSS::CarPlacement target{ { 0, 4, 3 } };
             tss.init(cars);
             auto steps = tss.solve(target);
-            Assert::IsTrue(steps == 10);
+            Assert::IsTrue(steps == 14);
         }
-    };*/
+    };
 }
