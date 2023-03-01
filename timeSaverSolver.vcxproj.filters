@@ -23,5 +23,8 @@
     <ClInclude Include="tss.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="dijkstra\dijkstra.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
