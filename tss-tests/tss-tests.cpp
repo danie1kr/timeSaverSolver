@@ -8,14 +8,15 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-#define CONNECTION(id, ...)  TimeSaver::Connection({__VA_ARGS__}, id)
-#define FORWARD()  TimeSaver::DriveCondition(TimeSaver::DriveCondition::Direction::Forward)
-#define BACKWARD()  TimeSaver::DriveCondition(TimeSaver::DriveCondition::Direction::Backward)
-#define TURNOUT_AB(id)  TimeSaver::TurnoutCondition(id, TimeSaver::TurnoutCondition::Direction::A_B)
-#define TURNOUT_AC(id)  TimeSaver::TurnoutCondition(id, TimeSaver::TurnoutCondition::Direction::A_C)
+
+#define FWD(id, ...)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, __VA_ARGS__)
+#define BWD(id, ...)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, __VA_ARGS__)
+
+#define A_B  TimeSaver::Connection::TurnoutState::A_B
+#define A_C  TimeSaver::Connection::TurnoutState::A_C  
 
 #define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i) "T" #i "[" << (state.turnouts[i] == TimeSaver::TurnoutCondition::Direction::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
+#define T(i) "T" #i "[" << (state.turnouts[i] == A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
 
 namespace tsstests
 {
@@ -26,11 +27,11 @@ namespace tsstests
 	TEST_CLASS(straight)
 	{
         TimeSaver::Nodes<5> oneWay{ {
-                {0, {CONNECTION(1, FORWARD())}},
-                {1, {CONNECTION(0, BACKWARD()), CONNECTION(2, FORWARD())}},
-                {2, {CONNECTION(1, BACKWARD()), CONNECTION(3, FORWARD())}},
-                {3, {CONNECTION(2, BACKWARD()), CONNECTION(4, FORWARD())}},
-                {4, {CONNECTION(3, BACKWARD())}},
+                {0, {FWD(1)}},
+                {1, {BWD(0), FWD(2)}},
+                {2, {BWD(1), FWD(3)}},
+                {3, {BWD(2), FWD(4)}},
+                {4, {BWD(3)}},
             } };
 
         template<typename State>
@@ -120,12 +121,12 @@ namespace tsstests
                    5
         */
         TimeSaver::Nodes<6> turnout{ {
-                {0, {CONNECTION(1, FORWARD())}},
-                {1, {CONNECTION(0, BACKWARD()), CONNECTION(2, FORWARD())}},
-                {2, {CONNECTION(1, BACKWARD()), CONNECTION(3, FORWARD(), TURNOUT_AB(2)), CONNECTION(5, FORWARD(), TURNOUT_AC(2))}},
-                {3, {CONNECTION(2, BACKWARD(), TURNOUT_AB(2)), CONNECTION(4, FORWARD())}},
-                {4, {CONNECTION(3, BACKWARD())}},
-                {5, {CONNECTION(2, BACKWARD(), TURNOUT_AC(2))}},
+                {0, {FWD(1)}},
+                {1, {BWD(0), FWD(2)}},
+                {2, {BWD(1), FWD(3, A_B), FWD(5, A_C)}},
+                {3, {BWD(2), FWD(4)}},
+                {4, {BWD(3)}},
+                {5, {BWD(2)}},
             } };
         template<typename State>
         static void print(const unsigned int id, const State& state)
@@ -248,15 +249,15 @@ namespace tsstests
                       7 = 8
         */
         TimeSaver::Nodes<9> turnout{ {
-                {0, {CONNECTION(1, FORWARD())}},
-                {1, {CONNECTION(0, BACKWARD()), CONNECTION(2, FORWARD())}},
-                {2, {CONNECTION(1, BACKWARD()), CONNECTION(3, FORWARD())}},
-                {3, {CONNECTION(2, BACKWARD()), CONNECTION(4, FORWARD(), TURNOUT_AB(3)), CONNECTION(7, FORWARD(), TURNOUT_AC(3))}},
-                {4, {CONNECTION(3, BACKWARD(), TURNOUT_AB(3)), CONNECTION(5, FORWARD())}},
-                {5, {CONNECTION(4, BACKWARD()), CONNECTION(6, FORWARD())}},
-                {6, {CONNECTION(5, BACKWARD())}},
-                {7, {CONNECTION(3, BACKWARD(), TURNOUT_AC(3)), CONNECTION(8, FORWARD())}},
-                {8, {CONNECTION(7, BACKWARD())}}
+                {0, {FWD(1)}},
+                {1, {BWD(0), FWD(2)}},
+                {2, {BWD(1), FWD(3)}},
+                {3, {BWD(2), FWD(4, A_B), FWD(7, A_C)}},
+                {4, {BWD(3, A_B), FWD(5)}},
+                {5, {BWD(4), FWD(6)}},
+                {6, {BWD(5)}},
+                {7, {BWD(3, A_C), FWD(8)}},
+                {8, {BWD(7)}}
             } };
         template<typename State>
         static void print(const unsigned int id, const State& state)

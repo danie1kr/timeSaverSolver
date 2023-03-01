@@ -83,54 +83,7 @@ namespace TimeSaver
 		}
 	};
 	
-	class Condition
-	{
-	public:
-		enum class Type : unsigned char
-		{
-			Drive,
-			Turnout
-		};
-		Condition() = delete;
-		Condition(const Type type, const unsigned char data);
-		virtual ~Condition() = default;
-		const Type type;
-
-	protected:
-		const unsigned char data;
-	};
-	using Conditions = std::deque<Condition>;
-	Condition::Condition(const Type type, const unsigned char data)
-		: type(type), data(data)
-	{
-
-	};
-
-	class TurnoutCondition : public Condition
-	{
-	public:
-		enum class Direction : unsigned char
-		{
-			A_B = 0b0000000,
-			A_C = 0b10000000
-		};
-		TurnoutCondition(const Id turnout, const Direction direction);
-		const Id turnout() const;
-		const Direction direction() const;
-	};
-	TurnoutCondition::TurnoutCondition(const Id turnout, const Direction direction)
-		: Condition(Condition::Type::Turnout, (unsigned char)direction | (turnout & 0b01111111))
-	{ }
-	inline const Id TurnoutCondition::turnout() const 
-	{
-		return this->data & 0b01111111;
-	}
-	inline const TurnoutCondition::Direction TurnoutCondition::direction() const 
-	{ 
-		return (this->data & 0b10000000) ? Direction::A_C : Direction::A_B;
-	}
-
-	class DriveCondition : public Condition
+	class Connection
 	{
 	public:
 		enum class Direction : unsigned char
@@ -138,63 +91,38 @@ namespace TimeSaver
 			Forward = 0b0,
 			Backward = 0b1
 		};
-		DriveCondition(const Direction direction);
-		const Direction direction() const;
-	};
-	DriveCondition::DriveCondition(const Direction direction)
-		: Condition(Condition::Type::Drive, (unsigned char)direction)
-	{ }
-	const DriveCondition::Direction DriveCondition::direction() const { return this->data ? Direction::Backward : Direction::Forward; }
 
-	class Connection
-	{
-	public:
-		Connection(const Conditions conditions, const Id target);
-		const Conditions conditions;
-		const Id target;
-		inline const bool isTurnoutConnectionTo(const Id target)
+		enum class TurnoutState : unsigned char
 		{
-			if (this->target != target)
-				return false;
-			for (const auto& condition : this->conditions)
-				if (condition.type == Condition::Type::Turnout)
-					return true;
+			None,
+			A_B,
+			A_C
+		};
+
+		inline Connection(const Id target, const Direction direction, const TurnoutState turnoutState = TurnoutState::None)
+			: target(target), direction(direction), turnoutState(turnoutState)
+		{
+
+		}
+		const Direction direction;
+		const TurnoutState turnoutState;
+		const Id target;
+
+		inline const bool isTurnoutConnection() const
+		{
+			return this->turnoutState != TurnoutState::None;
+		}
+
+		inline const bool isTurnoutConnectionTo(const Id target) const
+		{
+			return this->target == target && this->isTurnoutConnection();
 		}
 	};
 	using Connections = std::deque<Connection>;
 
-	inline const DriveCondition::Direction directionFromConditions(const Conditions& conditions)
+	inline const Connection::TurnoutState other(const Connection::TurnoutState& state)
 	{
-		for (const auto& condition : conditions)
-			if (condition.type == Condition::Type::Drive)
-				return ((DriveCondition&)condition).direction();
-	}
-
-	inline const bool hasTurnoutConditions(const Conditions& conditions)
-	{
-		for (const auto& condition : conditions)
-			if (condition.type == Condition::Type::Turnout)
-				return true;
-
-		return false;
-	}
-
-	inline const TurnoutCondition::Direction turnoutDirectionFromConditions(const Conditions& conditions)
-	{
-		for (const auto& condition : conditions)
-			if (condition.type == Condition::Type::Turnout)
-				return ((TurnoutCondition&)condition).direction();
-	}
-
-	inline const TurnoutCondition::Direction other(const TurnoutCondition::Direction& direction)
-	{
-		return direction == TurnoutCondition::Direction::A_B ? TurnoutCondition::Direction::A_C : TurnoutCondition::Direction::A_B;
-	}
-
-	inline Connection::Connection(const Conditions conditions, const Id target)
-		: conditions(conditions), target(target)
-	{
-
+		return state == Connection::TurnoutState::A_B ? Connection::TurnoutState::A_C : Connection::TurnoutState::A_B;
 	}
 
 	class Node
@@ -205,19 +133,19 @@ namespace TimeSaver
 		const Id id;
 		const Connections connections;
 
-		inline const Connections otherDirectionConnections(const DriveCondition::Direction than) const
+		inline const Connections otherDirectionConnections(const Connection::Direction than) const
 		{
 			Connections others;
 			for (auto& connection : connections)
-				if (directionFromConditions(connection.conditions) != than)
+				if(connection.direction != than)
 					others.push_back(connection);
 			return others;
 		}
-		inline const Connections sameDirectionConnections(const DriveCondition::Direction like) const
+		inline const Connections sameDirectionConnections(const Connection::Direction like) const
 		{
 			Connections others;
 			for (auto& connection : connections)
-				if (directionFromConditions(connection.conditions) == like)
+				if (connection.direction == like)
 					others.push_back(connection);
 			return others;
 		}
@@ -225,22 +153,19 @@ namespace TimeSaver
 		const bool isTurnout() const
 		{
 			for (const auto& connection : connections)
-				for (const auto& condition : connection.conditions)
-					if (condition.type == Condition::Type::Turnout && ((const TurnoutCondition&)condition).turnout() == id)
-						return true;
+				if (connection.turnoutState != Connection::TurnoutState::None)
+					return true;
 			return false;
 		}
 
-		const bool hasTurnoutConditionTo(const Id that, TurnoutCondition::Direction &direction) const
+		const bool hasTurnoutConnectionTo(const Id that, Connection::TurnoutState &direction) const
 		{
 			for (const auto& connection : connections)
-				if(connection.target == that)
-					for (const auto &condition : connection.conditions)
-						if (condition.type == Condition::Type::Turnout)
-						{
-							direction = ((const TurnoutCondition&)condition).direction();
-							return true;
-						}
+				if (connection.target == that && connection.turnoutState != Connection::TurnoutState::None)
+				{
+					direction = connection.turnoutState;
+					return true;
+				}
 			return false;
 		}
 
@@ -250,24 +175,6 @@ namespace TimeSaver
 				if (c.target == other)
 					return c;
 		}
-
-		/*inline const Connections other(const Id than) const
-		{
-			Connections others;
-			for (auto& connection : connections)
-				if (connection.target != than)
-					others.push_back(connection);
-			return others;
-		}
-
-		inline const Conditions to(const Id other) const
-		{
-			for (auto &c : connections)
-				if (c.target == other)
-					return c.conditions;
-
-			return {};
-		}*/
 	};
 	template<unsigned int _Count> using Nodes = std::array<Node, _Count>;
 
@@ -284,37 +191,17 @@ namespace TimeSaver
 		struct State
 		{
 			std::array<unsigned int, _Nodes> slots;
-			std::array<TurnoutCondition::Direction, _Nodes> turnouts;
+			std::array<Connection::TurnoutState, _Nodes> turnouts;
 		};
 
 	private:
-		struct StepOption
-		{
-			static bool compare(const StepOption& a, const StepOption& b) {
-				return a.state == b.state;
-			};
-
-			const size_t id;
-			const State state;
-			const Conditions conditions;
-			
-			StepOption(const size_t id, const State state)
-				: id(id), state(state), conditions()
-			{ };
-			StepOption(const size_t id, const State state, const Conditions conditions)
-				: id(id), state(state), conditions(conditions)
-			{ };
-		};
-		using StepOptions = std::vector<StepOption>;
-
 		struct Step
 		{
 			struct Action
 			{
 				const size_t target;
-				const Conditions conditions;
-				Action(const size_t target, const Conditions conditions)
-					: target(target), conditions(conditions) { };
+				Action(const size_t target)
+					: target(target) { };
 			};
 
 			const size_t id;
@@ -366,7 +253,7 @@ namespace TimeSaver
 		{
 			State state;
 			for (auto& t : state.turnouts)
-				t = TurnoutCondition::Direction::A_B;
+				t = Connection::TurnoutState::A_B;
 
 			for (auto& s : state.slots)
 				s = 0;
@@ -405,9 +292,9 @@ namespace TimeSaver
 				for (auto& connection : node.connections)
 				{
 					// loco can only follow set turnouts
-					if (this->nodes[loco].isTurnout() && hasTurnoutConditions(connection.conditions))
+					if (this->nodes[loco].isTurnout() && connection.isTurnoutConnection())
 					{
-						if (turnoutDirectionFromConditions(connection.conditions) != this->steps[i].state.turnouts[loco])
+						if(connection.turnoutState != this->steps[i].state.turnouts[loco])
 							continue;
 					}
 					// check if loco can move
@@ -430,11 +317,10 @@ namespace TimeSaver
 				[](const Step* a, const Step* b) -> const unsigned int {
 					for (auto neighbor : a->actions)
 						if (neighbor.target == b->id)
-							return (unsigned int)neighbor.conditions.size() + 1;
+							return (unsigned int)1;
 
 					return 0;
 				});
-
 			typename Dijk::Path shortestPath;
 			size_t shortestPathSteps = 0xFFFFFFFF;
 			unsigned int solutions = 0;
@@ -463,22 +349,16 @@ namespace TimeSaver
 		using Nodes = Nodes<_Nodes>;
 
 	private:
-		const Connection outwardConnection(const State& state, const Id id, const DriveCondition::Direction direction, bool& success) const
+		const Connection outwardConnection(const State& state, const Id id, const Connection::Direction direction, bool& success) const
 		{
 			if (nodes[id].isTurnout())
 			{
 				for (const auto& connection : nodes[id].connections)
 				{
-					if (directionFromConditions(connection.conditions) == direction)
+					if (connection.direction == direction&& connection.turnoutState == state.turnouts[id])
 					{
-						for (const auto& condition : connection.conditions)
-						{
-							if (condition.type == Condition::Type::Turnout && ((const TurnoutCondition&)condition).direction() == state.turnouts[id])
-							{
-								success = true;
-								return connection;
-							}
-						}
+						success = true;
+						return connection;
 					}
 				}
 			}
@@ -492,13 +372,13 @@ namespace TimeSaver
 			}
 
 			success = false;
-			return Connection({}, 0);
+			return Connection(0, Connection::Direction::Forward);
 		}
 
 		void move(const size_t i, const Id from, const Connection connectionTo)
 		{
 			auto to = connectionTo.target;
-			auto conditions = connectionTo.conditions;
+			//auto conditions = connectionTo.conditions;
 			auto lastNodedPushedOn = from;
 
 			State state = this->steps[i].state;
@@ -513,7 +393,7 @@ namespace TimeSaver
 			{
 				// push cars if possible and then this one
 				bool success = false;
-				auto connection = outwardConnection(state, to, directionFromConditions(conditions), success);
+				auto connection = outwardConnection(state, to, connectionTo.direction, success);
 				if (success)
 					lastNodedPushedOn = push(state, to, connection);
 			}
@@ -524,17 +404,17 @@ namespace TimeSaver
 			{
 				if (nodes[to].isTurnout())
 				{
-					TurnoutCondition::Direction turnoutDirection;
+					Connection::TurnoutState turnoutDirection;
 					// from == to == a
 					//  other //
-					if (nodes[to].hasTurnoutConditionTo(from, turnoutDirection))
+					if (nodes[to].hasTurnoutConnectionTo(from, turnoutDirection))
 					{
 						State nextState = state;
 						if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection)
 						{
 							nextState.turnouts[to] = turnoutDirection;
 							auto nextId = nextStep(nextState, from, to, i);
-							auto connections = nodes[from].otherDirectionConnections(directionFromConditions(conditions));
+							auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
 							pull(nextId, from, connections, i);
 
 							if (lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
@@ -543,7 +423,7 @@ namespace TimeSaver
 								nextState.turnouts[to] = turnoutDirection;
 								nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
 								auto nextId = nextStep(nextState, from, to, i);
-								auto connections = nodes[from].otherDirectionConnections(directionFromConditions(conditions));
+								auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
 								pull(nextId, from, connections, i);
 							}
 						}
@@ -554,36 +434,35 @@ namespace TimeSaver
 					{
 						for (const auto& connection : nodes[to].connections)
 						{
-							for (const auto& condition : connection.conditions)
-								if (connection.target != from && condition.type == Condition::Type::Turnout)
+							if (connection.target != from)
+							{
+								turnoutDirection = connection.turnoutState;
+								State nextState = state;
+								if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection)
 								{
-									turnoutDirection = ((const TurnoutCondition&)condition).direction();
-									State nextState = state;
-									if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection)
-									{
-										nextState.turnouts[to] = turnoutDirection;
-										auto nextId = nextStep(nextState, from, to, i);
-										auto connections = nodes[from].otherDirectionConnections(directionFromConditions(conditions));
-										pull(nextId, from, connections, i);
+									nextState.turnouts[to] = turnoutDirection;
+									auto nextId = nextStep(nextState, from, to, i);
+									auto connections = nodes[from].otherDirectionConnections(connection.direction);
+									pull(nextId, from, connections, i);
 
-										if (lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
-										{
-											State nextState = state;
-											nextState.turnouts[to] = turnoutDirection;
-											nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
-											auto nextId = nextStep(nextState, from, to, i);
-											auto connections = nodes[from].otherDirectionConnections(directionFromConditions(conditions));
-											pull(nextId, from, connections, i);
-										}
+									if (lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
+									{
+										State nextState = state;
+										nextState.turnouts[to] = turnoutDirection;
+										nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
+										auto nextId = nextStep(nextState, from, to, i);
+										auto connections = nodes[from].otherDirectionConnections(connection.direction);
+										pull(nextId, from, connections, i);
 									}
 								}
+							}
 						}
 					}
 				}
 				else
 				{
 					auto nextId = nextStep(state, from, to, i);
-					auto connections = nodes[from].otherDirectionConnections(directionFromConditions(conditions));
+					auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
 					pull(nextId, from, connections, i);
 
 					if (lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
@@ -591,7 +470,7 @@ namespace TimeSaver
 						State nextState = state;
 						nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
 						auto nextId = nextStep(nextState, from, to, i);
-						auto connections = nodes[from].otherDirectionConnections(directionFromConditions(conditions));
+						auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
 						pull(nextId, from, connections, i);
 					}
 				}
@@ -613,19 +492,17 @@ namespace TimeSaver
 
 				if (nodes[from].isTurnout())
 				{
-					for (const auto& condition : connection.conditions)
-						if (condition.type == Condition::Type::Turnout &&
-							((const TurnoutCondition&)condition).direction() == state.turnouts[from])
-						{
-							auto nextId = nextStep(state, connection.target, targetConnection.target, attach);
-							auto connections = nodes[connection.target].sameDirectionConnections(directionFromConditions(connection.conditions));
-							pull(nextId, connection.target, connections, attach);
-						}
+					if(connection.turnoutState == state.turnouts[from])
+					{
+						auto nextId = nextStep(state, connection.target, targetConnection.target, attach);
+						auto connections = nodes[connection.target].sameDirectionConnections(connection.direction);
+						pull(nextId, connection.target, connections, attach);
+					}
 				}
 				else
 				{
 					auto nextId = nextStep(state, connection.target, targetConnection.target, attach);
-					auto connections = nodes[connection.target].sameDirectionConnections(directionFromConditions(connection.conditions));
+					auto connections = nodes[connection.target].sameDirectionConnections(connection.direction);
 					pull(nextId, connection.target, connections, attach);
 				}
 			}
@@ -639,7 +516,7 @@ namespace TimeSaver
 			int nextIndex = this->hasStepWithState(state);
 			if (nextIndex == -1)
 				nextIndex = (int)this->addStep(state);
-			this->steps[attach].addAction(typename Step::Action(nextIndex, {}));
+			this->steps[attach].addAction(typename Step::Action(nextIndex));
 
 			return nextIndex;			
 		}
@@ -648,7 +525,7 @@ namespace TimeSaver
 		{
 			auto lastNodedPushedOn = from;
 			auto to = connectionTo.target;
-			auto conditions = connectionTo.conditions;
+			//auto conditions = connectionTo.conditions;
 			if (state.slots[to] == Loco)
 				return lastNodedPushedOn;
 			else if (state.slots[to] != Empty)
@@ -656,10 +533,10 @@ namespace TimeSaver
 				bool doPush = false;
 				if (nodes[to].isTurnout())
 				{
-					TurnoutCondition::Direction turnoutDirection;
+					Connection::TurnoutState turnoutDirection;
 					// from == to == a
 					//  other //
-					if (nodes[to].hasTurnoutConditionTo(from, turnoutDirection))
+					if (nodes[to].hasTurnoutConnectionTo(from, turnoutDirection))
 					{
 						if (state.turnouts[to] == turnoutDirection)
 						{
@@ -684,7 +561,7 @@ namespace TimeSaver
 				{
 					// push cars if possible and then this one
 					bool success = false;
-					auto connection = outwardConnection(state, to, directionFromConditions(conditions), success);
+					auto connection = outwardConnection(state, to, connectionTo.direction, success);
 					if (success)
 						lastNodedPushedOn = push(state, to, connection);
 				}
@@ -731,17 +608,8 @@ namespace TimeSaver
 		int hasStepWithState(const State& state) const
 		{
 			for (unsigned int i = 0; i < steps.size(); ++i)
-			{
-				/*bool turnoutsMatch = true;
-				for (unsigned int j = 0; j < state.slots.size(); ++j)
-				{
-					if (this->nodes[j].isTurnout())
-						turnoutsMatch = turnoutsMatch && (state.slots[j] == Empty || steps[i].state.turnouts[j] == state.turnouts[j]);
-				}*/
-
 				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
 					return i;
-			}
 			return -1;
 		}
 

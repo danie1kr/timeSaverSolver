@@ -17,45 +17,39 @@ int main()
     T3 ?= 15
         */
 
-#define CONNECTION(id, ...)  TimeSaver::Connection({__VA_ARGS__}, id)
-#define FORWARD()  TimeSaver::DriveCondition(TimeSaver::DriveCondition::Direction::Forward)
-#define BACKWARD()  TimeSaver::DriveCondition(TimeSaver::DriveCondition::Direction::Backward)
-#define TURNOUT_AB(id)  TimeSaver::TurnoutCondition(id, TimeSaver::TurnoutCondition::Direction::A_B)
-#define TURNOUT_AC(id)  TimeSaver::TurnoutCondition(id, TimeSaver::TurnoutCondition::Direction::A_C)
+#define FWD(id, ...)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, __VA_ARGS__)
+#define BWD(id, ...)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, __VA_ARGS__)
 
-
-#define FWD(id)   CONNECTION(id, FORWARD())
-#define BWD(id)   CONNECTION(id, BACKWARD())
-
-#define FWD_AB  
+#define A_B  TimeSaver::Connection::TurnoutState::A_B
+#define A_C  TimeSaver::Connection::TurnoutState::A_C  
 
     TimeSaver::Nodes<20> classic{{
-        {0, {CONNECTION(1, FORWARD())}},
-        {1, {CONNECTION(0, BACKWARD()), CONNECTION(2, FORWARD())}},
-        {2, {CONNECTION(1, BACKWARD()), CONNECTION(3, FORWARD())}},
-        {3, {CONNECTION(2, BACKWARD(), TURNOUT_AB(3)), CONNECTION(7, BACKWARD(), TURNOUT_AC(3)), CONNECTION(4, FORWARD())}},
-        {4, {CONNECTION(3, BACKWARD()), CONNECTION(5, FORWARD())}},
-        {5, {CONNECTION(4, BACKWARD()), CONNECTION(6, FORWARD())}},
-        {6, {CONNECTION(5, BACKWARD())}},
-        {7, {CONNECTION(11, BACKWARD()), CONNECTION(3, FORWARD(), TURNOUT_AB(7)), CONNECTION(8, FORWARD(), TURNOUT_AC(7))}},
-        {8, {CONNECTION(7, BACKWARD()), CONNECTION(15, FORWARD())}},
-        {9, {CONNECTION(10, FORWARD())}},
-        {10, {CONNECTION(9, BACKWARD()), CONNECTION(11, FORWARD())}},
-        {11, {CONNECTION(10, BACKWARD()), CONNECTION(12, FORWARD(), TURNOUT_AB(11)), CONNECTION(7, FORWARD(), TURNOUT_AC(11))}},
-        {12, {CONNECTION(11, BACKWARD(), TURNOUT_AB(12)), CONNECTION(19, BACKWARD(), TURNOUT_AC(12)), CONNECTION(13, FORWARD())}},
-        {13, {CONNECTION(12, BACKWARD()), CONNECTION(14, FORWARD())}},
-        {14, {CONNECTION(13, BACKWARD()), CONNECTION(15, FORWARD())}},
-        {15, {CONNECTION(14, BACKWARD(), TURNOUT_AB(15)), CONNECTION(8, BACKWARD(), TURNOUT_AC(15)), CONNECTION(16, FORWARD())}},
-        {16, {CONNECTION(15, BACKWARD()), CONNECTION(17, FORWARD())}},
-        {17, {CONNECTION(16, BACKWARD())}},
-        {18, {CONNECTION(19, FORWARD())}},
-        {19, {CONNECTION(18, BACKWARD()), CONNECTION(12, FORWARD())}},
+        {0, {FWD(1)}},
+        {1, {BWD(0), FWD(2)}},
+        {2, {BWD(1), FWD(3)}},
+        {3, {BWD(2, A_B), BWD(7, A_C), FWD(4)}},
+        {4, {BWD(3), FWD(5)}},
+        {5, {BWD(4), FWD(6)}},
+        {6, {BWD(5)}},
+        {7, {BWD(11), FWD(3, A_B), FWD(8, A_C)}},
+        {8, {BWD(7), FWD(15)}},
+        {9, {FWD(10)}},
+        {10, {BWD(9), FWD(11)}},
+        {11, {BWD(10), FWD(12, A_B), FWD(7, A_C)}},
+        {12, {BWD(11, A_B), BWD(19, A_C), FWD(13)}},
+        {13, {BWD(12), FWD(14)}},
+        {14, {BWD(13), FWD(15)}},
+        {15, {BWD(14, A_B), BWD(8, A_C), FWD(16)}},
+        {16, {BWD(15), FWD(17)}},
+        {17, {BWD(16)}},
+        {18, {FWD(19)}},
+        {19, {BWD(18), FWD(12)}},
     }};
 
     using TSS = TimeSaver::Solver<classic.size(), 1>;
 
 #define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i) "T" #i "[" << (state.turnouts[i] == TimeSaver::TurnoutCondition::Direction::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
+#define T(i) "T" #i "[" << (state.turnouts[i] == A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
 
     auto print = [](const unsigned int id, const TSS::State& state) {
         std::cout << std::setfill(' ') << "Step: " << id << "\n" <<
