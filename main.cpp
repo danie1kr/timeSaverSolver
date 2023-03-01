@@ -46,7 +46,7 @@ int main()
         {19, {BWD(18), FWD(12)}},
     }};
 
-    using TSS = TimeSaver::Solver<classic.size(), 1>;
+    using TSS = TimeSaver::Solver<classic.size(), 5>;
 
 #define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
 #define T(i) "T" #i "[" << (state.turnouts[i] == A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
@@ -63,8 +63,11 @@ int main()
     };
 
     TSS tss(classic, print);
-    TSS::CarPlacement cars{ { 0 } };
-    TSS::CarPlacement target{ { 14 } };
+    //TSS::CarPlacement cars{ { 0 } };
+    //TSS::CarPlacement target{ { 14 } };
+
+    auto cars = tss.random();
+    auto target = tss.random();
     tss.init(cars);
     tss.solve(target);
 }

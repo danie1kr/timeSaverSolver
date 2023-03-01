@@ -6,82 +6,12 @@
 #include <map>
 #include <functional>
 
+#include "dijkstra/dijkstra.hpp"
+
 namespace TimeSaver
 {
 	using Id = unsigned char;
 
-	template<class _Node, class _Nodes, typename _Distance, typename _Distance _Infinity>
-	class Dijkstra
-	{
-		const _Distance infinity = _Infinity;
-		
-		std::vector<const _Node*> Q;
-		std::map<const _Node*, _Distance> dist;
-		std::map<const _Node*, const _Node*> prec;
-
-	public:
-		using Path = std::vector<const _Node*>;
-		const Path shortestPath(const _Node* target)
-		{
-			Path path;
-			path.push_back(target);
-			const _Node* current = target;
-			while (prec[current] != nullptr)
-			{
-				current = prec[current];
-				path.push_back(current);
-			}
-
-			return path;
-		}
-
-		void dijkstra(const _Nodes &nodes, const _Node *start, std::function<const std::vector<const _Node*>(const _Node *)> neighbors, std::function<const _Distance(const _Node*, const _Node*)> distance)
-		{
-			dist.clear();
-			prec.clear();
-			Q.clear();
-
-			// init
-			for (auto it = nodes.begin(); it != nodes.end(); ++it)
-			{
-				dist.emplace(&*it, infinity);
-				prec.emplace(&*it, nullptr);
-				Q.push_back(&*it);
-			}
-			dist[start] = 0;
-
-			// dijkstra
-			while (Q.size() > 0)
-			{
-				const _Node* u;
-				_Distance shortestDistInQ = _Infinity;
-				for (auto it = Q.begin(); it != Q.end(); ++it)
-				{
-					if (dist[*it] < shortestDistInQ)
-					{
-						u = *it;
-						shortestDistInQ = dist[*it];
-					}
-				}
-
-				(void)std::remove(Q.begin(), Q.end(), u);
-				Q.resize(Q.size() - 1);
-
-				for (const auto v : neighbors(u))
-				{
-					if (std::find(Q.begin(), Q.end(), v) != Q.end())
-					{
-						_Distance dist_u_v = dist[u] + distance(u, v);
-						if (dist[u] + dist_u_v < dist[v])
-						{
-							dist[v] = dist[u] + dist_u_v;
-							prec[v] = u;
-						}
-					}
-				}               
-			}
-		}
-	};
 	
 	class Connection
 	{
@@ -207,13 +137,14 @@ namespace TimeSaver
 			const size_t id;
 			const State state;
 			std::vector<Action> actions;
+			bool endState;
 			
-			Step(const size_t id) : id(id), state(), actions() { };
+			Step(const size_t id) : id(id), state(), actions(), endState{ false } { };
 			Step(const size_t id, const State state)
-				: id(id), state(state), actions()
+				: id(id), state(state), actions(), endState { false }
 			{ };
 			Step(const size_t id, const State state, std::vector<Action> actions)
-				: id(id), state(state), actions(actions)
+				: id(id), state(state), actions(actions), endState{ false }
 			{ };
 
 			bool hasActionToOther(const Action & otherAction)
@@ -269,6 +200,34 @@ namespace TimeSaver
 			return Result::OK;
 		}
 
+		const CarPlacement random()
+		{
+			CarPlacement result;
+			for (unsigned int i = 0; i < _Cars; ++i)
+			{
+				bool used = true;
+				unsigned int p = std::rand() % _Nodes;
+				while (used)
+				{
+					p = std::rand() % _Nodes;
+
+					if (this->nodes[p].isTurnout())
+						continue;
+
+					used = false;
+					for (unsigned int j = 0; j < _Cars; ++j)
+						if (result[j] == p)
+						{
+							used = true;
+							break;
+						}
+				}
+				result[i] = p;
+			}
+
+			return result;
+		}
+
 		unsigned int solve(CarPlacement cars)
 		{
 			State targetState;
@@ -278,6 +237,9 @@ namespace TimeSaver
 			unsigned int carIndex = 0;
 			for (auto& c : cars)
 				targetState.slots[c] = ++carIndex;
+
+			std::cout << "\n";
+			unsigned int solutions = 0;
 
 			// build graph
 			for(unsigned int i = 0; i < this->steps.size(); ++i)
@@ -300,9 +262,33 @@ namespace TimeSaver
 					// check if loco can move
 					this->move(i, loco, connection);
 				}
+
+				if (this->steps[i].state.slots == targetState.slots)
+				{
+					++solutions;
+					this->steps[i].endState = true;
+				}
+
+#ifdef _DEBUG
+				if (i % 20 == 0 || i == this->steps.size() - 1)
+#else
+				if (i % 10000 == 0 || i == this->steps.size() - 1)
+#endif
+				
+				{
+					std::cout << "\r" << "Step " << i + 1 << " / " << this->steps.size() << " possible solutions: " << solutions;
+				}
 			}
 			// full graph size
-			std::cout << "car placement variants: " << this->steps.size() << "\n";
+			std::cout << "\ncar placement variants: " << this->steps.size() << "\n";
+
+			if (solutions == 0)
+			{
+				unsigned int i = std::rand() % this->steps.size();
+				std::cout << "\nchoosing: " << i << " as endstate\n";
+				this->steps[i].endState = true;
+				solutions = 1;
+			}
 
 			// get shortest path
 			using Dijk = Dijkstra<Step, Steps, unsigned int, 0xFFFFFFFF>;
@@ -322,12 +308,13 @@ namespace TimeSaver
 					return 0;
 				});
 			typename Dijk::Path shortestPath;
+			unsigned int currentSolutionCheck = 0;
 			size_t shortestPathSteps = 0xFFFFFFFF;
-			unsigned int solutions = 0;
 			for (auto& step : this->steps)
-				if (step.state.slots == targetState.slots)
+				if (step.endState)
 				{
-					++solutions;
+					++currentSolutionCheck;
+					std::cout << "\r" << "Checking solution " << currentSolutionCheck << " / " << solutions;
 					auto path = dijkstra.shortestPath(&step);
 					if (path.size() < shortestPathSteps)
 					{
@@ -335,14 +322,19 @@ namespace TimeSaver
 						shortestPathSteps = path.size();
 					}
 				}
-			std::cout << "solutions in graph: " << solutions << "\n";
+			std::cout << "\nSolutions has: " << shortestPath.size() << " steps\n";
+
+			std::cout << "\nmemory usage: ~" << (this->steps.size() * (sizeof(Step) + 4 * sizeof(Node*) + sizeof(unsigned int))) << " bytes \n";
 
 			if (solutions == 0)
 				return 0;
 
+			print(0, this->steps[0].state);
+			print(0, targetState);
+#ifdef _DEBUG
 			for(auto it = shortestPath.rbegin(); it != shortestPath.rend(); ++it)
 				print((unsigned int)(*it)->id, (*it)->state);
-
+#endif
 			return (unsigned int)shortestPathSteps;
 		}
 
