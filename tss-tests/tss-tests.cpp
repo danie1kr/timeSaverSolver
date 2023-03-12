@@ -24,6 +24,15 @@ namespace tsstests
     using TSS_1car = TimeSaver::Solver<5, 2>;
     using TSS_2car = TimeSaver::Solver<5, 3>;
 
+    auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {
+
+    };
+
+    auto statistics = [](const unsigned int steps, const unsigned int solutions)
+    {
+
+    };
+
 	TEST_CLASS(straight)
 	{
         TimeSaver::Nodes<5> oneWay{ {
@@ -35,10 +44,10 @@ namespace tsstests
             } };
 
         template<typename State>
-        static void print(const unsigned int id, const State& state)
+        static void print(const std::string info, const State& state)
         {
             std::stringstream s;
-            s << std::setfill(' ') << "Step: " << id << "\n" <<
+            s << std::setfill(' ') << info <<
                 S(0) << " == " << S(1) << " == " << S(2) << " == " << S(3) << " == " << S(4) << "\n";
             Logger::WriteMessage(s.str().c_str());
         }
@@ -46,7 +55,7 @@ namespace tsstests
     public:
         TEST_METHOD(LocoOnlyForward)
         {
-            TSS tss(oneWay, print<TSS::State>);
+            TSS tss(oneWay, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
@@ -56,7 +65,7 @@ namespace tsstests
 
         TEST_METHOD(LocoBackwardForward)
         {
-            TSS tss(oneWay, print<TSS::State>);
+            TSS tss(oneWay, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 4 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
@@ -67,7 +76,7 @@ namespace tsstests
         TEST_METHOD(LocoPush)
         {
             using TSS = TSS_1car;
-            TSS tss(oneWay, print<TSS::State>);
+            TSS tss(oneWay, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 2 } };
             tss.init(cars);
@@ -78,7 +87,7 @@ namespace tsstests
         TEST_METHOD(LocoPushAndBack)
         {
             using TSS = TSS_1car;
-            TSS tss(oneWay, print<TSS::State>);
+            TSS tss(oneWay, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 1, 3 } };
             TSS::CarPlacement target{ { 2, 4 } };
             tss.init(cars);
@@ -89,7 +98,7 @@ namespace tsstests
         TEST_METHOD(LocoPull)
         {
             using TSS = TSS_1car;
-            TSS tss(oneWay, print<TSS::State>);
+            TSS tss(oneWay, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 1, 2 } };
             tss.init(cars);
@@ -100,7 +109,7 @@ namespace tsstests
         TEST_METHOD(LocoPullPush)
         {
             using TSS = TSS_2car;
-            TSS tss(oneWay, print<TSS::State>);
+            TSS tss(oneWay, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 2, 0, 4 } };
             TSS::CarPlacement target{ { 2, 1, 3 } };
             tss.init(cars);
@@ -128,11 +137,11 @@ namespace tsstests
                 {4, {BWD(3)}},
                 {5, {BWD(2)}},
             } };
-        template<typename State>
-        static void print(const unsigned int id, const State& state)
+        template<typename State>        
+        static void print(const std::string info, const State& state)
         {
             std::stringstream s;
-            s << std::setfill(' ') << "Step: " << id << "\n" <<
+            s << std::setfill(' ') << info <<
                 S(0) << " == " << S(1) << " == " << T(2) << " == " << S(3) << " == " << S(4) << "\n" <<
                 "                  \\\\ " << S(5) << "\n";
             Logger::WriteMessage(s.str().c_str());
@@ -142,7 +151,7 @@ namespace tsstests
         TEST_METHOD(LocoOnlyForwardAB)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 3 } };
             tss.init(cars);
@@ -153,7 +162,7 @@ namespace tsstests
         TEST_METHOD(LocoOnlyBackwardAB)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 3 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
@@ -164,7 +173,7 @@ namespace tsstests
         TEST_METHOD(LocoOnlyForwardAC)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 4 } };
             tss.init(cars);
@@ -175,7 +184,7 @@ namespace tsstests
         TEST_METHOD(LocoBackwardForward)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 3 } };
             TSS::CarPlacement target{ { 5 } };
             tss.init(cars);
@@ -186,7 +195,7 @@ namespace tsstests
         TEST_METHOD(LocoPushAB)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 2, 3 } };
             tss.init(cars);
@@ -197,7 +206,7 @@ namespace tsstests
         TEST_METHOD(LocoPushAC)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 5 } };
             tss.init(cars);
@@ -208,7 +217,7 @@ namespace tsstests
         TEST_METHOD(LocoPullAB)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 0, 1 } };
             tss.init(cars);
@@ -219,7 +228,7 @@ namespace tsstests
         TEST_METHOD(LocoPullAC)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 3, 5 } };
             TSS::CarPlacement target{ { 0, 1 } };
             tss.init(cars);
@@ -230,11 +239,11 @@ namespace tsstests
         TEST_METHOD(CarReorder)
         {
             using TSS = TSS_oneTurnout_2car;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 1, 2, 3 } };
             TSS::CarPlacement target{ { 1, 3, 2 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             // not possible
             Assert::IsTrue(steps == 0);
         }
@@ -253,17 +262,17 @@ namespace tsstests
                 {1, {BWD(0), FWD(2)}},
                 {2, {BWD(1), FWD(3)}},
                 {3, {BWD(2), FWD(4, A_B), FWD(7, A_C)}},
-                {4, {BWD(3, A_B), FWD(5)}},
+                {4, {BWD(3), FWD(5)}},
                 {5, {BWD(4), FWD(6)}},
                 {6, {BWD(5)}},
-                {7, {BWD(3, A_C), FWD(8)}},
+                {7, {BWD(3), FWD(8)}},
                 {8, {BWD(7)}}
             } };
         template<typename State>
-        static void print(const unsigned int id, const State& state)
+        static void print(const std::string info, const State& state)
         {
             std::stringstream s;
-            s << std::setfill(' ') << "Step: " << id << "\n" <<
+            s << std::setfill(' ') << info <<
                 S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
                 "                                \\\\ " << S(7) << " == " << S(8) << "\n";
             Logger::WriteMessage(s.str().c_str());
@@ -273,23 +282,23 @@ namespace tsstests
         TEST_METHOD(LocoPull)
         {
             using TSS = TSS_LongTracks_2car;
-            TSS tss(turnout, print<TSS::State>);
-            TSS::CarPlacement cars{ { 1, 3, 4 } };
+            TSS tss(turnout, print<TSS::State>, step, statistics);
+            TSS::CarPlacement cars{ { 1, 4, 5 } };
             TSS::CarPlacement target{ { 1, 2, 3 } };
             tss.init(cars);
             auto steps = tss.solve(target);
-            Assert::IsTrue(steps == 3);
+            Assert::IsTrue(steps == 5);
         }
 
         TEST_METHOD(LocoReorder)
         {
             using TSS = TSS_LongTracks_2car;
-            TSS tss(turnout, print<TSS::State>);
+            TSS tss(turnout, print<TSS::State>, step, statistics);
             TSS::CarPlacement cars{ { 1, 3, 4 } };
-            TSS::CarPlacement target{ { 0, 4, 3 } };
+            TSS::CarPlacement target{ { 0, 5, 4 } };
             tss.init(cars);
             auto steps = tss.solve(target);
-            Assert::IsTrue(steps == 14);
+            Assert::IsTrue(steps == 18);
         }
     };
 }

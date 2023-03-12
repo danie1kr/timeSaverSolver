@@ -36,3 +36,6 @@
 /x64/Debug
 /timeSaverSolver.vcxproj.user
 /x64/Release
+/tss-tests/x64/Release
+/jsTSS/Emscripten/Debug
+/Emscripten/Debug

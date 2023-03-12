@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 
+#define TSS_FLEXIBLE
 #include "tss.hpp"
 
 int main()
@@ -23,7 +24,7 @@ int main()
 #define A_B  TimeSaver::Connection::TurnoutState::A_B
 #define A_C  TimeSaver::Connection::TurnoutState::A_C  
 
-    TimeSaver::Nodes<20> classic{{
+    TimeSaver::Nodes/*<20>*/ classic{{
         {0, {FWD(1)}},
         {1, {BWD(0), FWD(2)}},
         {2, {BWD(1), FWD(3)}},
@@ -46,13 +47,13 @@ int main()
         {19, {BWD(18), FWD(12)}},
     }};
 
-    using TSS = TimeSaver::Solver<classic.size(), 5>;
+    using TSS = TimeSaver::Solver;// <classic.size(), 5>;
 
 #define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
 #define T(i) "T" #i "[" << (state.turnouts[i] == A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
 
-    auto print = [](const unsigned int id, const TSS::State& state) {
-        std::cout << std::setfill(' ') << "Step: " << id << "\n" <<
+    auto print = [](const std::string info, const TSS::State& state) {
+        std::cout << std::setfill(' ') << info <<
             S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
             "                          //" << "\n" <<
             "                         " << T(7) << "" << " =============== " << S(8) << " ============== " << "\n" <<
@@ -62,12 +63,21 @@ int main()
             "       " << S(18) << " == " << S(19) << "\n\n";
     };
 
-    TSS tss(classic, print);
+    auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {
+        std::cout << "\r" << "Step " << step << " / " << steps << " possible solutions: " << solutions;
+    };
+
+    auto statistics = [](const unsigned int steps, const unsigned int solutions)
+    {
+        std::cout << "\n" << "Step " << steps << " / " << steps << " possible solutions: " << solutions;
+    };
+
+    TSS tss(classic, print, step, statistics);
     //TSS::CarPlacement cars{ { 0 } };
     //TSS::CarPlacement target{ { 14 } };
 
-    auto cars = tss.random();
-    auto target = tss.random();
+    auto cars = tss.random(2);
+    auto target = tss.random(2);
     tss.init(cars);
     tss.solve(target);
 }
