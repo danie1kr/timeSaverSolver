@@ -117,14 +117,39 @@
                                                                                 document.getElementById('resize').checked)">
     </div>
 
+    <div class="input-field">
+        <input class="settings" placeholder="Loco" id="loco" type="text">
+        <label for="loco">Locomotive</label>
+    </div>
+    <div class="input-field">
+        <input class="settings" placeholder="1" id="wagon0" type="text">
+        <label for="wagon0">1st Wagon</label>
+    </div>
+    <div class="input-field">
+        <input class="settings" placeholder="2" id="wagon1" type="text">
+        <label for="wagon1">2nd Wagon</label>
+    </div>
+    <div class="input-field">
+        <input class="settings" placeholder="3" id="wagon2" type="text">
+        <label for="wagon2">3rd Wagon</label>
+    </div>
+    <div class="input-field">
+        <input class="settings" placeholder="4" id="wagon3" type="text">
+        <label for="wagon3">4th Wagon</label>
+    </div>
+    <div class="input-field">
+        <input class="settings" placeholder="5" id="wagon4" type="text">
+        <label for="wagon4">5th Wagon</label>
+    </div>
+
     <hr />
     <textarea class="emscripten" id="output" rows="8"></textarea>
     <hr>
 
-    <select id="layouts"></select>
+    <select id="layouts" class="settings"></select>
     <form action="#">
         <p class="range-field">
-            <input type="range" id="rangeCars" min="1" max="5" />
+            <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="5" />
         </p>
     </form>
     <a class="waves-effect waves-light btn" id="btnRandomize">randomize</a>
@@ -152,7 +177,6 @@
                     {
                         selector: ".node",
                         style: {
-                            "line-color": '#F00',
                             "width": 8,
                             "height": 8
                         }
@@ -162,6 +186,14 @@
                         style: {
                             "line-color": 'orange',
                             "width": 2
+                        }
+                    },
+                    {
+                        selector: ".connector",
+                        style: {
+                            "color": 'orange',
+                            "width": 1,
+                            "height": 1
                         }
                     }
                 ]
@@ -184,17 +216,29 @@
             let edges = [];
 
             let layout = parseInt($("#layouts").val());
-            let layoutNodes = Module.getLayoutNodes(layout);
-            console.log(layoutNodes);
-            _.each(JSON.parse(layoutNodes), n => {
+            let layoutNodes = JSON.parse(Module.getLayoutNodes(layout));
+            _.each(layoutNodes, n => {
 
                 nodes.push({ group: 'nodes', data: { id: n.id }, position: { x: n.x, y: n.y }, classes: "node" });
 
                 _.each(n.connections, c => {
-                    let to = c.target;
+                    let other = _.find(layoutNodes, node => node.id === c.target);
+
+                    let exists = _.find(nodes, node => node.data.id === n.id + "_" + other.id || node.data.id === other.id + "_" + n.id);
+
+                    if (!exists) {
+                        exists = { group: 'nodes', data: { id: n.id + "_" + other.id }, position: { x: n.x - (n.x - other.x) / 2, y: n.y - (n.y - other.y) / 2 }, classes: "connector" };
+                        nodes.push(exists);
+                    }
+                    let edge = { group: 'edges', data: { source: n.id, target: exists.data.id }, classes: "track" };
+                    if (c.turnout !== "None")
+                        edge.classes += " " + c.turnout;
+                    edges.push(edge);
+                    /*
                     let exists = _.find(edges, e => (e.data.source === to && e.data.target === n.id) || (e.data.source === n.id && e.data.target === to));
                     if (!exists)
                         edges.push({ group: 'edges', data: { source: to, target: n.id }, classes: "track" });
+                        */
                 });
             });
 
@@ -220,12 +264,12 @@
         function cyUpdate(state, turnouts) {
             cy.$('node').data("carName", "");
             _.each(state, (value, index) => {
-                cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value-1));
+                cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
             });/*
-            _.each(turnouts, (value, index) => {
-                if(value !== 0)
-                cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
-            });*/
+                                        _.each(turnouts, (value, index) => {
+                                            if(value !== 0)
+                                            cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
+                                        });*/
         }
 
         function wasmLoaded() {
@@ -347,8 +391,25 @@
             };
         };
 
+        function putStateIntoURL() {
+            var url = window.location.protocol + "//" + window.location.host + window.location.pathname + '?';
+            $(".settings").each((index, item) => {
+                let $item = $(item);
+                url += $item.attr("id") + "=" + $item.val() + "&";
+            });
+            window.history.pushState({ path: url }, '', url);
+        }
+
         $(function () {
             M.AutoInit();
+
+            let URLsp = new URLSearchParams(window.location.search);
+            $(".settings").each((index, item) => {
+                let $item = $(item);
+                $item.on('change', () => { putStateIntoURL(); });
+                $item.val(URLsp.get($item.attr("id")) || ($item.attr("placeholder") || 0));
+            });
+
         })
 
     </script>

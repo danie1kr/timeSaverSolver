@@ -99,18 +99,17 @@ const std::vector<Layout> layouts{ { "Classic",
 		{5, {BWD(4), FWD(6)}},
 		{6, {BWD(5)}},
 		{7, {BWD(11), FWD_A_B(3), FWD_A_C(8)}},
-		{8, {BWD(7), FWD(15)}},
+		{8, {BWD(7), FWD(14)}},
 		{9, {FWD(10)}},
 		{10, {BWD(9), FWD(11)}},
 		{11, {BWD(10), FWD_A_B(12), FWD_A_C(7)}},
-		{12, {BWD_A_B(11), BWD_A_C(19), FWD(13)}},
+		{12 | (unsigned char)TimeSaver::Node::Options::CanParkCars, {BWD_A_B(11), BWD_A_C(18), FWD(13)}},
 		{13, {BWD(12), FWD(14)}},
-		{14, {BWD(13), FWD(15)}},
-		{15, {BWD_A_B(14), BWD_A_C(8), FWD(16)}},
-		{16, {BWD(15), FWD(17)}},
-		{17, {BWD(16)}},
-		{18, {FWD(19)}},
-		{19, {BWD(18), FWD(12)}},
+		{14, {BWD_A_B(13), BWD_A_C(8), FWD(15)}},
+		{15, {BWD(14), FWD(16)}},
+		{16, {BWD(15)}},
+		{17, {FWD(18)}},
+		{18, {BWD(17), FWD(12)}},
 	}},
 	{{
 		{10, 0},
@@ -130,7 +129,6 @@ const std::vector<Layout> layouts{ { "Classic",
 		{50, 20},
 		{60, 20},
 		{70, 20},
-		{80, 20},
 		{10, 30},
 		{20, 30}
 	}}
@@ -192,7 +190,40 @@ emscripten::val getRandomCarLayout(unsigned int layout, unsigned int numberOfCar
 	auto print = [](const std::string info, const TimeSaver::Solver::State& state) {};
 	auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
 	auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
-	TimeSaver::Solver solver(layouts[layout].nodes, print, step, statistics);
+
+	std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
+	TimeSaver::Solver::DistanceStorage distStorage(
+		[&dist](const size_t elements, const size_t sizePerElement)
+		{
+			dist.resize(elements);
+		},
+		[&dist](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
+		{
+			dist[i] = value;
+		},
+			[&dist](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
+		{
+			return dist[i];
+		}
+		);
+
+	std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
+	TimeSaver::Solver::PrecStorage precStorage(
+		[&prec](const size_t elements, const size_t sizePerElement)
+		{
+			prec.resize(elements);
+		},
+		[&prec](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
+		{
+			prec[i] = value;
+		},
+			[&prec](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
+		{
+			return prec[i];
+		}
+		);
+
+	TimeSaver::Solver solver(layouts[layout].nodes, print, step, statistics, distStorage, precStorage);
 
 	auto cars = solver.random(numberOfCars);
 
@@ -273,7 +304,41 @@ emscripten::val timeSaverSolverInit(unsigned int layout, std::string carPlacemen
 			stepJS(step, steps, solutions);
 	};
 	auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
-	solver = new TimeSaver::Solver(layouts[layout].nodes, print, step, statistics);
+
+
+	std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
+	TimeSaver::Solver::DistanceStorage distStorage(
+		[&dist](const size_t elements, const size_t sizePerElement)
+		{
+			dist.resize(elements);
+		},
+		[&dist](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
+		{
+			dist[i] = value;
+		},
+			[&dist](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
+		{
+			return dist[i];
+		}
+		);
+
+	std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
+	TimeSaver::Solver::PrecStorage precStorage(
+		[&prec](const size_t elements, const size_t sizePerElement)
+		{
+			prec.resize(elements);
+		},
+		[&prec](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
+		{
+			prec[i] = value;
+		},
+			[&prec](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
+		{
+			return prec[i];
+		}
+		);
+
+	solver = new TimeSaver::Solver(layouts[layout].nodes, print, step, statistics, distStorage, precStorage);
 	solver->init(fromString(carPlacement));
 	solver->solve_init(fromString(carPlacement));
 	shortestPath = 0;
