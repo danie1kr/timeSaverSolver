@@ -1,4 +1,4 @@
-
+#pragma once
 #include <array>
 #include <deque>
 #include <unordered_set>
@@ -240,13 +240,24 @@ namespace TimeSaver
 #ifdef TSS_FLEXIBLE
 			std::vector<unsigned int> slots;
 			std::vector<Connection::TurnoutState> turnouts;
+
+			State() : slots(), turnouts() { };
+			State(const State& s) :
+				slots(s.slots), turnouts(s.turnouts)
+			{
+
+			}
+
+			State(std::vector<unsigned int> slots, std::vector<Connection::TurnoutState> turnouts) :
+				slots(slots), turnouts(turnouts)
+			{
+
+			}
 #else
 			std::array<unsigned int, _Nodes> slots;
 			std::array<Connection::TurnoutState, _Nodes> turnouts;
 #endif
 		};
-
-	private:
 		struct Step
 		{
 			struct Action
@@ -270,6 +281,18 @@ namespace TimeSaver
 				: id(id), state(state), actions(actions), endState{ false }
 			{ };
 
+			Step operator=(Step other)
+			{
+				Step s(other);
+				return s;
+			}
+
+			Step(const Step& s) :
+				id(s.id), state(s.state), actions(s.actions), endState{s.endState}
+			{
+
+			}
+
 			bool hasActionToOther(const Action & otherAction)
 			{
 				for (auto& action : this->actions)
@@ -284,8 +307,8 @@ namespace TimeSaver
 				this->actions.push_back(action);
 			}
 		};
-		using Steps = std::vector<Step>;
 		using Dijk = Dijkstra</*Step, Steps,*/ unsigned long>;
+		using Steps = std::vector<Step>;
 
 	public:
 		enum class Result : unsigned int
@@ -318,6 +341,19 @@ namespace TimeSaver
 			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF, dist, prec)
 		{
 
+		}
+
+		Result init(Steps steps)
+		{
+			this->nextStepIndex = std::rand() % this->steps.size();
+			for(unsigned int i = 0; i < this->steps[this->nextStepIndex].state.slots.size(); ++i)
+				if (this->steps[this->nextStepIndex].state.slots[i] == 1)
+				{
+					loco = i;
+					break;
+				}
+
+			return Result::OK;
 		}
 
 		Result init(CarPlacement cars, const bool keep = false)
@@ -386,6 +422,19 @@ namespace TimeSaver
 
 			return result;
 		}
+
+		const CarPlacement randomFromStepsGraph()
+		{
+			CarPlacement result;
+			auto i = std::rand() % this->steps.size();
+			const size_t maxCars = this->steps[i].state.slots.size();
+			for (unsigned int j = 0; j < maxCars; ++j)
+				for (unsigned int k = 1; k < maxCars; ++k)
+					if (this->steps[i].state.slots[j] == k)
+						result[k - 1] = j;
+
+			return result;
+;		}
 
 		void solve_init(CarPlacement cars)
 		{
@@ -516,50 +565,52 @@ namespace TimeSaver
 			while (solve_dijkstra_step());
 
 			return solve_dijkstra_shortestPath();
-			/*
-			// get shortest path
-			dijkstra.dijkstra(this->steps, &this->steps[0],
-				[&](const Step* node) -> const std::vector<const Step*> {
-					std::vector<const Step*> neighbors;
-					for (auto neighbor : node->actions)
-						neighbors.push_back(&steps[neighbor.target]);
-					return neighbors;
-				},
-				[](const Step* a, const Step* b) -> const unsigned int {
-					for (auto neighbor : a->actions)
-						if (neighbor.target == b->id)
-							return (unsigned int)1;
-
-					return 0;
-				});
-			typename Dijk::Path shortestPath;
-			unsigned int currentSolutionCheck = 0;
-			size_t shortestPathSteps = 0xFFFFFFFF;
-			for (auto& step : this->steps)
-				if (step.endState)
-				{
-					++currentSolutionCheck;
-					//std::cout << "\r" << "Checking solution " << currentSolutionCheck << " / " << solutions;
-					auto path = dijkstra.shortestPath(&step);
-					if (path.size() < shortestPathSteps)
-					{
-						shortestPath = path;
-						shortestPathSteps = path.size();
-					}
-				}
-			//std::cout << "\nSolutions has: " << shortestPath.size() << " steps\n";
-			statistics((unsigned int)this->steps.size(), solutions);
-			if (solutions == 0)
-				return 0;
-
-			print("Start\n", this->steps[0].state);
-			print("End\n", targetState);
-#ifdef _DEBUG
-			for(auto it = shortestPath.rbegin(); it != shortestPath.rend(); ++it)
-				print(std::string("Step").append(std::to_string((unsigned int)(*it)->id)), (*it)->state);
-#endif
-			return (unsigned int)shortestPathSteps;*/
 		}
+
+		void importSteps(Steps steps)
+		{
+			this->steps = steps;
+		}
+
+#ifdef TSS_WITH_EXPORT
+		void exportSteps(std::ostream& out, std::string id)
+		{
+			/*
+				TimeSaver::Solver::Steps steps = {{
+					{id, State{slots, turnouts}, Actions{Action{target, direction}}}
+				}};
+
+			*/
+
+			out << "TimeSaver::Solver::Steps tss_steps_" << id << "{{\n";
+
+			for (const auto step : steps)
+			{
+				// id
+				out << "{" << step.id << ",";
+
+				// State
+				out << "{{";
+					// slots
+					for (const auto slot : step.state.slots)
+						out << slot << ",";
+				out << "},{";
+					// turnouts
+					for (const auto turnout : step.state.turnouts)
+						out << (turnout == Connection::TurnoutState::None ? "TimeSaver::Connection::TurnoutState::None" : (turnout == Connection::TurnoutState::A_B ? "TimeSaver::Connection::TurnoutState::A_B" : "TimeSaver::Connection::TurnoutState::A_C")) << ",";
+				out << "}},";
+			
+				// Actions
+				out << "{";
+				for (const auto action : step.actions)
+					out << "{" << action.target << ", " << (action.locoDirection == Connection::Direction::Forward ? "TimeSaver::Connection::Direction::Forward" : "TimeSaver::Connection::Direction::Backward") << "},";
+				out << "}";
+				out << "},\n";
+			}
+
+			out << "}};\n";
+		}
+#endif
 
 		const size_t steps_count()
 		{

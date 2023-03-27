@@ -134,6 +134,38 @@ const std::vector<Layout> layouts{ { "Classic",
 	}}
 } };
 
+std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
+std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
+TimeSaver::Solver::DistanceStorage distStorage(
+	[](const size_t elements, const size_t sizePerElement)
+	{
+		dist.resize(elements);
+	},
+	[](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
+	{
+		dist[i] = value;
+	},
+		[](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
+	{
+		return dist[i];
+	}
+	);
+
+TimeSaver::Solver::PrecStorage precStorage(
+	[](const size_t elements, const size_t sizePerElement)
+	{
+		prec.resize(elements);
+	},
+	[](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
+	{
+		prec[i] = value;
+	},
+		[](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
+	{
+		return prec[i];
+	}
+	);
+
 
 emscripten::val getLayoutCount() {
 	return emscripten::val(layouts.size());
@@ -190,39 +222,6 @@ emscripten::val getRandomCarLayout(unsigned int layout, unsigned int numberOfCar
 	auto print = [](const std::string info, const TimeSaver::Solver::State& state) {};
 	auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
 	auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
-
-	std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
-	TimeSaver::Solver::DistanceStorage distStorage(
-		[&dist](const size_t elements, const size_t sizePerElement)
-		{
-			dist.resize(elements);
-		},
-		[&dist](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
-		{
-			dist[i] = value;
-		},
-			[&dist](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
-		{
-			return dist[i];
-		}
-		);
-
-	std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
-	TimeSaver::Solver::PrecStorage precStorage(
-		[&prec](const size_t elements, const size_t sizePerElement)
-		{
-			prec.resize(elements);
-		},
-		[&prec](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
-		{
-			prec[i] = value;
-		},
-			[&prec](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
-		{
-			return prec[i];
-		}
-		);
-
 	TimeSaver::Solver solver(layouts[layout].nodes, print, step, statistics, distStorage, precStorage);
 
 	auto cars = solver.random(numberOfCars);
@@ -306,37 +305,35 @@ emscripten::val timeSaverSolverInit(unsigned int layout, std::string carPlacemen
 	auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
 
 
-	std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
 	TimeSaver::Solver::DistanceStorage distStorage(
-		[&dist](const size_t elements, const size_t sizePerElement)
-		{
-			dist.resize(elements);
-		},
-		[&dist](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
-		{
-			dist[i] = value;
-		},
-			[&dist](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
-		{
-			return dist[i];
-		}
-		);
+	[](const size_t elements, const size_t sizePerElement)
+	{
+		dist.resize(elements);
+	},
+	[](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
+	{
+		dist[i] = value;
+	},
+		[](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
+	{
+		return dist[i];
+	}
+	);
 
-	std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
 	TimeSaver::Solver::PrecStorage precStorage(
-		[&prec](const size_t elements, const size_t sizePerElement)
-		{
-			prec.resize(elements);
-		},
-		[&prec](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
-		{
-			prec[i] = value;
-		},
-			[&prec](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
-		{
-			return prec[i];
-		}
-		);
+	[](const size_t elements, const size_t sizePerElement)
+	{
+		prec.resize(elements);
+	},
+	[](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
+	{
+		prec[i] = value;
+	},
+	[](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
+	{
+		return prec[i];
+	}
+	);
 
 	solver = new TimeSaver::Solver(layouts[layout].nodes, print, step, statistics, distStorage, precStorage);
 	solver->init(fromString(carPlacement));
