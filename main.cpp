@@ -49,28 +49,30 @@ int main()
     T3 ?= 15
         */
 
-#define FWD(id, ...)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, __VA_ARGS__)
-#define BWD(id, ...)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, __VA_ARGS__)
+#define FWD(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward)
+#define BWD(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward)
+#define FWD_A_B(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, TimeSaver::Connection::TurnoutState::A_B )
+#define BWD_A_B(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_B)
+#define FWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, TimeSaver::Connection::TurnoutState::A_C)
+#define BWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_C)
 
-#define A_B  TimeSaver::Connection::TurnoutState::A_B
-#define A_C  TimeSaver::Connection::TurnoutState::A_C  
 
     TimeSaver::Nodes/*<20>*/ classic{{
         {0, {FWD(1)}},
         {1, {BWD(0), FWD(2)}},
         {2, {BWD(1), FWD(3)}},
-        {3, {BWD(2, A_B), BWD(7, A_C), FWD(4)}},
+        {3, {BWD_A_B(2), BWD_A_C(7), FWD(4)}},
         {4, {BWD(3), FWD(5)}},
         {5, {BWD(4), FWD(6)}},
         {6, {BWD(5)}},
-        {7, {BWD(11), FWD(3, A_B), FWD(8, A_C)}},
+        {7, {BWD(11), FWD_A_B(3), FWD_A_C(8)}},
         {8, {BWD(7), FWD(14)}},
         {9, {FWD(10)}},
         {10, {BWD(9), FWD(11)}},
-        {11, {BWD(10), FWD(12, A_B), FWD(7, A_C)}},
-        {12 | (unsigned char)TimeSaver::Node::Options::CanParkCars, {BWD(11, A_B), BWD(18, A_C), FWD(13)}},
+        {11, {BWD(10), FWD_A_B(12), FWD_A_C(7)}},
+        {12 | (unsigned char)TimeSaver::Node::Options::CanParkCars, {BWD_A_B(11), BWD_A_C(18), FWD(13)}},
         {13, {BWD(12), FWD(14)}},
-        {14, {BWD(13, A_B), BWD(8, A_C), FWD(15)}},
+        {14, {BWD_A_B(13), BWD_A_C(8), FWD(15)}},
         {15, {BWD(14), FWD(16)}},
         {16, {BWD(15)}},
         {17, {FWD(18)}},
@@ -79,7 +81,7 @@ int main()
     using TSS = TimeSaver::Solver;// <classic.size(), 5>;
 
 #define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i) "T" #i "[" << (state.turnouts[i] == A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
+#define T(i) "T" #i "[" << (state.turnouts[i] == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
     auto printNone = [](const std::string info, const TSS::State& state) {};
 
     auto print = [](const std::string info, const TSS::State& state) {
