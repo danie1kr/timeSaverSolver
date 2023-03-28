@@ -35,6 +35,11 @@ const size_t stepsIndex(const Layout layout, const size_t cars)
     return (size_t)layout * perLayout + carsIndex(cars);
 }
 
+std::string varName(const std::string name, const size_t cars, const std::string suffix)
+{
+    return "tss_steps_" + name + "_" + std::to_string(cars) + suffix;
+}
+
 int main()
 {
     /*
@@ -154,12 +159,13 @@ int main()
 #ifdef TSS_WITH_EXPORT
     std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
 
+#define STRINGIFY(x) #x
 #define GENERATE(cars, layout, postfix) { \
-        std::cout << "\n" << "Generating: " << #layout << " with " << cars << "\n"; \
+        std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n"; \
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
         tss.init(tss.random(cars), false); \
         tss.solve(tss.random(cars)); \
-        tss.exportSteps(file, #layout "_" #cars ##postfix);  \
+        tss.exportSteps(file, varName(STRINGIFY(layout), cars, postfix));  \
     }
 
     GENERATE(2, classic, "");

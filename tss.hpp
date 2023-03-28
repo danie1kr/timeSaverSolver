@@ -573,7 +573,7 @@ namespace TimeSaver
 		}
 
 #ifdef TSS_WITH_EXPORT
-		void exportSteps(std::ostream& out, std::string id)
+		void exportSteps(std::ostream& out, std::string name)
 		{
 			/*
 				TimeSaver::Solver::Steps steps = {{
@@ -582,7 +582,7 @@ namespace TimeSaver
 
 			*/
 
-			out << "TimeSaver::Solver::Steps tss_steps_" << id << "{{\n";
+			out << "TimeSaver::Solver::Steps " << name << " {{\n";
 
 			for (const auto step : steps)
 			{
