@@ -23,11 +23,11 @@ namespace TimeSaver
 			Backward = 0b1
 		};
 
-		enum class TurnoutState : unsigned char
+		enum class TurnoutState : signed char
 		{
-			None,
-			A_B,
-			A_C
+			None = -1,
+			A_B = 0,
+			A_C = 1
 		};
 
 		inline Connection(const Id target, const Direction direction, const TurnoutState turnoutState = TurnoutState::None)
@@ -62,7 +62,7 @@ namespace TimeSaver
 
 		enum class Options : unsigned char
 		{
-			CanParkCars = 0b0100000
+			CanParkCars = 0b00100000
 		};
 
 		static const unsigned char optionMask = 0b11100000;
@@ -235,50 +235,104 @@ namespace TimeSaver
 	class Solver
 	{
 	public:
-		struct State
+		struct SimpleState
 		{
 #ifdef TSS_FLEXIBLE
 			std::vector<unsigned int> slots;
-			std::vector<Connection::TurnoutState> turnouts;
-
-			State() : slots(), turnouts() { };
-			State(const State& s) :
-				slots(s.slots), turnouts(s.turnouts)
-			{
-
-			}
-
-			State(std::vector<unsigned int> slots, std::vector<Connection::TurnoutState> turnouts) :
-				slots(slots), turnouts(turnouts)
+			SimpleState(const std::vector<unsigned int>& slots) :
+				slots(slots)
 			{
 
 			}
 #else
 			std::array<unsigned int, _Nodes> slots;
+			SimpleState(const std::array<unsigned int, _Nodes>& slots) :
+				slots(slots)
+			{
+
+			}
+#endif
+			SimpleState() : slots() { };
+			SimpleState(const SimpleState& s) :
+				slots(s.slots)
+			{
+
+			}
+		};
+
+		struct State : SimpleState
+		{
+			State() : SimpleState(), turnouts() { };
+#ifdef TSS_FLEXIBLE
+			std::vector<Connection::TurnoutState> turnouts;
+#else
 			std::array<Connection::TurnoutState, _Nodes> turnouts;
 #endif
+			State(const State& s) :
+				SimpleState(s), turnouts(s.turnouts)
+			{
+
+			}
+
+			State(std::vector<unsigned int> slots, std::vector<Connection::TurnoutState> turnouts) :
+				SimpleState(slots), turnouts(turnouts)
+			{
+
+			}
 		};
+
 		struct Step
 		{
+			struct TurnoutConfiguration
+			{
+				TurnoutConfiguration() : configuration(0) { };
+				void set(unsigned char i, Connection::TurnoutState state)
+				{
+#define SET_nth_BIT(data, bit, value) (data & ~(1 << bit)) | ((value) << bit)
+					if (i < 7)
+						this->configuration = (unsigned char)SET_nth_BIT(this->configuration, i, (unsigned char)state);
+#undef SET_nth_BIT
+				}
+				Connection::TurnoutState get(unsigned char i) const
+				{
+#define GET_nth_BIT(data, bit)	((data >> bit) & 1)
+					if (i < 7)
+						return GET_nth_BIT(this->configuration, i) == 0 ? Connection::TurnoutState::A_B : Connection::TurnoutState::A_C;
+					return Connection::TurnoutState::None;
+#undef GET_nth_BIT
+				}
+				const bool equals(const TurnoutConfiguration& tc) const
+				{
+					return this->configuration == tc.configuration;
+				}
+			private:
+				unsigned char configuration;
+			};
+
 			struct Action
 			{
 				const size_t target;
 				const Connection::Direction locoDirection;
-				Action(const size_t target, const Connection::Direction locoDirection)
-					: target(target), locoDirection(locoDirection) { };
-			};
-
-			const size_t id;
-			const State state;
-			std::vector<Action> actions;
-			bool endState;
+				const TurnoutConfiguration turnoutConfiguration;
+				Action(const size_t target, const Connection::Direction locoDirection, const TurnoutConfiguration turnoutConfiguration)
+					: target(target), locoDirection(locoDirection), turnoutConfiguration(turnoutConfiguration) { };
 			
-			Step(const size_t id) : id(id), state(), actions(), endState{ false } { };
-			Step(const size_t id, const State state)
-				: id(id), state(state), actions(), endState { false }
+				Action operator =(const Action& other)
+				{
+					Action a(other.target, other.locoDirection, other.turnoutConfiguration);
+					return a;
+				}
+			};
+			bool endState;
+			std::vector<Action> actions;
+
+			Step() : actions(), endState{ false } { };
+			Step(const bool endState) : actions(), endState{ endState } { };
+			Step(std::vector<Action> actions)
+				: actions(actions), endState{ false }
 			{ };
-			Step(const size_t id, const State state, std::vector<Action> actions)
-				: id(id), state(state), actions(actions), endState{ false }
+			Step(std::vector<Action> actions, const bool endState)
+				: actions(actions), endState{ endState }
 			{ };
 
 			Step operator=(Step other)
@@ -286,14 +340,21 @@ namespace TimeSaver
 				Step s(other);
 				return s;
 			}
-
+			
 			Step(const Step& s) :
-				id(s.id), state(s.state), actions(s.actions), endState{s.endState}
+				actions(s.actions), endState{ s.endState }
 			{
 
 			}
 
-			bool hasActionToOther(const Action & otherAction)
+			const size_t addAction(Action action)
+			{
+				const size_t id = this->actions.size();
+				this->actions.push_back(action);
+				return id;
+			}
+
+			bool hasActionToOther(const Action& otherAction)
 			{
 				for (auto& action : this->actions)
 					if (action.target == otherAction.target)
@@ -302,13 +363,78 @@ namespace TimeSaver
 				return false;
 			}
 
-			void addAction(Action action)
+			const Action& actionToTarget(const size_t target)
 			{
-				this->actions.push_back(action);
+				for (const auto& action : this->actions)
+					if (action.target == target)
+						return action;
+			}
+
+			const bool hasAction(const Action a)
+			{
+				for (const auto& action : this->actions)
+					if (action.target == a.target && action.locoDirection == a.locoDirection && action.turnoutConfiguration.equals(a.turnoutConfiguration))
+						return true;
+
+				return false;
 			}
 		};
+
+		template<typename _State>
+		struct StepInternals : public Step
+		{
+			using Action = Step::Action;
+			const _State state;
+			
+			StepInternals() : Step(), state() { };
+			StepInternals(const _State state)
+				: Step(), state(state)
+			{ };
+			StepInternals(const _State state, std::vector<Action> actions)
+				: Step(actions), state(state)
+			{ };
+			StepInternals(const _State state, const bool endState)
+				: Step(endState), state(state)
+			{ };
+
+			StepInternals operator=(StepInternals other)
+			{
+				StepInternals s(other);
+				return s;
+			}
+			
+			StepInternals(const StepInternals& s) :
+				Step(s.actions, s.endState), state(s.state)
+			{
+
+			}
+		};
+
+		struct StepWithId : StepInternals<State>
+		{
+			const size_t id;
+			StepWithId(const size_t id, const State state)
+				: StepInternals<State>(state), id(id)
+			{
+
+			}
+			StepWithId(const StepWithId& other)
+				: StepInternals<State>(other), id(other.id)
+			{
+
+			}
+			StepWithId operator =(const StepWithId& other)
+			{
+				StepWithId s(other);
+				return s;
+			}
+		};
+
 		using Dijk = Dijkstra</*Step, Steps,*/ unsigned long>;
-		using Steps = std::vector<Step>;
+		using FullStep = StepWithId;
+		using SimpleStep = StepInternals<SimpleState>;
+		using Steps = std::vector<FullStep>;
+		using SimpleSteps = std::vector<SimpleStep>;
 
 	public:
 		enum class Result : unsigned int
@@ -324,12 +450,18 @@ namespace TimeSaver
 #else
 		using CarPlacement = std::array<unsigned int, _Cars>;
 #endif
-		using PrintCallback = std::function<void(const std::string, const State&)>;
+		using PrintCallback = std::function<void(const std::string, const SimpleState&, const typename Step::Action&)>;
 		using GraphCreationCallback = std::function<void(const unsigned int step, const unsigned int steps, const unsigned int solutions)>;
 		using StatisticsCallback = std::function<void(const unsigned int steps, const unsigned int solutions)>;
 
 		using DistanceStorage = Dijk::DistanceStorage;
 		using PrecStorage = Dijk::PrecStorage;
+
+		struct ActionIndices
+		{
+			size_t step;
+			size_t action;
+		};
 
 		Solver(
 #ifdef TSS_FLEXIBLE
@@ -345,18 +477,18 @@ namespace TimeSaver
 
 		Result init(Steps steps)
 		{
-			this->nextStepIndex = std::rand() % this->steps.size();
+			/*this->nextStepIndex = std::rand() % this->simpleSteps.size();
 			for(unsigned int i = 0; i < this->steps[this->nextStepIndex].state.slots.size(); ++i)
 				if (this->steps[this->nextStepIndex].state.slots[i] == 1)
 				{
 					loco = i;
 					break;
-				}
+				}*/
 
 			return Result::OK;
 		}
 
-		Result init(CarPlacement cars, const bool keep = false)
+		Result init(CarPlacement cars)
 		{
 			State state;
 #ifdef TSS_FLEXIBLE
@@ -377,10 +509,13 @@ namespace TimeSaver
 				state.slots[c] = ++carIndex;
 			}
 
+			for (size_t n = 0; n < nodes.size(); ++n)
+				if (nodes[n].isTurnout())
+					this->turnoutIndices.push_back(n);
+
 			loco = cars[0];
-			if(!keep)
-				this->steps.clear();
-			this->nextStepIndex = this->steps.size();
+			this->simpleSteps.clear();
+			this->nextActionIndex = this->actions.size();
 
 			int nextIndex = this->hasStepWithState(state);
 			if (nextIndex == -1)
@@ -450,11 +585,51 @@ namespace TimeSaver
 			unsigned int carIndex = 0;
 			for (auto& c : cars)
 				targetState.slots[c] = ++carIndex;
+
+
+			State initial;
+			initial.slots = this->simpleSteps[0].state.slots;
+			typename Step::TurnoutConfiguration tc;
+			initial.turnouts = this->turnoutsStateFromTurnoutConfiguration(tc);
+			this->addStep(initial);
+			analyze(initial, 0);
+		}
+
+		bool analyze(const State& state, const size_t index)
+		{
+			const auto i = index;
+			auto loco = this->findLoco(state);
+			if (loco == -1)
+				return false;
+
+			auto node = nodes[loco];
+
+			for (auto& connection : node.connections)
+			{
+				// loco can only follow set turnouts
+				if (this->nodes[loco].isTurnout() && connection.isTurnoutConnection())
+				{
+					if (connection.turnoutState != state.turnouts[loco])
+						continue;
+				}
+				// check if loco can move
+				this->move(state, i, loco, connection);
+			}
+		}
+
+		State stateFromAction(const typename Step::Action& action)
+		{
+			State state;
+
+			state.slots = this->simpleSteps[action.target].state.slots;
+			state.turnouts = turnoutsStateFromTurnoutConfiguration(action.turnoutConfiguration);
+
+			return state;
 		}
 
 		bool solve_step(bool mayChooseSolutionIfImpossible = true)
 		{
-			const size_t i = this->nextStepIndex;
+			/*const size_t i = this->nextStepIndex;
 			auto& step = this->steps[i];
 			auto loco = this->findLoco(step.state);
 			if (loco == -1)
@@ -497,24 +672,55 @@ namespace TimeSaver
 					}
 			}
 
-			return this->nextStepIndex < this->steps.size();
+			return this->nextStepIndex < this->steps.size();*/
+			const size_t i = this->nextActionIndex;
+			auto& action = this->actions[i];
+
+			auto state = stateFromAction(this->simpleSteps[action.step].actions[action.action]);
+			analyze(state, this->simpleSteps[action.step].actions[action.action].target);
+			/*if (this->steps[i].state.slots == targetState.slots)
+			{
+				++solutions;
+				this->steps[i].endState = true;
+			}*/
+
+			creation(i, (unsigned int)this->actions.size(), 0);
+			this->nextActionIndex += 1;
+
+			if (this->nextActionIndex == this->actions.size() && solutions == 0 && mayChooseSolutionIfImpossible)
+			{
+				// get the cars position of this
+				unsigned int i = std::rand() % this->simpleSteps.size();
+
+				// mark all as valid with the same cars position
+				for (auto& step : this->simpleSteps)
+					if (step.state.slots == this->simpleSteps[i].state.slots)
+					{
+						step.endState = true;
+						++solutions;
+					}
+			}
+			
+
+			return this->nextActionIndex < this->actions.size();
 		}
 
 		void solve_dijkstra_init()
 		{
-			dijkstra.dijkstra_init(this->steps.size(), 0);
+			//simplify();
+			dijkstra.dijkstra_init(this->simpleSteps.size(), 0);
 		}
 
 		bool solve_dijkstra_step()
 		{
 			return dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 				std::vector<size_t> neighbors;
-				for (auto neighbor : steps[i].actions)
+				for (auto neighbor : simpleSteps[i].actions)
 					neighbors.push_back(neighbor.target);
 				return neighbors;
 				},
 				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned int {
-					for (auto neighbor : steps[a].actions)
+					for (auto neighbor : simpleSteps[a].actions)
 						if (neighbor.target == b)
 							return (unsigned int)1;
 
@@ -527,28 +733,36 @@ namespace TimeSaver
 			typename Dijk::Path shortestPath;
 			unsigned int currentSolutionCheck = 0;
 			size_t shortestPathSteps = dijkstra.infinity;
-			for (auto& step : this->steps)
+			for (size_t i = 0; i < this->simpleSteps.size(); ++i)
+			{
+				const auto& step = this->simpleSteps[i];
 				if (step.endState)
 				{
 					++currentSolutionCheck;
 					//std::cout << "\r" << "Checking solution " << currentSolutionCheck << " / " << solutions;
-					auto path = dijkstra.shortestPath(step.id);
+					auto path = dijkstra.shortestPath(i);
 					if (path.size() < shortestPathSteps)
 					{
 						shortestPath = path;
 						shortestPathSteps = path.size();
 					}
 				}
+			}
 			//std::cout << "\nSolutions has: " << shortestPath.size() << " steps\n";
-			statistics((unsigned int)this->steps.size(), solutions);
+			statistics((unsigned int)this->simpleSteps.size(), solutions);
 			if (solutions == 0)
 				return 0;
 
-			print("Start\n", this->steps[0].state);
-			print("End\n", targetState);
+			typename Step::TurnoutConfiguration tc;
+			typename Step::Action initial(0, Connection::Direction::Forward, tc);
+			print("Start\n", this->simpleSteps[0].state, initial);
+			print("End\n", targetState, simpleSteps[shortestPath[1]].actionToTarget(0));
 #ifdef _DEBUG
-			for (auto it = shortestPath.rbegin(); it != shortestPath.rend(); ++it)
-				print(std::string("Step").append(std::to_string((unsigned int)(*it))), steps[(*it)].state);
+			for (auto i = (int)shortestPath.size() - 1; i >= 0; --i)
+			{
+				print(std::string("Step").append(std::to_string((unsigned int)(i))), simpleSteps[shortestPath[i]].state,
+					i == 0 ? initial : simpleSteps[shortestPath[i-1]].actionToTarget(shortestPath[i]));
+			}
 #endif
 			return (unsigned int)shortestPathSteps;
 		}
@@ -617,6 +831,34 @@ namespace TimeSaver
 			return this->steps.size();
 		}
 
+		const size_t simpleStepWithState(const State& state)
+		{
+			for (size_t i = 0; i < this->simpleSteps.size(); ++i)
+				if (this->simpleSteps[i].state.slots == state.slots)
+					return i;
+
+			return -1;
+		}
+
+		const size_t addSimpleStep(const FullStep& step)
+		{
+			SimpleState simpleState(step.state.slots);
+			this->simpleSteps.emplace_back(simpleState, step.endState);
+			return this->simpleSteps.size() - 1;
+		}
+
+		/*void simplify()
+		{
+			for (const auto step : this->steps)
+			{
+				auto i = simpleStepWithState(step.state);
+				if (i == -1)
+					i = addSimpleStep(step);
+				/ rewrite action targets to match new ids, not the old ones /
+				simpleSteps[i].actions.insert(simpleSteps[i].actions.end(), step.actions.begin(), step.actions.end());
+			}
+		}*/
+
 
 #ifdef TSS_FLEXIBLE
 #else
@@ -652,14 +894,14 @@ namespace TimeSaver
 			return Connection(0, Connection::Direction::Forward);
 		}
 
-		void move(const size_t i, const Id from, const Connection connectionTo)
+		void move(const State& stateIn, const size_t i, const Id from, const Connection connectionTo)
 		{
 			auto to = connectionTo.target;
 			const Connection::Direction locoDirection = connectionTo.direction;
 			//auto conditions = connectionTo.conditions;
 			int lastNodedPushedOn = from;
 
-			State state = this->steps[i].state;
+			State state = /*this->steps[i].*/stateIn;
 			bool pushedSomethingFromTo = state.slots[to] != Empty;
 
 			if (state.slots[to] == Loco)
@@ -838,6 +1080,14 @@ namespace TimeSaver
 			return true;
 		}
 
+		bool hasActionIndices(size_t step, size_t action)
+		{
+			for (const auto& indices : this->actions)
+				if (indices.action == action && indices.step == step)
+					return true;
+			return false;
+		}
+
 		State nextStep(State state, const Id from, const Id to, const size_t attach, const Connection::Direction locoDirection)
 		{
 			state.slots[to] = state.slots[from];
@@ -848,7 +1098,20 @@ namespace TimeSaver
 				int nextIndex = this->hasStepWithState(state);
 				if (nextIndex == -1)
 					nextIndex = (int)this->addStep(state);
-				this->steps[attach].addAction(typename Step::Action(nextIndex, locoDirection));
+				const auto tc = turnoutConfiguration(state);
+				const auto action = typename Step::Action(nextIndex, locoDirection, tc);
+				if (!this->simpleSteps[attach].hasAction(action))
+				{
+					auto actionId = this->simpleSteps[attach].addAction(action);
+					if (!hasActionIndices(attach, actionId))
+						this->actions.emplace_back(attach, actionId);
+				}
+
+				if (this->simpleSteps[nextIndex].state.slots == targetState.slots)
+				{
+					++solutions;
+					this->simpleSteps[nextIndex].endState = true;
+				}
 			}
 			return state;
 		}
@@ -928,15 +1191,15 @@ namespace TimeSaver
 
 		template<typename... Args>
 		const size_t addStep(Args&&... args) {
-			size_t id = this->steps.size();
-			this->steps.emplace_back(id, std::forward<Args>(args)...);
+			size_t id = this->simpleSteps.size();
+			this->simpleSteps.emplace_back(/*id,*/ std::forward<Args>(args)...);
 			return id;
 		}
 
 		int hasStepWithState(const State& state) const
 		{
-			for (unsigned int i = 0; i < steps.size(); ++i)
-				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
+			for (unsigned int i = 0; i < simpleSteps.size(); ++i)
+				if (simpleSteps[i].state.slots == state.slots)//&& steps[i].state.turnouts == state.turnouts)
 					return i;
 			return -1;
 		}
@@ -950,12 +1213,41 @@ namespace TimeSaver
 			return -1;
 		}
 
+		const typename Step::TurnoutConfiguration turnoutConfiguration(const State& state)
+		{
+			typename Step::TurnoutConfiguration result;
+
+			for (size_t t = 0; t < this->turnoutIndices.size(); ++t)
+				result.set(t, state.turnouts[this->turnoutIndices[t]]);
+
+			return result;
+		}
+#ifdef TSS_FLEXIBLE
+		const std::vector<Connection::TurnoutState> turnoutsStateFromTurnoutConfiguration(const typename Step::TurnoutConfiguration tc)
+		{
+			std::vector<Connection::TurnoutState> turnouts;
+			turnouts.resize(this->nodes.size());
+#else
+		const std::array<Connection::TurnoutState, _Nodes> turnoutsStateFromTurnoutConfiguration(const typename Step::TurnoutConfiguration tc)
+		{
+			std::array<Connection::TurnoutState, _Nodes> turnouts;
+#endif
+			for (size_t i = 0; i < turnouts.size(); ++i)
+				turnouts[i] = Connection::TurnoutState::None;
+			
+			for (size_t t = 0; t < this->turnoutIndices.size(); ++t)
+				turnouts[this->turnoutIndices[t]] = tc.get(t);
+
+			return turnouts;
+		}
+
 		const unsigned int Loco = 1;
 		const unsigned int Empty = 0;
 		unsigned int loco = 0;
+		std::vector<unsigned int> turnoutIndices;
 
 		unsigned int solutions = 0;
-		size_t nextStepIndex = 0;
+		size_t nextActionIndex = 0;
 		State targetState;
 		Dijk dijkstra;
 
@@ -965,5 +1257,8 @@ namespace TimeSaver
 		StatisticsCallback statistics;
 
 		Steps steps;
+		SimpleSteps simpleSteps;
+
+		std::vector<ActionIndices> actions;
 	};
 }
