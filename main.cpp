@@ -86,16 +86,16 @@ int main()
     using TSS = TimeSaver::Solver;// <classic.size(), 5>;
 
 #define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i,t) "T" #i "[" << (wayHere.turnoutConfiguration.get(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
-    auto printNone = [](const std::string info, const TSS::SimpleState& state, const TSS::Step::Action& wayHere) {};
+#define T(i) "T" #i "[" << (state.turnouts[i] == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
+    auto printNone = [](const std::string info, const TSS::State& state) {};
 
-    auto print = [](const std::string info, const TSS::SimpleState& state, const TSS::Step::Action &wayHere) {
+    auto print = [](const std::string info, const TSS::State& state) {
         std::cout << std::setfill(' ') << info <<
-            S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3,0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
+            S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
             "                          //" << "\n" <<
-            "                         " << T(7,1) << "" << " ============ " << S(8) << " =========== " << "\n" <<
+            "                         " << T(7) << "" << " ============ " << S(8) << " =========== " << "\n" <<
             "                        //                                              \\\\\n" <<
-            "    " << S(9) << " == " << S(10) << " == " << T(11,2) << " == " << T(12,3) << " == " << S(13) << " == " << T(14,4) << " == " << S(15) << " == " << S(16) << "\n" <<
+            "    " << S(9) << " == " << S(10) << " == " << T(11) << " == " << T(12) << " == " << S(13) << " == " << T(14) << " == " << S(15) << " == " << S(16) << "\n" <<
             "                                     //\n" <<
             "                     " << S(17) << " == " << S(18) << "\n\n";
     };
@@ -163,7 +163,7 @@ int main()
 #define GENERATE(cars, layout, postfix) { \
         std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n"; \
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
-        tss.init(tss.random(cars)); \
+        tss.init(tss.random(cars), false); \
         tss.solve(tss.random(cars)); \
         tss.exportSteps(file, varName(STRINGIFY(layout), cars, postfix));  \
     }
