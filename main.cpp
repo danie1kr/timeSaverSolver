@@ -85,17 +85,18 @@ int main()
     }};
     using TSS = TimeSaver::Solver;// <classic.size(), 5>;
 
-#define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i) "T" #i "[" << (state.turnouts[i] == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
-    auto printNone = [](const std::string info, const TSS::State& state) {};
 
-    auto print = [](const std::string info, const TSS::State& state) {
+#define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
+#define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
+    auto printNone = [](const std::string info, const TSS::PackedState& state) {};
+
+    auto print = [](const std::string info, const TSS::PackedState& state) {
         std::cout << std::setfill(' ') << info <<
-            S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
+            S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3,0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
             "                          //" << "\n" <<
-            "                         " << T(7) << "" << " ============ " << S(8) << " =========== " << "\n" <<
+            "                         " << T(7,1) << "" << " ============ " << S(8) << " =========== " << "\n" <<
             "                        //                                              \\\\\n" <<
-            "    " << S(9) << " == " << S(10) << " == " << T(11) << " == " << T(12) << " == " << S(13) << " == " << T(14) << " == " << S(15) << " == " << S(16) << "\n" <<
+            "    " << S(9) << " == " << S(10) << " == " << T(11,2) << " == " << T(12,3) << " == " << S(13) << " == " << T(14,4) << " == " << S(15) << " == " << S(16) << "\n" <<
             "                                     //\n" <<
             "                     " << S(17) << " == " << S(18) << "\n\n";
     };
@@ -169,10 +170,10 @@ int main()
     }
 
     GENERATE(2, classic, "");
-    GENERATE(3, classic, "");
-    GENERATE(4, classic, "_a");
-    GENERATE(4, classic, "_b");
-    GENERATE(4, classic, "_c");
+    //GENERATE(3, classic, "");
+    //GENERATE(4, classic, "_a");
+    //GENERATE(4, classic, "_b");
+    //GENERATE(4, classic, "_c");
     file.close();
 #endif
 #endif

@@ -219,7 +219,7 @@ emscripten::val getRandomCarLayout(unsigned int layout, unsigned int numberOfCar
 		error("getRandomCarLayout: Incompatible arguments");
 		return emscripten::val("");
 	}
-	auto print = [](const std::string info, const TimeSaver::Solver::State& state) {};
+	auto print = [](const std::string info, const TimeSaver::Solver::PackedState& state) {};
 	auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
 	auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
 	TimeSaver::Solver solver(layouts[layout].nodes, print, step, statistics, distStorage, precStorage);
@@ -297,7 +297,7 @@ emscripten::val timeSaverSolverInit(unsigned int layout, std::string carPlacemen
 		return emscripten::val(TSSState::Error);
 	}
 
-	auto print = [](const std::string info, const TimeSaver::Solver::State& state) {};
+	auto print = [](const std::string info, const TimeSaver::Solver::PackedState& state) {};
 	auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {
 		if (stepJS)
 			stepJS(step, steps, solutions);
