@@ -27,7 +27,8 @@ namespace TimeSaver
 		{
 			None,
 			A_B,
-			A_C
+			A_C,
+			DontCare
 		};
 
 		inline Connection(const Id target, const Direction direction, const TurnoutState turnoutState = TurnoutState::None)
@@ -53,6 +54,8 @@ namespace TimeSaver
 
 	inline const Connection::TurnoutState other(const Connection::TurnoutState& state)
 	{
+		if (state == Connection::TurnoutState::None || state == Connection::TurnoutState::DontCare)
+			return state;
 		return state == Connection::TurnoutState::A_B ? Connection::TurnoutState::A_C : Connection::TurnoutState::A_B;
 	}
 
@@ -272,6 +275,8 @@ namespace TimeSaver
 					return Connection::TurnoutState::A_B;
 				else if (t == 0b01)
 					return Connection::TurnoutState::A_C;
+				else if(t == 0b10)
+					return Connection::TurnoutState::DontCare;
 				else
 					return Connection::TurnoutState::None;
 			}
@@ -326,7 +331,14 @@ namespace TimeSaver
 
 				for (size_t t = 0; t < state.turnouts.size(); ++t)
 					if (state.turnouts[t] != Connection::TurnoutState::None)
-						data |= (state.turnouts[t] == Connection::TurnoutState::A_B ? 0b00 : 0b01) << (6 + cars * 5 + t * 2);
+					{
+						if (state.turnouts[t] == Connection::TurnoutState::A_B)
+							data |= (int64_t)0b00 << (int64_t)(6 + cars * 5 + t * 2);
+						else if (state.turnouts[t] == Connection::TurnoutState::A_C)
+							data |= (int64_t)0b01 << (int64_t)(6 + cars * 5 + t * 2);
+						else if (state.turnouts[t] == Connection::TurnoutState::DontCare)
+							data |= (int64_t)0b10 << (int64_t)(6 + cars * 5 + t * 2);
+					}
 
 				std::array<unsigned char, 6> arr;
 				for (unsigned int i = 0; i < arr.size(); ++i)
@@ -462,8 +474,8 @@ namespace TimeSaver
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
 #endif
-			for (auto& t : state.turnouts)
-				t = Connection::TurnoutState::A_B;
+			for (size_t i = 0; i < this->nodes.size(); ++i)
+				state.turnouts[i] = this->nodes[i].isTurnout() ? Connection::TurnoutState::A_B : Connection::TurnoutState::None;
 
 			for (auto& s : state.slots)
 				s = 0;
@@ -766,7 +778,8 @@ namespace TimeSaver
 				for (const auto& connection : nodes[id].connections)
 				{
 					if (connection.direction == direction && 
-						(connection.turnoutState == Connection::TurnoutState::None || connection.turnoutState == state.turnouts[id]))
+						// potential problem with connection.turnoutState == Connection::TurnoutState::DontCare ?
+						(connection.turnoutState == Connection::TurnoutState::None || connection.turnoutState == Connection::TurnoutState::DontCare || state.turnouts[id] == Connection::TurnoutState::DontCare || connection.turnoutState == state.turnouts[id]))
 					{
 						success = true;
 						return connection;
@@ -907,7 +920,7 @@ namespace TimeSaver
 
 				if (nodes[from].isTurnout())
 				{
-					if(connection.turnoutState == Connection::TurnoutState::None || connection.turnoutState == state.turnouts[from])
+					if(connection.turnoutState == Connection::TurnoutState::None || connection.turnoutState == Connection::TurnoutState::DontCare || state.turnouts[from] == Connection::TurnoutState::DontCare || connection.turnoutState == state.turnouts[from])
 					{
 						auto updatedStepState = nextStep(state, connection.target, targetConnection.target, attach, locoDirection);
 						auto connections = nodes[connection.target].sameDirectionConnections(connection.direction);
