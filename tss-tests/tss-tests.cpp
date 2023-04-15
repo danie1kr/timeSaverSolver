@@ -16,7 +16,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 #define A_C  TimeSaver::Connection::TurnoutState::A_C  
 
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
-#define T(i,t) "T" #i "[" << (state.turnoutState(t) == A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
+#define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnoutState(t) == A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
 
 namespace tsstests
 {
@@ -79,7 +79,7 @@ namespace tsstests
         static void print(const std::string info, const State& state)
         {
             std::stringstream s;
-            s << std::setfill(' ') << info <<
+            s << std::setfill(' ') << info << "\n" <<
                 S(0) << " == " << S(1) << " == " << S(2) << " == " << S(3) << " == " << S(4) << "\n";
             Logger::WriteMessage(s.str().c_str());
         }
@@ -91,7 +91,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 2);
         }
 
@@ -101,7 +101,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 4 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 4);
         }
 
@@ -112,7 +112,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 2 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 2);
         }
 
@@ -123,7 +123,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 1, 3 } };
             TSS::CarPlacement target{ { 2, 4 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 4);
         }
 
@@ -134,7 +134,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 1, 2 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 4);
         }
 
@@ -145,7 +145,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 2, 0, 4 } };
             TSS::CarPlacement target{ { 2, 1, 3 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 5);
         }
 	};
@@ -173,7 +173,7 @@ namespace tsstests
         static void print(const std::string info, const State& state)
         {
             std::stringstream s;
-            s << std::setfill(' ') << info <<
+            s << std::setfill(' ') << info << "\n" <<
                 S(0) << " == " << S(1) << " == " << T(2,0) << " == " << S(3) << " == " << S(4) << "\n" <<
                 "                  \\\\ " << S(5) << "\n";
             Logger::WriteMessage(s.str().c_str());
@@ -187,7 +187,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 3 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 4);
         }
 
@@ -198,7 +198,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 3 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 3);
         }
 
@@ -209,7 +209,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 4 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 5);
         }
 
@@ -220,7 +220,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 3 } };
             TSS::CarPlacement target{ { 5 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 5);
         }
        
@@ -231,7 +231,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 2, 3 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 3);
         }
 
@@ -242,7 +242,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 5 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 4);
         }
 
@@ -253,7 +253,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 0, 1 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 5);
         }
 
@@ -264,7 +264,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 3, 5 } };
             TSS::CarPlacement target{ { 0, 1 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 6);
         }
 
@@ -304,7 +304,7 @@ namespace tsstests
         static void print(const std::string info, const State& state)
         {
             std::stringstream s;
-            s << std::setfill(' ') << info <<
+            s << std::setfill(' ') << info << "\n" <<
                 S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3,0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
                 "                                \\\\ " << S(7) << " == " << S(8) << "\n";
             Logger::WriteMessage(s.str().c_str());
@@ -318,7 +318,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 1, 4, 5 } };
             TSS::CarPlacement target{ { 1, 2, 3 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 5);
         }
 
@@ -329,7 +329,7 @@ namespace tsstests
             TSS::CarPlacement cars{ { 1, 3, 4 } };
             TSS::CarPlacement target{ { 0, 5, 4 } };
             tss.init(cars);
-            auto steps = tss.solve(target);
+            auto steps = tss.solve(target, false);
             Assert::IsTrue(steps == 18);
         }
     };
@@ -364,7 +364,7 @@ namespace tsstests
         static void print(const std::string info, const State& state)
         {
             std::stringstream s;
-            s << std::setfill(' ') << info <<
+            s << std::setfill(' ') << info << "\n" <<
                 "  " << S(0) << " == " << S(1) << " == " << T(2,0) << " == " << S(3) << " == " << S(4) << "\n" <<
                 "                   // \n" <<
                 S(5) << " == " << S(6) << " == " << T(7,1) << " == " << T(8,2) << " == " << S(9) << " == " << S(10) << "\n" <<

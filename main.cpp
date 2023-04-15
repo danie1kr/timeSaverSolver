@@ -87,7 +87,7 @@ int main()
 
 
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
-#define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C") <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
+#define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
     auto printNone = [](const std::string info, const TSS::PackedState& state) {};
 
     auto print = [](const std::string info, const TSS::PackedState& state) {
@@ -153,7 +153,7 @@ int main()
 //#define TSS_WITH_IMPORT
 #ifdef TSS_WITH_IMPORT
 #include "precomputed_tss.hpp"
-    tss.init(tss_steps_for0);
+    tss.init(tss_steps_classic_4_a);
     auto target = tss.randomFromStepsGraph();
     tss.solve(target);
 #else

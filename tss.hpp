@@ -284,7 +284,7 @@ namespace TimeSaver
 			const unsigned int node(const unsigned int node) const
 			{
 				const int64_t I = toInt(this->data);
-				for (unsigned int c = 0; c < this->cars; ++c)
+				for (size_t c = 1; c <= cars; ++c)
 				{
 					if (((I >> ((6 + (c - 1) * 5))) & 0b11111) == (node & 0b11111))
 						return c;
@@ -329,15 +329,18 @@ namespace TimeSaver
 						if (state.slots[i] == c)
 							data |= (i & 0b11111) << (6 + (c - 1) * 5);
 
+				unsigned int turnout = 0;
 				for (size_t t = 0; t < state.turnouts.size(); ++t)
 					if (state.turnouts[t] != Connection::TurnoutState::None)
 					{
 						if (state.turnouts[t] == Connection::TurnoutState::A_B)
-							data |= (int64_t)0b00 << (int64_t)(6 + cars * 5 + t * 2);
+							data |= (int64_t)0b00 << (int64_t)(6 + cars * 5 + turnout * 2);
 						else if (state.turnouts[t] == Connection::TurnoutState::A_C)
-							data |= (int64_t)0b01 << (int64_t)(6 + cars * 5 + t * 2);
+							data |= (int64_t)0b01 << (int64_t)(6 + cars * 5 + turnout * 2);
 						else if (state.turnouts[t] == Connection::TurnoutState::DontCare)
-							data |= (int64_t)0b10 << (int64_t)(6 + cars * 5 + t * 2);
+							data |= (int64_t)0b10 << (int64_t)(6 + cars * 5 + turnout * 2);
+
+						++turnout;
 					}
 
 				std::array<unsigned char, 6> arr;
@@ -356,13 +359,21 @@ namespace TimeSaver
 			{
 				const int32_t target() const { return data >> 1; }
 				const Connection::Direction locoDirection() const { return (data & 0b1) == 0 ? Connection::Direction::Forward : Connection::Direction::Backward; }
+				PackedAction(const int32_t data) : data(data) { };
 				PackedAction(const int32_t target, const Connection::Direction locoDirection)
 					: data(target << 1 | ((locoDirection == Connection::Direction::Forward) ? 0 : 1)) { };
 
 				const int32_t data;
 			};
+			PackedStep(const PackedStep & step) : state{ step.state }, actions{ step.actions } {};
 
 			PackedStep(const PackedState state, const std::vector<PackedAction> actions) : state{ state }, actions{ actions } {};
+
+			PackedStep operator=(PackedStep &other)
+			{
+				PackedStep s(other);
+				return s;
+			}
 
 			const PackedState state;
 			const std::vector<PackedAction> actions;
@@ -454,15 +465,15 @@ namespace TimeSaver
 
 		}
 
-		Result init(Steps steps)
+		Result init(PackedSteps steps)
 		{
-			this->nextStepIndex = std::rand() % this->steps.size();
-			for(unsigned int i = 0; i < this->steps[this->nextStepIndex].state.slots.size(); ++i)
+			this->nextStepIndex = std::rand() % this->packedSteps.size();
+			/*for (unsigned int i = 0; i < this->packedSteps[this->nextStepIndex].state.slots.size(); ++i)
 				if (this->steps[this->nextStepIndex].state.slots[i] == 1)
 				{
 					loco = i;
 					break;
-				}
+				}*/
 
 			return Result::OK;
 		}
@@ -625,6 +636,7 @@ namespace TimeSaver
 				return neighbors;
 				},
 				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned int {
+					// look through prec of a to decide how man turnouts changed
 					for (auto neighbor : packedSteps[a].actions)
 						if (neighbor.target() == b)
 							return (unsigned int)1;
@@ -668,13 +680,15 @@ namespace TimeSaver
 
 		unsigned int solve(CarPlacement cars, bool mayChooseSolutionIfImpossible = true)
 		{
-			solve_init(cars);
+			if (this->nextStepIndex == 0)
+			{
+				solve_init(cars);
 
-			// build graph
-			while (solve_step(mayChooseSolutionIfImpossible));
+				// build graph
+				while (solve_step(mayChooseSolutionIfImpossible));
 
-			pack();
-
+				pack();
+			}
 			solve_dijkstra_init();
 
 			while (solve_dijkstra_step());
@@ -721,9 +735,9 @@ namespace TimeSaver
 			}
 		}
 
-		void importSteps(Steps steps)
+		void importSteps(PackedSteps steps)
 		{
-			this->steps = steps;
+			this->packedSteps = steps;
 		}
 
 #ifdef TSS_WITH_EXPORT
@@ -733,8 +747,7 @@ namespace TimeSaver
 				TimeSaver::Solver::Steps steps = {{
 					{id, State{slots, turnouts}, Actions{Action{target, direction}}}
 				}};
-			*/
-			
+			*/			
 
 			out << "TimeSaver::Solver::PackedSteps " << name << " {{\n";
 
@@ -779,7 +792,7 @@ namespace TimeSaver
 				{
 					if (connection.direction == direction && 
 						// potential problem with connection.turnoutState == Connection::TurnoutState::DontCare ?
-						(connection.turnoutState == Connection::TurnoutState::None || connection.turnoutState == Connection::TurnoutState::DontCare || state.turnouts[id] == Connection::TurnoutState::DontCare || connection.turnoutState == state.turnouts[id]))
+						(connection.turnoutState == Connection::TurnoutState::None || state.turnouts[id] == Connection::TurnoutState::DontCare ||  connection.turnoutState == state.turnouts[id]))
 					{
 						success = true;
 						return connection;
@@ -809,6 +822,7 @@ namespace TimeSaver
 			State state = this->steps[i].state;
 			bool pushedSomethingFromTo = state.slots[to] != Empty;
 
+			PushedStates pushedStates;
 			if (state.slots[to] == Loco)
 			{
 				// cannot push the loco away
@@ -820,86 +834,93 @@ namespace TimeSaver
 				bool success = false;
 				auto connection = outwardConnection(state, to, connectionTo.direction, success);
 				if (success)
-					lastNodedPushedOn = push(state, to, connection);
+					pushedStates = push(state, to, connection);
 			}
+			else
+				pushedStates = {{ { lastNodedPushedOn, state } }};
 
-			pushedSomethingFromTo = pushedSomethingFromTo && state.slots[to] == Empty;
-
-			if (state.slots[to] == Empty)
+			for (const auto& ps : pushedStates)
 			{
-				if (nodes[to].isTurnout())
-				{
-					Connection::TurnoutState turnoutDirection;
-					// from == to == a
-					//  other //
-					if (nodes[to].hasTurnoutConnectionTo(from, turnoutDirection))
-					{
-						State nextState = state;
-						if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection)
-						{
-							nextState.turnouts[to] = turnoutDirection;
-							auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
-							auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
-							pull(updatedStepState, from, connections, i, locoDirection);
+				const auto lastNodedPushedOn = ps.lastNodePushedOn;
+				const auto state = ps.state;
+				pushedSomethingFromTo = pushedSomethingFromTo && state.slots[to] == Empty;
 
-							// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
-							if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
+				if (state.slots[to] == Empty)
+				{
+					if (nodes[to].isTurnout())
+					{
+						Connection::TurnoutState turnoutDirection;
+						// from == to == a
+						//  other //
+						if (nodes[to].hasTurnoutConnectionTo(from, turnoutDirection))
+						{
+							State nextState = state;
+							if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection || nextState.turnouts[to] == Connection::TurnoutState::DontCare)
 							{
-								State nextState = state;
 								nextState.turnouts[to] = turnoutDirection;
-								nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
 								auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
 								auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
 								pull(updatedStepState, from, connections, i, locoDirection);
+
+								// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
+								if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
+								{
+									State nextState = state;
+									nextState.turnouts[to] = turnoutDirection;
+									nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
+									auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
+									auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
+									pull(updatedStepState, from, connections, i, locoDirection);
+								}
 							}
 						}
-					}
-					else
-					// otherA == to == from
-					//   otherB //
-					{
-						for (const auto& connection : nodes[to].connections)
+						else
+							// otherA == to == from
+							//   otherB //
 						{
-							if (connection.target != from)
+							for (const auto& connection : nodes[to].connections)
 							{
-								turnoutDirection = connection.turnoutState;
-								State nextState = state;
-								if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection)
+								if (connection.target != from)
 								{
-									nextState.turnouts[to] = turnoutDirection;
-									auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
-									auto connections = nodes[from].otherDirectionConnections(connection.direction);
-									pull(updatedStepState, from, connections, i, locoDirection);
-
-									// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
-									if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
+									turnoutDirection = connection.turnoutState;
+									State nextState = state;
+									if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection || nextState.turnouts[to] == Connection::TurnoutState::DontCare)
 									{
-										State nextState = state;
 										nextState.turnouts[to] = turnoutDirection;
-										nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
 										auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
 										auto connections = nodes[from].otherDirectionConnections(connection.direction);
 										pull(updatedStepState, from, connections, i, locoDirection);
+
+										// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
+										if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
+										{
+											State nextState = state;
+											nextState.turnouts[to] = turnoutDirection;
+											nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
+											auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
+											auto connections = nodes[from].otherDirectionConnections(connection.direction);
+											pull(updatedStepState, from, connections, i, locoDirection);
+										}
 									}
 								}
 							}
 						}
 					}
-				}
-				else
-				{
-					auto updatedStepState = nextStep(state, from, to, i, locoDirection);
-					auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
-					pull(updatedStepState, from, connections, i, locoDirection);
-
-					// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
-					if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
+					else
 					{
-						State nextState = state;
-						nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
-						auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
+						auto updatedStepState = nextStep(state, from, to, i, locoDirection);
 						auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
 						pull(updatedStepState, from, connections, i, locoDirection);
+
+						// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
+						if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
+						{
+							State nextState = state;
+							nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
+							auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
+							auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
+							pull(updatedStepState, from, connections, i, locoDirection);
+						}
 					}
 				}
 			}
@@ -920,7 +941,7 @@ namespace TimeSaver
 
 				if (nodes[from].isTurnout())
 				{
-					if(connection.turnoutState == Connection::TurnoutState::None || connection.turnoutState == Connection::TurnoutState::DontCare || state.turnouts[from] == Connection::TurnoutState::DontCare || connection.turnoutState == state.turnouts[from])
+					if(connection.turnoutState == Connection::TurnoutState::None ||/* connection.turnoutState == Connection::TurnoutState::DontCare || state.turnouts[from] == Connection::TurnoutState::DontCare ||*/ connection.turnoutState == state.turnouts[from])
 					{
 						auto updatedStepState = nextStep(state, connection.target, targetConnection.target, attach, locoDirection);
 						auto connections = nodes[connection.target].sameDirectionConnections(connection.direction);
@@ -990,25 +1011,50 @@ namespace TimeSaver
 			state.slots[to] = state.slots[from];
 			state.slots[from] = Empty;
 
+			//das hier ggf weg ? wenn man von einem turnout runter fährt, kann man keinen wagen mitnehmen-- >
+			//	hier wird es auf don;t care gestzt, aber bei pull danach weiter benutzt. ggf. dort zurücksetzen?
+			//if(!this->nodes[from].isTurnout())
+
 			if (checkValidState(state))
 			{
-				int nextIndex = this->hasStepWithState(state);
+				auto putState = state;
+				updateDontCare(putState);
+
+				int nextIndex = this->hasStepWithState(putState);
 				if (nextIndex == -1)
-					nextIndex = (int)this->addStep(state);
+					nextIndex = (int)this->addStep(putState);
 				this->steps[attach].addAction(typename Step::Action(nextIndex, locoDirection));
 			}
+			// futher pulls/pushes need the state without dontCare
 			return state;
 		}
 
-		const int push(State& state, const Id from, const Connection connectionTo)
+		struct PushedState
+		{
+			const int lastNodePushedOn;
+			const State state;
+			PushedState(const PushedState& other)
+				: lastNodePushedOn(other.lastNodePushedOn), state(other.state) {};
+			PushedState(const int lastNodePushedOn, const State state)
+				: lastNodePushedOn(lastNodePushedOn), state(state) { };
+			PushedState operator=(const PushedState& other)
+			{
+				PushedState s(other);
+				return s;
+			}
+		};
+		using PushedStates = std::vector<PushedState>;
+
+		const PushedStates push(State state, const Id from, const Connection connectionTo)
 		{
 			int lastNodedPushedOn = -1;
 			auto to = connectionTo.target;
 
 			if (state.slots[to] == Loco)
-				return lastNodedPushedOn;
+				return {{ {lastNodedPushedOn, state} }};
 
 			bool doPush = false;
+			PushedStates thisVals;
 			if (nodes[to].isTurnout())
 			{
 				Connection::TurnoutState turnoutDirection;
@@ -1019,12 +1065,15 @@ namespace TimeSaver
 					if (state.slots[to] == Empty)
 						state.turnouts[to] = turnoutDirection;
 
-					if (state.turnouts[to] == turnoutDirection)
+					if (state.turnouts[to] == turnoutDirection)// || state.turnouts[to] == Connection::TurnoutState::DontCare)
 					{
+						state.turnouts[to] = turnoutDirection;
 						doPush = true;
 					}
 					//else
 						lastNodedPushedOn = -1;// return lastNodedPushedOn;*/
+
+					thisVals.emplace_back(lastNodedPushedOn, state);
 				}
 				else
 					// otherA == to == from
@@ -1032,31 +1081,73 @@ namespace TimeSaver
 				{
 					doPush = true;
 					lastNodedPushedOn = to;
+					if (state.turnouts[to] == Connection::TurnoutState::DontCare)
+					{
+						{
+							auto newState = state;
+							newState.turnouts[to] = Connection::TurnoutState::A_B;
+							thisVals.emplace_back(lastNodedPushedOn, newState);
+						}
+						{
+							auto newState = state;
+							newState.turnouts[to] = Connection::TurnoutState::A_C;
+							thisVals.emplace_back(lastNodedPushedOn, newState);
+						}
+					}
+					else
+					{
+						thisVals.emplace_back(lastNodedPushedOn, state);
+					}
 				}
 			}
 			else
 			{
 				doPush = true;
+				thisVals.emplace_back(lastNodedPushedOn, state);
 			}
 
-			if (state.slots[to] != Empty && doPush)
+			PushedStates retVals;
+			for (const auto ps : thisVals)
 			{
-				// push cars if possible and then this one
-				bool success = false;
-				auto connection = outwardConnection(state, to, connectionTo.direction, success);
-				if (success)
-					lastNodedPushedOn = push(state, to, connection);
+				auto state = ps.state;
+
+				if (state.slots[to] != Empty && doPush)
+				{
+					// push cars if possible and then this one
+					bool success = false;
+					auto connection = outwardConnection(state, to, connectionTo.direction, success);
+					if (success)
+					{
+						for (const auto& nps : push(state, to, connection))
+						{
+							auto state = nps.state;
+							if (state.slots[to] == Empty)
+							{
+								//	if (lastNodedPushedOn == -1)
+									//	lastNodedPushedOn = to;
+
+								state.slots[to] = state.slots[from];
+								state.slots[from] = Empty;
+								//return lastNodedPushedOn;
+							}
+							retVals.emplace_back(nps.lastNodePushedOn, state);
+						}
+					}
+				}
+				else if (state.slots[to] == Empty)
+				{
+					//	if (lastNodedPushedOn == -1)
+						//	lastNodedPushedOn = to;
+
+					state.slots[to] = state.slots[from];
+					state.slots[from] = Empty;
+					retVals.emplace_back(ps.lastNodePushedOn, state);
+					//return lastNodedPushedOn;
+				}
+				else
+					retVals.emplace_back(ps.lastNodePushedOn, state);
 			}
-			
-			if (state.slots[to] == Empty)
-			{
-			//	if (lastNodedPushedOn == -1)
-				//	lastNodedPushedOn = to;
-				state.slots[to] = state.slots[from];
-				state.slots[from] = Empty;
-				//return lastNodedPushedOn;
-			}
-			return lastNodedPushedOn;
+			return retVals;
 		}
 
 		bool checkForSolutionState(const CarPlacement &cars, const State &state) const
@@ -1078,6 +1169,13 @@ namespace TimeSaver
 			size_t id = this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 			return id;
+		}
+
+		void updateDontCare(State& state) const
+		{
+			for (unsigned int i = 0; i < state.turnouts.size(); ++i)
+				if (this->nodes[i].isTurnout() && state.slots[i] == Empty)
+					state.turnouts[i] = Connection::TurnoutState::DontCare;
 		}
 
 		int hasStepWithState(const State& state) const
