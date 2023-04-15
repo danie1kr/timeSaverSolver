@@ -369,7 +369,7 @@ namespace TimeSaver
 
 			PackedStep(const PackedState state, const std::vector<PackedAction> actions) : state{ state }, actions{ actions } {};
 
-			PackedStep operator=(PackedStep &other)
+			PackedStep operator=(const PackedStep &other)
 			{
 				PackedStep s(other);
 				return s;
