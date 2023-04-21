@@ -152,6 +152,11 @@
             <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="5" />
         </p>
     </form>
+    <form action="#">
+        <p class="range-field">
+            <input class="settings" type="range" id="difficulty" placeholder="3" min="1" max="5" />
+        </p>
+    </form>
     <a class="waves-effect waves-light btn" id="btnRandomize">randomize</a>
     <a class="waves-effect waves-light btn" id="btnSolve">solve</a>
     <div class="progress">
@@ -166,6 +171,7 @@
 
         let cy = null;
         let carPlacement = "";
+        let selectedStartStep = -1;
 
         function cytoscapeCreate() {
             return cy = cytoscape({
@@ -266,10 +272,10 @@
             _.each(state, (value, index) => {
                 cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
             });/*
-                                        _.each(turnouts, (value, index) => {
-                                            if(value !== 0)
-                                            cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
-                                        });*/
+                                                _.each(turnouts, (value, index) => {
+                                                    if(value !== 0)
+                                                    cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
+                                                });*/
         }
 
         function wasmLoaded() {
@@ -299,13 +305,16 @@
             $("#btnRandomize").on('click', e => {
                 let layout = parseInt($("#layouts").val());
                 let cars = parseInt($("#rangeCars").val());
-                carPlacement = Module.getRandomCarLayout(layout, cars);
+                let rcl = Module.getRandomCarLayout(layout, cars);
+                carPlacement = rcl.cars;
+                selectedStartStep = rcl.selectedStartStep;
                 cyDisplayCarPlacement(_.split(carPlacement, ","));
                 console.log(carPlacement);
             });
             $("#btnSolve").on('click', e => {
                 let layout = parseInt($("#layouts").val());
-                Module.timeSaverSolverInit(layout, carPlacement);
+                let difficulty = parseInt($("#difficulty").val());
+                Module.timeSaverSolverInit(layout, selectedStartStep, difficulty);
                 _.defer(solve);
             });
             $("#layouts").on('change', e => {

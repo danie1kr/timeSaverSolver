@@ -35,9 +35,9 @@ const size_t stepsIndex(const Layout layout, const size_t cars)
     return (size_t)layout * perLayout + carsIndex(cars);
 }
 
-std::string varName(const std::string name, const size_t cars, const std::string suffix)
+std::string varName(const std::string name, const size_t cars)
 {
-    return "tss_steps_" + name + "_" + std::to_string(cars) + suffix;
+    return "tss_steps_" + name + "_" + std::to_string(cars);
 }
 
 int main()
@@ -161,17 +161,17 @@ int main()
     std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
 
 #define STRINGIFY(x) #x
-#define GENERATE(cars, layout, postfix) { \
+#define GENERATE(cars, layout) { \
         std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n"; \
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
         tss.init(tss.random(cars), false); \
-        tss.solve(tss.random(cars)); \
-        tss.exportSteps(file, varName(STRINGIFY(layout), cars, postfix));  \
+        tss.createGraph(); \
+        tss.exportSteps(file, varName(STRINGIFY(layout), cars));  \
     }
 
-    GENERATE(2, classic, "");
-    //GENERATE(3, classic, "");
-    //GENERATE(4, classic, "_a");
+    GENERATE(2, classic);
+    GENERATE(3, classic);
+    //GENERATE(4, classic);
     //GENERATE(4, classic, "_b");
     //GENERATE(4, classic, "_c");
     file.close();

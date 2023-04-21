@@ -13,7 +13,6 @@ namespace TimeSaver
 {
 	using Id = unsigned char;
 
-	
 	class Connection
 	{
 	public:
@@ -49,20 +48,19 @@ namespace TimeSaver
 		{
 			return this->target == target && this->isTurnoutConnection();
 		}
+
+		static inline const Connection::TurnoutState other(const Connection::TurnoutState& state)
+		{
+			if (state == Connection::TurnoutState::None || state == Connection::TurnoutState::DontCare)
+				return state;
+			return state == Connection::TurnoutState::A_B ? Connection::TurnoutState::A_C : Connection::TurnoutState::A_B;
+		}
 	};
 	using Connections = std::deque<Connection>;
-
-	inline const Connection::TurnoutState other(const Connection::TurnoutState& state)
-	{
-		if (state == Connection::TurnoutState::None || state == Connection::TurnoutState::DontCare)
-			return state;
-		return state == Connection::TurnoutState::A_B ? Connection::TurnoutState::A_C : Connection::TurnoutState::A_B;
-	}
 
 	class Node
 	{
 	public:
-
 		enum class Options : unsigned char
 		{
 			CanParkCars = 0b0100000
@@ -265,12 +263,11 @@ namespace TimeSaver
 		struct PackedState
 		{
 			PackedState(const State state, const unsigned int turnouts, const unsigned int cars) : turnouts(turnouts), cars(cars), data(PackedState::fromState(state, turnouts, cars)) {};
-			PackedState(const std::array<unsigned char, 6> data) : turnouts(extractTurnouts(data)), cars(extractCars(data)), data(data) {};
+			PackedState(const int64_t data) : turnouts(extractTurnouts(data)), cars(extractCars(data)), data(data) {};
 
 			const Connection::TurnoutState turnoutState(const unsigned int turnout) const
 			{
-				const int64_t I = toInt(this->data);
-				unsigned char t = (I >> (6 + cars * 5 + turnout * 2)) & 0b11;
+				unsigned char t = (this->data >> (6 + cars * 5 + turnout * 2)) & 0b11;
 				if (t == 0b00)
 					return Connection::TurnoutState::A_B;
 				else if (t == 0b01)
@@ -283,39 +280,27 @@ namespace TimeSaver
 
 			const unsigned int node(const unsigned int node) const
 			{
-				const int64_t I = toInt(this->data);
 				for (size_t c = 1; c <= cars; ++c)
-				{
-					if (((I >> ((6 + (c - 1) * 5))) & 0b11111) == (node & 0b11111))
+					if (((this->data >> ((6 + (c - 1) * 5))) & 0b11111) == (node & 0b11111))
 						return c;
-				}
 
 				return 0;
 			}
 
-			const std::array<unsigned char, 6> data;
+			const int64_t data;
 
 		private:
-			static const unsigned int extractTurnouts(const std::array<unsigned char, 6> data)
+			static const unsigned int extractTurnouts(const int64_t data)
 			{
-				return data[0] & 0b111;
+				return data & 0b111;
 			}
 
-			static const unsigned int extractCars(const std::array<unsigned char, 6> data)
+			static const unsigned int extractCars(const int64_t data)
 			{
-				return (data[0] >> 3) & 0b111;
+				return (data >> 3) & 0b111;
 			}
 
-			static const int64_t toInt(const std::array<unsigned char, 6>& data)
-			{
-				int64_t i;
-				for (unsigned int a = 0; a < data.size(); ++a)
-					i |= data[a] << (a * 8);
-
-				return i;
-			}
-
-			static const std::array<unsigned char, 6> fromState(const State state, const unsigned int turnouts, const unsigned int cars)
+			static int64_t fromState(const State state, const unsigned int turnouts, const unsigned int cars)
 			{
 				int64_t data = 0;
 
@@ -327,27 +312,23 @@ namespace TimeSaver
 				for (size_t c = 1; c <= cars; ++c)
 					for (size_t i = 0; i < state.slots.size(); ++i)
 						if (state.slots[i] == c)
-							data |= (i & 0b11111) << (6 + (c - 1) * 5);
+							data |= ((int64_t)(i & 0b11111)) << (int64_t)(6 + (c - 1) * 5);
 
 				unsigned int turnout = 0;
 				for (size_t t = 0; t < state.turnouts.size(); ++t)
 					if (state.turnouts[t] != Connection::TurnoutState::None)
 					{
 						if (state.turnouts[t] == Connection::TurnoutState::A_B)
-							data |= (int64_t)0b00 << (int64_t)(6 + cars * 5 + turnout * 2);
+							data |= ((int64_t)0b00) << (int64_t)(6 + cars * 5 + turnout * 2);
 						else if (state.turnouts[t] == Connection::TurnoutState::A_C)
-							data |= (int64_t)0b01 << (int64_t)(6 + cars * 5 + turnout * 2);
+							data |= ((int64_t)0b01) << (int64_t)(6 + cars * 5 + turnout * 2);
 						else if (state.turnouts[t] == Connection::TurnoutState::DontCare)
-							data |= (int64_t)0b10 << (int64_t)(6 + cars * 5 + turnout * 2);
+							data |= ((int64_t)0b10) << (int64_t)(6 + cars * 5 + turnout * 2);
 
 						++turnout;
 					}
 
-				std::array<unsigned char, 6> arr;
-				for (unsigned int i = 0; i < arr.size(); ++i)
-					arr[i] = (data >> (i * 8)) & 0xFF;
-
-				return arr;
+				return data;
 			}
 			const unsigned int turnouts;
 			const unsigned int cars;
@@ -465,9 +446,14 @@ namespace TimeSaver
 
 		}
 
-		Result init(PackedSteps steps)
+		Result init(PackedSteps *steps)
 		{
-			this->nextStepIndex = std::rand() % this->packedSteps.size();
+			if (this->packedSteps != nullptr)
+				delete this->packedSteps;
+
+			this->packedSteps = steps;
+
+			this->nextStepIndex = std::rand() % this->packedSteps->size();
 			/*for (unsigned int i = 0; i < this->packedSteps[this->nextStepIndex].state.slots.size(); ++i)
 				if (this->steps[this->nextStepIndex].state.slots[i] == 1)
 				{
@@ -545,7 +531,7 @@ namespace TimeSaver
 			return result;
 		}
 
-		const CarPlacement randomFromStepsGraph()
+		/*const CarPlacement randomFromStepsGraph()
 		{
 			CarPlacement result;
 			auto i = std::rand() % this->steps.size();
@@ -556,22 +542,42 @@ namespace TimeSaver
 						result[k - 1] = j;
 
 			return result;
-;		}
-
-		void solve_init(CarPlacement cars)
+;		}*/
+		
+		const CarPlacement fromPackedStepsGraph(const size_t i) const
 		{
-#ifdef TSS_FLEXIBLE
-			targetState.slots.clear();
-			targetState.turnouts.clear();
-			targetState.slots.resize(this->nodes.size());
-			targetState.turnouts.resize(this->nodes.size());
-#endif
-			for (auto& s : targetState.slots)
-				s = 0;
+			CarPlacement result;
+			const size_t cars = countCars();
+			for (unsigned int j = 0; j < this->nodes.size(); ++j)
+				for (unsigned int k = 1; k < cars; ++k)
+					if ((*this->packedSteps)[i].state.node(j) == k)
+						result[k - 1] = j;
 
-			unsigned int carIndex = 0;
-			for (auto& c : cars)
-				targetState.slots[c] = ++carIndex;
+			return result;
+		}
+
+		const size_t stepsCount() const
+		{
+			return this->packedSteps->size();
+		}
+
+		const size_t randomEndState(unsigned int start, unsigned int difficulty = -1) const
+		{
+			if(difficulty == -1)
+				return (start + std::rand()) % this->packedSteps->size();
+			else
+			{
+				const unsigned int base = 20;
+				const unsigned int dev = 4;
+				auto range = (base + dev) * difficulty;
+				auto random = (std::rand() % dev + base) * difficulty;
+				if (start < range / 2)
+					return (start + range) % this->packedSteps->size();
+				else if (start + range / 2 > this->packedSteps->size())
+					return (start - range / 2) % this->packedSteps->size();
+				else
+					return start - range / 2 + random;
+			}
 		}
 
 		bool solve_step(bool mayChooseSolutionIfImpossible = true)
@@ -622,22 +628,37 @@ namespace TimeSaver
 			return this->nextStepIndex < this->steps.size();
 		}
 
-		void solve_dijkstra_init()
+		void solve_dijkstra_init(const unsigned int start = 0)
 		{
-			dijkstra.dijkstra_init(this->packedSteps.size(), 0);
+			dijkstra.dijkstra_init(this->packedSteps->size(), start);
+		}
+
+		void solve_dijkstra_markEndStepsLike(const size_t selectedEndStep)
+		{
+			this->endStates.clear();
+			for (size_t i = 0; i < this->packedSteps->size(); ++i)
+			{
+				size_t matching = 0;
+				for (size_t n = 0; n < this->nodes.size(); ++n)
+					matching += ((*this->packedSteps)[i].state.node(n) == (*this->packedSteps)[selectedEndStep].state.node(n)) ? 1 : 0;
+
+				if (matching == this->nodes.size())
+					this->endStates.push_back(i);
+			}
+			this->solutions = this->endStates.size();
 		}
 
 		bool solve_dijkstra_step()
 		{
 			return dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 				std::vector<size_t> neighbors;
-				for (auto neighbor : packedSteps[i].actions)
+				for (auto neighbor : (*this->packedSteps)[i].actions)
 					neighbors.push_back(neighbor.target());
 				return neighbors;
 				},
 				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned int {
 					// look through prec of a to decide how man turnouts changed
-					for (auto neighbor : packedSteps[a].actions)
+					for (auto neighbor : (*this->packedSteps)[a].actions)
 						if (neighbor.target() == b)
 							return (unsigned int)1;
 
@@ -652,9 +673,8 @@ namespace TimeSaver
 			size_t shortestPathSteps = dijkstra.infinity;
 			for (const size_t i : this->endStates)
 			{
-				auto& step = this->packedSteps[i];
+				auto& step = (*this->packedSteps)[i];
 				++currentSolutionCheck;
-				//std::cout << "\r" << "Checking solution " << currentSolutionCheck << " / " << solutions;
 				auto path = dijkstra.shortestPath(i);
 				if (path.size() < shortestPathSteps)
 				{
@@ -662,33 +682,44 @@ namespace TimeSaver
 					shortestPathSteps = path.size();
 				}
 			}
-			//std::cout << "\nSolutions has: " << shortestPath.size() << " steps\n";
-			statistics((unsigned int)this->packedSteps.size(), solutions);
+			statistics((unsigned int)this->packedSteps->size(), solutions);
 			if (solutions == 0)
 				return 0;
 
-			print("Start\n", this->packedSteps[0].state);
+			print("Start\n", (*this->packedSteps)[0].state);
 
 			PackedState packedTargetState(targetState, countTurnouts(), countCars());
 			print("End\n", packedTargetState);
 #ifdef _DEBUG
 			for (auto it = shortestPath.rbegin(); it != shortestPath.rend(); ++it)
-				print(std::string("Step").append(std::to_string((unsigned int)(*it))), packedSteps[(*it)].state);
+				print(std::string("Step").append(std::to_string((unsigned int)(*it))), (*this->packedSteps)[(*it)].state);
 #endif
 			return (unsigned int)shortestPathSteps;
 		}
 
-		unsigned int solve(CarPlacement cars, bool mayChooseSolutionIfImpossible = true)
+		unsigned int solve(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
+		{
+			createGraph();
+			markEndSteps(cars, maySelectRandomIfNoneFound);
+			return quickSolve();
+		}
+
+		void createGraph()
 		{
 			if (this->nextStepIndex == 0)
 			{
-				solve_init(cars);
-
 				// build graph
-				while (solve_step(mayChooseSolutionIfImpossible));
+				while (solve_step());
 
 				pack();
 			}
+		}
+
+		unsigned int quickSolve()
+		{
+			if (packedSteps->size() == 0)
+				return 0;
+
 			solve_dijkstra_init();
 
 			while (solve_dijkstra_step());
@@ -696,7 +727,7 @@ namespace TimeSaver
 			return solve_dijkstra_shortestPath();
 		}
 
-		const unsigned int countTurnouts()
+		const unsigned int countTurnouts() const
 		{
 			unsigned int turnouts = 0;
 			for (const auto& node : this->nodes)
@@ -706,7 +737,7 @@ namespace TimeSaver
 			return turnouts;
 		}
 
-		const unsigned int countCars()
+		const unsigned int countCars() const
 		{
 			unsigned int cars = 0;
 			for (unsigned int i = 0; i < this->steps[0].state.slots.size(); ++i)
@@ -716,8 +747,41 @@ namespace TimeSaver
 			return cars;
 		}
 
+		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
+		{
+			State targetState;
+#ifdef TSS_FLEXIBLE
+			targetState.slots.clear();
+			targetState.turnouts.clear();
+			targetState.slots.resize(this->nodes.size());
+			targetState.turnouts.resize(this->nodes.size());
+#endif
+			for (auto& s : targetState.slots)
+				s = 0;
+
+			unsigned int carIndex = 0;
+			for (auto& c : cars)
+				targetState.slots[c] = ++carIndex;
+
+			this->endStates.clear();
+			for (size_t i = 0; i < this->packedSteps->size(); ++i)
+			{
+				size_t matching = 0;
+				for (size_t n = 0; n < this->nodes.size(); ++n)
+					matching += ((*this->packedSteps)[i].state.node(n) == targetState.slots[n]) ? 1 : 0;
+
+				if(matching == this->nodes.size())
+					this->endStates.push_back(i);
+			}
+			this->solutions = this->endStates.size();
+		}
+
 		void pack()
 		{
+			if (this->packedSteps != nullptr)
+				delete this->packedSteps;
+			this->packedSteps = new PackedSteps();
+
 			unsigned int turnouts = countTurnouts(), cars = countCars();
 
 			for (const auto& step : this->steps)
@@ -728,16 +792,11 @@ namespace TimeSaver
 				for (const auto& action : step.actions)
 					actions.emplace_back(action.target, action.locoDirection);
 
-				this->packedSteps.emplace_back(state, actions);
+				this->packedSteps->emplace_back(state, actions);
 
 				if (step.endState)
 					this->endStates.push_back(step.id);
 			}
-		}
-
-		void importSteps(PackedSteps steps)
-		{
-			this->packedSteps = steps;
 		}
 
 #ifdef TSS_WITH_EXPORT
@@ -749,15 +808,14 @@ namespace TimeSaver
 				}};
 			*/			
 
-			out << "TimeSaver::Solver::PackedSteps " << name << " {{\n";
+			out << "static const TimeSaver::Solver::PackedSteps " << name << " {{\n";
 
-			for (const auto step : packedSteps)
+			for (const auto step : (*this->packedSteps))
 			{
 				// State
 				out << "{ {{";
 					// slots
-					for (const auto data : step.state.data)
-						out << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int)data << ",";
+					out << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int64_t)step.state.data << ",";
 				out << "}},";
 			
 				// Actions
@@ -773,7 +831,7 @@ namespace TimeSaver
 
 		const size_t steps_count()
 		{
-			return this->packedSteps.size();
+			return this->packedSteps->size();
 		}
 
 
@@ -791,7 +849,6 @@ namespace TimeSaver
 				for (const auto& connection : nodes[id].connections)
 				{
 					if (connection.direction == direction && 
-						// potential problem with connection.turnoutState == Connection::TurnoutState::DontCare ?
 						(connection.turnoutState == Connection::TurnoutState::None || state.turnouts[id] == Connection::TurnoutState::DontCare ||  connection.turnoutState == state.turnouts[id]))
 					{
 						success = true;
@@ -817,7 +874,7 @@ namespace TimeSaver
 			auto to = connectionTo.target;
 			const Connection::Direction locoDirection = connectionTo.direction;
 			//auto conditions = connectionTo.conditions;
-			int lastNodedPushedOn = from;
+			int lastNodePushedOn = from;
 
 			State state = this->steps[i].state;
 			bool pushedSomethingFromTo = state.slots[to] != Empty;
@@ -837,11 +894,11 @@ namespace TimeSaver
 					pushedStates = push(state, to, connection);
 			}
 			else
-				pushedStates = {{ { lastNodedPushedOn, state } }};
+				pushedStates = {{ { lastNodePushedOn, state } }};
 
 			for (const auto& ps : pushedStates)
 			{
-				const auto lastNodedPushedOn = ps.lastNodePushedOn;
+				const auto lastNodePushedOn = ps.lastNodePushedOn;
 				const auto state = ps.state;
 				pushedSomethingFromTo = pushedSomethingFromTo && state.slots[to] == Empty;
 
@@ -854,25 +911,11 @@ namespace TimeSaver
 						//  other //
 						if (nodes[to].hasTurnoutConnectionTo(from, turnoutDirection))
 						{
-							State nextState = state;
-							if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection || nextState.turnouts[to] == Connection::TurnoutState::DontCare)
+							if (!pushedSomethingFromTo || state.turnouts[to] == turnoutDirection || state.turnouts[to] == Connection::TurnoutState::DontCare)
 							{
-								nextState.turnouts[to] = turnoutDirection;
-								auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
-								auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
-								pull(updatedStepState, from, connections, i, locoDirection);
-
-								// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
-								if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
-								{
-									State nextState = state;
-									nextState.turnouts[to] = turnoutDirection;
-									nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
-									auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
-									auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
-									pull(updatedStepState, from, connections, i, locoDirection);
-								}
+								pull<true>(state, i, from, connectionTo, lastNodePushedOn, turnoutDirection);
 							}
+							
 						}
 						else
 							// otherA == to == from
@@ -883,47 +926,47 @@ namespace TimeSaver
 								if (connection.target != from)
 								{
 									turnoutDirection = connection.turnoutState;
-									State nextState = state;
-									if (!pushedSomethingFromTo || nextState.turnouts[to] == turnoutDirection || nextState.turnouts[to] == Connection::TurnoutState::DontCare)
+									if (!pushedSomethingFromTo || state.turnouts[to] == turnoutDirection || state.turnouts[to] == Connection::TurnoutState::DontCare)
 									{
-										nextState.turnouts[to] = turnoutDirection;
-										auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
-										auto connections = nodes[from].otherDirectionConnections(connection.direction);
-										pull(updatedStepState, from, connections, i, locoDirection);
-
-										// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
-										if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
-										{
-											State nextState = state;
-											nextState.turnouts[to] = turnoutDirection;
-											nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
-											auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
-											auto connections = nodes[from].otherDirectionConnections(connection.direction);
-											pull(updatedStepState, from, connections, i, locoDirection);
-										}
+										pull<true>(state, i, from, connectionTo, lastNodePushedOn, turnoutDirection);
 									}
+									
 								}
 							}
 						}
 					}
 					else
+						// to == from
 					{
-						auto updatedStepState = nextStep(state, from, to, i, locoDirection);
-						auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
-						pull(updatedStepState, from, connections, i, locoDirection);
-
-						// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
-						if (lastNodedPushedOn != -1 && lastNodedPushedOn != from && nodes[lastNodedPushedOn].isTurnout())
-						{
-							State nextState = state;
-							nextState.turnouts[lastNodedPushedOn] = other(nextState.turnouts[lastNodedPushedOn]);
-							auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
-							auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
-							pull(updatedStepState, from, connections, i, locoDirection);
-						}
+						pull<false>(state, i, from, connectionTo, lastNodePushedOn);
 					}
 				}
 			}
+		}
+
+		template<bool _setTurnoutTo>
+		void pull(const State &state, const size_t i, const Id from, const Connection connectionTo, const int lastNodePushedOn, Connection::TurnoutState turnoutDirection = Connection::TurnoutState::None)
+		{
+			auto to = connectionTo.target;
+			const Connection::Direction locoDirection = connectionTo.direction;
+			State nextState = state;
+				if(_setTurnoutTo)
+					nextState.turnouts[to] = turnoutDirection;
+				auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
+				auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
+				pull(updatedStepState, from, connections, i, locoDirection);
+
+				// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
+				if (lastNodePushedOn != -1 && lastNodePushedOn != from && nodes[lastNodePushedOn].isTurnout())
+				{
+					State nextState = state;
+					if (_setTurnoutTo)
+						nextState.turnouts[to] = turnoutDirection;
+					nextState.turnouts[lastNodePushedOn] = Connection::other(nextState.turnouts[lastNodePushedOn]);
+					auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
+					auto connections = nodes[from].otherDirectionConnections(connectionTo.direction);
+					pull(updatedStepState, from, connections, i, locoDirection);
+				}
 		}
 
 		// pull cars onto from
@@ -941,7 +984,7 @@ namespace TimeSaver
 
 				if (nodes[from].isTurnout())
 				{
-					if(connection.turnoutState == Connection::TurnoutState::None ||/* connection.turnoutState == Connection::TurnoutState::DontCare || state.turnouts[from] == Connection::TurnoutState::DontCare ||*/ connection.turnoutState == state.turnouts[from])
+					if(connection.turnoutState == Connection::TurnoutState::None || connection.turnoutState == state.turnouts[from])
 					{
 						auto updatedStepState = nextStep(state, connection.target, targetConnection.target, attach, locoDirection);
 						auto connections = nodes[connection.target].sameDirectionConnections(connection.direction);
@@ -959,7 +1002,6 @@ namespace TimeSaver
 
 		bool checkValidState(const State& state)
 		{
-			//return true;
 			// you must not leave your cars unattended!
 			for (unsigned int i = 0; i < state.slots.size(); ++i)
 			{
@@ -1011,11 +1053,7 @@ namespace TimeSaver
 			state.slots[to] = state.slots[from];
 			state.slots[from] = Empty;
 
-			//das hier ggf weg ? wenn man von einem turnout runter fährt, kann man keinen wagen mitnehmen-- >
-			//	hier wird es auf don;t care gestzt, aber bei pull danach weiter benutzt. ggf. dort zurücksetzen?
-			//if(!this->nodes[from].isTurnout())
-
-			if (checkValidState(state))
+			//if (checkValidState(state))
 			{
 				auto putState = state;
 				updateDontCare(putState);
@@ -1047,11 +1085,11 @@ namespace TimeSaver
 
 		const PushedStates push(State state, const Id from, const Connection connectionTo)
 		{
-			int lastNodedPushedOn = -1;
+			int lastNodePushedOn = -1;
 			auto to = connectionTo.target;
 
 			if (state.slots[to] == Loco)
-				return {{ {lastNodedPushedOn, state} }};
+				return {{ {lastNodePushedOn, state} }};
 
 			bool doPush = false;
 			PushedStates thisVals;
@@ -1064,46 +1102,46 @@ namespace TimeSaver
 				{
 					if (state.slots[to] == Empty)
 						state.turnouts[to] = turnoutDirection;
+					// else there is something on the slot, so the turnout is set
 
-					if (state.turnouts[to] == turnoutDirection)// || state.turnouts[to] == Connection::TurnoutState::DontCare)
+					if (state.turnouts[to] == turnoutDirection)
 					{
 						state.turnouts[to] = turnoutDirection;
 						doPush = true;
 					}
-					//else
-						lastNodedPushedOn = -1;// return lastNodedPushedOn;*/
+					lastNodePushedOn = -1;
 
-					thisVals.emplace_back(lastNodedPushedOn, state);
+					thisVals.emplace_back(lastNodePushedOn, state);
 				}
 				else
 					// otherA == to == from
 					//   otherB //
 				{
 					doPush = true;
-					lastNodedPushedOn = to;
+					lastNodePushedOn = to;
 					if (state.turnouts[to] == Connection::TurnoutState::DontCare)
 					{
 						{
 							auto newState = state;
 							newState.turnouts[to] = Connection::TurnoutState::A_B;
-							thisVals.emplace_back(lastNodedPushedOn, newState);
+							thisVals.emplace_back(lastNodePushedOn, newState);
 						}
 						{
 							auto newState = state;
 							newState.turnouts[to] = Connection::TurnoutState::A_C;
-							thisVals.emplace_back(lastNodedPushedOn, newState);
+							thisVals.emplace_back(lastNodePushedOn, newState);
 						}
 					}
 					else
 					{
-						thisVals.emplace_back(lastNodedPushedOn, state);
+						thisVals.emplace_back(lastNodePushedOn, state);
 					}
 				}
 			}
 			else
 			{
 				doPush = true;
-				thisVals.emplace_back(lastNodedPushedOn, state);
+				thisVals.emplace_back(lastNodePushedOn, state);
 			}
 
 			PushedStates retVals;
@@ -1123,12 +1161,8 @@ namespace TimeSaver
 							auto state = nps.state;
 							if (state.slots[to] == Empty)
 							{
-								//	if (lastNodedPushedOn == -1)
-									//	lastNodedPushedOn = to;
-
 								state.slots[to] = state.slots[from];
 								state.slots[from] = Empty;
-								//return lastNodedPushedOn;
 							}
 							retVals.emplace_back(nps.lastNodePushedOn, state);
 						}
@@ -1136,32 +1170,14 @@ namespace TimeSaver
 				}
 				else if (state.slots[to] == Empty)
 				{
-					//	if (lastNodedPushedOn == -1)
-						//	lastNodedPushedOn = to;
-
 					state.slots[to] = state.slots[from];
 					state.slots[from] = Empty;
 					retVals.emplace_back(ps.lastNodePushedOn, state);
-					//return lastNodedPushedOn;
 				}
 				else
 					retVals.emplace_back(ps.lastNodePushedOn, state);
 			}
 			return retVals;
-		}
-
-		bool checkForSolutionState(const CarPlacement &cars, const State &state) const
-		{
-			for (unsigned int s = 0; s < state.slots.size(); ++s)
-			{
-				if (state.slots[s] == Empty)
-					continue;
-				else if (cars[state.slots[s]] == s)
-					continue;
-				else
-					return false;
-			}
-			return true;
 		}
 
 		template<typename... Args>
@@ -1210,7 +1226,7 @@ namespace TimeSaver
 		StatisticsCallback statistics;
 
 		Steps steps;
-		PackedSteps packedSteps;
+		PackedSteps *packedSteps = nullptr;
 		std::vector<size_t> endStates;
 	};
 }
