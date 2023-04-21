@@ -813,10 +813,10 @@ namespace TimeSaver
 			for (const auto step : (*this->packedSteps))
 			{
 				// State
-				out << "{ {{";
+				out << "{ ";
 					// slots
-					out << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int64_t)step.state.data << ",";
-				out << "}},";
+					out << "0x" << std::hex << std::setfill('0') << std::setw(2) << (int64_t)step.state.data;
+				out << ",";
 			
 				// Actions
 				out << "{{";

@@ -170,7 +170,7 @@ int main()
     }
 
     GENERATE(2, classic);
-    GENERATE(3, classic);
+    //GENERATE(3, classic);
     //GENERATE(4, classic);
     //GENERATE(4, classic, "_b");
     //GENERATE(4, classic, "_c");
