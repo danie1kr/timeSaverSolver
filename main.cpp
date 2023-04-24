@@ -62,7 +62,7 @@ int main()
 #define BWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_C)
 
 
-    TimeSaver::Nodes/*<20>*/ classic{{
+    TimeSaver::Nodes/*<20>*/ classic{ {
         {0, {FWD(1)}},
         {1, {BWD(0), FWD(2)}},
         {2, {BWD(1), FWD(3)}},
@@ -82,7 +82,7 @@ int main()
         {16, {BWD(15)}},
         {17, {FWD(18)}},
         {18, {BWD(17), FWD(12)}},
-    }};
+    } };
     using TSS = TimeSaver::Solver;// <classic.size(), 5>;
 
 
@@ -92,11 +92,11 @@ int main()
 
     auto print = [](const std::string info, const TSS::PackedState& state) {
         std::cout << std::setfill(' ') << info <<
-            S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3,0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
+            S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3, 0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
             "                          //" << "\n" <<
-            "                         " << T(7,1) << "" << " ============ " << S(8) << " =========== " << "\n" <<
+            "                         " << T(7, 1) << "" << " ============ " << S(8) << " =========== " << "\n" <<
             "                        //                                              \\\\\n" <<
-            "    " << S(9) << " == " << S(10) << " == " << T(11,2) << " == " << T(12,3) << " == " << S(13) << " == " << T(14,4) << " == " << S(15) << " == " << S(16) << "\n" <<
+            "    " << S(9) << " == " << S(10) << " == " << T(11, 2) << " == " << T(12, 3) << " == " << S(13) << " == " << T(14, 4) << " == " << S(15) << " == " << S(16) << "\n" <<
             "                                     //\n" <<
             "                     " << S(17) << " == " << S(18) << "\n\n";
     };
@@ -106,9 +106,9 @@ int main()
     auto stepNone = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
     auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {
 #ifndef _DEBUG
-        if(step % 5000 == 0 || step == steps -1)
+        if (step % 5000 == 0 || step == steps - 1)
 #endif
-        std::cout << "\r" << "Step " << step << " / " << steps << " possible solutions: " << solutions;
+            std::cout << "\r" << "Step " << step << " / " << steps << " possible solutions: " << solutions;
     };
 
     auto statisticsNone = [](const unsigned int steps, const unsigned int solutions) {};
@@ -143,22 +143,11 @@ int main()
         {
             prec[i] = value;
         },
-        [&prec](const size_t i) -> const TSS::PrecStorage::StorageType
+            [&prec](const size_t i) -> const TSS::PrecStorage::StorageType
         {
             return prec[i];
         }
         );
-    
-    TSS tss(classic, print, step, statistics, distStorage, precStorage);
-//#define TSS_WITH_IMPORT
-#ifdef TSS_WITH_IMPORT
-#include "precomputed_tss.hpp"
-    tss.init(tss_steps_classic_4_a);
-    auto target = tss.randomFromStepsGraph();
-    tss.solve(target);
-#else
-#ifdef TSS_WITH_EXPORT
-    std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
 
 #define STRINGIFY(x) #x
 #define GENERATE(cars, layout) { \
@@ -169,13 +158,33 @@ int main()
         tss.exportSteps(file, varName(STRINGIFY(layout), cars));  \
     }
 
-    GENERATE(2, classic);
-    //GENERATE(3, classic);
-    //GENERATE(4, classic);
-    //GENERATE(4, classic, "_b");
-    //GENERATE(4, classic, "_c");
-    file.close();
+    TSS tss(classic, print, step, statistics, distStorage, precStorage);
+    //#define TSS_WITH_IMPORT
+#ifdef TSS_WITH_IMPORT
+#include "precomputed_tss.hpp"
+    tss.init(tss_steps_classic_4_a);
+    auto target = tss.randomFromStepsGraph();
+    tss.solve(target);
+#else
+#ifdef TSS_WITH_EXPORT
+    {
+        std::ofstream file("precomputed_tss_dbg.hpp", std::ofstream::out | std::ofstream::trunc);
+        GENERATE(2, classic);
+        file.close();
+    }
+#ifndef _DEBUG
+    {
+        std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
+        GENERATE(2, classic);
+        GENERATE(3, classic);
+#ifdef TSS_WITH_FULL_EXPORT
+        GENERATE(4, classic);
+        GENERATE(5, classic);
 #endif
+        file.close();
+    }
+#endif
+#endif // !_DEBUG
 #endif
 
     /*

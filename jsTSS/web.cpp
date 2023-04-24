@@ -8,8 +8,11 @@
 
 #define TSS_FLEXIBLE
 #include "../tss.hpp"
-
-//#include "../precomputed_tss.hpp"
+#ifdef _DEBUG
+#include "../precomputed_tss_dbg.hpp"
+#else
+#include "../precomputed_tss.hpp"
+#endif
 
 void (*errorJS)(const char* err) = nullptr;
 void (*printJS)(const char* info, const char* state, const char* turnouts) = nullptr;
@@ -168,15 +171,20 @@ TimeSaver::Solver::PrecStorage precStorage(
 	}
 	);
 
-TimeSaver::Solver::PackedSteps* precomputedStepsGraph(unsigned int layout, unsigned int cars)
+
+TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layout, unsigned int cars)
 {
+	if (layout == 0 && cars == 2)
+		return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
+#ifndef _DEBUG
+#endif
 	/*
 	if (layout == 0 && cars == 2) 
 		return &tss_steps_classic_2;
 	
 	error("cannot find precomputed steps graph");
 	return &tss_steps_classic_2;*/
-	return nullptr;
+	return { nullptr, 0, nullptr, 0 };
 }
 
 emscripten::val getLayoutCount() {
