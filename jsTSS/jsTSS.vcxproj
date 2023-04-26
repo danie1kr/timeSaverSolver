@@ -45,14 +45,20 @@
       <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH</AdditionalOptions>
       <EmBind>true</EmBind>
     </Link>
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="precomputed_tss.cpp" />
     <ClCompile Include="web.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="main.js" />
     <None Include="shell.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\precomputed_tss.hpp" />
+    <ClInclude Include="..\precomputed_tss_dbg.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -177,13 +177,13 @@ TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layou
 	if (layout == 0 && cars == 2)
 		return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
 #ifndef _DEBUG
+	else if (layout == 0 && cars == 3)
+		return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
+	else if (layout == 0 && cars == 4)
+		return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
+	else if (layout == 0 && cars == 5)
+		return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
 #endif
-	/*
-	if (layout == 0 && cars == 2) 
-		return &tss_steps_classic_2;
-	
-	error("cannot find precomputed steps graph");
-	return &tss_steps_classic_2;*/
 	return { nullptr, 0, nullptr, 0 };
 }
 
@@ -277,12 +277,6 @@ bool check()
 			return false;
 
 	return true;
-}
-
-emscripten::val test()
-{
-	error("test!");
-	return emscripten::val(0);
 }
 
 emscripten::val getState()
@@ -379,7 +373,6 @@ emscripten::val getRandomStartState()
 	return emscripten::val(selectedStartStep);
 }
 
-
 emscripten::val getRandomEndState(unsigned int selectedStartStep, unsigned int difficulty)
 {
 	if (check() == false || state == TSSState::Error || state != TSSState::ChooseStartAndEnd)
@@ -457,7 +450,6 @@ EMSCRIPTEN_BINDINGS(timeSaverSolver) {
 	function("getCarLayout", &getCarLayout);
 	function("getRandomStartState", &getRandomStartState);
 	function("getRandomEndState", &getRandomEndState);
-	function("test", &test);
 	function("timeSaverSolverInit", &timeSaverSolverInit);
 	function("timeSaverSolver", &timeSaverSolver);
 	function("getState", &getState);
