@@ -258,6 +258,21 @@ namespace TimeSaver
 			std::array<unsigned int, _Nodes> slots;
 			std::array<Connection::TurnoutState, _Nodes> turnouts;
 #endif
+
+			int findLoco() const
+			{
+				for (unsigned int i = 0; i < this->slots.size(); ++i)
+					if (this->slots[i] ==
+#ifdef TSS_FLEXIBLE
+						Solver
+#else
+						Solver<_Nodes, _Cars>
+#endif
+						::Loco)
+						return i;
+
+				return -1;
+			}
 		};
 
 		struct PackedState
@@ -398,11 +413,12 @@ namespace TimeSaver
 
 			const size_t id;
 			const State state;
+			const unsigned int loco;
 			std::vector<Action> actions;
 			
-			Step(const size_t id) : id(id), state(), actions() { };
-			Step(const size_t id, const State state) : id(id), state(state), actions() { };
-			Step(const size_t id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions) { };
+			Step(const size_t id) : id(id), state(), actions(), loco() { };
+			Step(const size_t id, const State state) : id(id), state(state), actions(), loco(state.findLoco()) { };
+			Step(const size_t id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions), loco(state.findLoco()) { };
 
 			Step operator=(Step other)
 			{
@@ -410,7 +426,7 @@ namespace TimeSaver
 				return s;
 			}
 
-			Step(const Step& s) : id(s.id), state(s.state), actions(s.actions) { }
+			Step(const Step& s) : id(s.id), state(s.state), actions(s.actions), loco(s.loco) { }
 
 			bool hasActionToOther(const Action & otherAction)
 			{
@@ -426,7 +442,7 @@ namespace TimeSaver
 				this->actions.push_back(action);
 			}
 		};
-		using Dijk = Dijkstra</*Step, Steps,*/ unsigned long>;
+		using Dijk = Dijkstra<unsigned long>;
 		using Steps = std::vector<Step>;
 		using PackedSteps = std::vector<PackedStep>;
 
@@ -556,19 +572,6 @@ namespace TimeSaver
 
 			return result;
 		}
-
-		/*const CarPlacement randomFromStepsGraph()
-		{
-			CarPlacement result;
-			auto i = std::rand() % this->steps.size();
-			const size_t maxCars = this->steps[i].state.slots.size();
-			for (unsigned int j = 0; j < maxCars; ++j)
-				for (unsigned int k = 1; k < maxCars; ++k)
-					if (this->steps[i].state.slots[j] == k)
-						result[k - 1] = j;
-
-			return result;
-;		}*/
 		
 		const CarPlacement fromPackedStepsGraph(const size_t i) const
 		{
@@ -1220,23 +1223,21 @@ namespace TimeSaver
 
 		int hasStepWithState(const State& state) const
 		{
+			const int loco = state.findLoco();
 			for (unsigned int i = 0; i < steps.size(); ++i)
-				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
-					return i;
+				if(steps[i].loco == loco)
+					if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
+						return i;
 			return -1;
 		}
 
 		int findLoco(const State& state) const
 		{
-			for (unsigned int i = 0; i < state.slots.size(); ++i)
-				if (state.slots[i] == Loco)
-					return i;
-
-			return -1;
+			return state.findLoco();
 		}
 
-		const unsigned int Loco = 1;
-		const unsigned int Empty = 0;
+		static const unsigned int Loco = 1;
+		static const unsigned int Empty = 0;
 		unsigned int loco = 0;
 
 		size_t nextStepIndex = 0;

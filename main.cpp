@@ -151,7 +151,7 @@ int main()
 
 #define STRINGIFY(x) #x
 #define GENERATE(cars, layout) { \
-        std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n"; \
+        std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n" << std::flush; \
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
         tss.init(tss.random(cars), false); \
         tss.createGraph(); \
