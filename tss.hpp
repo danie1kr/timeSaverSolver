@@ -293,7 +293,7 @@ namespace TimeSaver
 					return Connection::TurnoutState::None;
 			}
 
-			const unsigned int node(const size_t node) const
+			const unsigned int node(const unsigned int node) const
 			{
 				for (unsigned int c = 1; c <= cars; ++c)
 					if (((this->data >> ((6 + (c - 1) * 5))) & 0b11111) == (node & 0b11111))
@@ -324,13 +324,13 @@ namespace TimeSaver
 				data |= (turnouts & 0b111) << 0;
 				data |= (cars & 0b111) << 3;
 
-				for (size_t c = 1; c <= cars; ++c)
-					for (size_t i = 0; i < state.slots.size(); ++i)
+				for (unsigned int c = 1; c <= cars; ++c)
+					for (unsigned int i = 0; i < state.slots.size(); ++i)
 						if (state.slots[i] == c)
 							data |= ((int64_t)(i & 0b11111)) << (int64_t)(6 + (c - 1) * 5);
 
 				unsigned int turnout = 0;
-				for (size_t t = 0; t < state.turnouts.size(); ++t)
+				for (unsigned int t = 0; t < state.turnouts.size(); ++t)
 					if (state.turnouts[t] != Connection::TurnoutState::None)
 					{
 						if (state.turnouts[t] == Connection::TurnoutState::A_B)
@@ -381,7 +381,7 @@ namespace TimeSaver
 			struct Action
 			{
 				Action(const int64_t data) : data{ data } { };
-				Action(const size_t id, const unsigned int data) : data{ (((int64_t)id) << 32) | data } {};
+				Action(const unsigned int id, const unsigned int data) : data{ (((int64_t)id) << 32) | data } {};
 				const unsigned int id() const { return (unsigned int)(data >> 32); };
 				const unsigned int content() const { return (unsigned int)(data & 0xFFFFFFFF); };
 				const int64_t data;
@@ -395,9 +395,9 @@ namespace TimeSaver
 			struct Storage
 			{
 				const Precomputed::Step * const steps;
-				const size_t stepsCount;
+				const unsigned int stepsCount;
 				const Precomputed::Action * const actions;
-				const size_t actionsCount;
+				const unsigned int actionsCount;
 			};
 		};
 
@@ -405,20 +405,20 @@ namespace TimeSaver
 		{
 			struct Action
 			{
-				const size_t target;
+				const unsigned int target;
 				const Connection::Direction locoDirection;
-				Action(const size_t target, const Connection::Direction locoDirection)
+				Action(const unsigned int target, const Connection::Direction locoDirection)
 					: target(target), locoDirection(locoDirection) { };
 			};
 
-			const size_t id;
+			const unsigned int id;
 			const State state;
 			const unsigned int loco;
 			std::vector<Action> actions;
 			
-			Step(const size_t id) : id(id), state(), actions(), loco() { };
-			Step(const size_t id, const State state) : id(id), state(state), actions(), loco(state.findLoco()) { };
-			Step(const size_t id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions), loco(state.findLoco()) { };
+			Step(const unsigned int id) : id(id), state(), actions(), loco() { };
+			Step(const unsigned int id, const State state) : id(id), state(state), actions(), loco(state.findLoco()) { };
+			Step(const unsigned int id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions), loco(state.findLoco()) { };
 
 			Step operator=(Step other)
 			{
@@ -488,13 +488,13 @@ namespace TimeSaver
 			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->packetStepsSize);
 
 			unsigned int turnouts = countTurnouts(), cars = countCars();
-			for (size_t i = 0; i < this->packetStepsSize; ++i)
+			for (unsigned int i = 0; i < this->packetStepsSize; ++i)
 			{
 				const auto& step = storage.steps[i];
 				const PackedState state(step.state);
 
 				std::vector<PackedStep::PackedAction> actions;
-				for (size_t a = 0; a < storage.actionsCount; ++a)
+				for (unsigned int a = 0; a < storage.actionsCount; ++a)
 				{
 					if (storage.actions[a].id() == i)
 						actions.emplace_back(storage.actions[a].content());
@@ -513,7 +513,7 @@ namespace TimeSaver
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
 #endif
-			for (size_t i = 0; i < this->nodes.size(); ++i)
+			for (unsigned int i = 0; i < this->nodes.size(); ++i)
 				state.turnouts[i] = this->nodes[i].isTurnout() ? Connection::TurnoutState::A_B : Connection::TurnoutState::None;
 
 			for (auto& s : state.slots)
@@ -540,7 +540,7 @@ namespace TimeSaver
 		}
 
 #ifdef TSS_FLEXIBLE
-		const CarPlacement random(size_t _Cars) 
+		const CarPlacement random(unsigned int _Cars) 
 		{
 			CarPlacement result(_Cars);
 #else
@@ -573,10 +573,10 @@ namespace TimeSaver
 			return result;
 		}
 		
-		const CarPlacement fromPackedStepsGraph(const size_t i) const
+		const CarPlacement fromPackedStepsGraph(const unsigned int i) const
 		{
 			CarPlacement result;
-			const size_t cars = countCars();
+			const unsigned int cars = countCars();
 			for (unsigned int j = 0; j < this->nodes.size(); ++j)
 				for (unsigned int k = 1; k < cars; ++k)
 					if (this->packedSteps[i].state.node(j) == k)
@@ -585,12 +585,12 @@ namespace TimeSaver
 			return result;
 		}
 
-		const size_t stepsCount() const
+		const unsigned int stepsCount() const
 		{
 			return this->packetStepsSize;
 		}
 
-		const size_t randomEndState(unsigned int start, unsigned int difficulty = -1) const
+		const unsigned int randomEndState(unsigned int start, unsigned int difficulty = -1) const
 		{
 			if(difficulty == -1)
 				return (start + std::rand()) % this->stepsCount();
@@ -611,7 +611,7 @@ namespace TimeSaver
 
 		bool solve_step(bool mayChooseSolutionIfImpossible = true)
 		{
-			const size_t i = this->nextStepIndex;
+			const unsigned int i = this->nextStepIndex;
 			auto& step = this->steps[i];
 			auto loco = this->findLoco(step.state);
 			if (loco == -1)
@@ -642,13 +642,13 @@ namespace TimeSaver
 			dijkstra.dijkstra_init(this->stepsCount(), start);
 		}
 
-		void solve_dijkstra_markEndStepsLike(const size_t selectedEndStep)
+		void solve_dijkstra_markEndStepsLike(const unsigned int selectedEndStep)
 		{
 			this->endStates.clear();
-			for (size_t i = 0; i < this->stepsCount(); ++i)
+			for (unsigned int i = 0; i < this->stepsCount(); ++i)
 			{
-				size_t matching = 0;
-				for (size_t n = 0; n < this->nodes.size(); ++n)
+				unsigned int matching = 0;
+				for (unsigned int n = 0; n < this->nodes.size(); ++n)
 					matching += (this->packedSteps[i].state.node(n) == this->packedSteps[selectedEndStep].state.node(n)) ? 1 : 0;
 
 				if (matching == this->nodes.size())
@@ -664,11 +664,11 @@ namespace TimeSaver
 					neighbors.push_back(neighbor.target());
 				return neighbors;
 				},
-				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned int {
+				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const size_t {
 					// look through prec of a to decide how man turnouts changed
 					for (auto neighbor : this->packedSteps[a].actions)
 						if (neighbor.target() == b)
-							return (unsigned int)1;
+							return (size_t)1;
 
 					return 0;
 				});
@@ -678,8 +678,8 @@ namespace TimeSaver
 		{
 			typename Dijk::Path shortestPath;
 			unsigned int currentSolutionCheck = 0;
-			size_t shortestPathSteps = dijkstra.infinity;
-			for (const size_t i : this->endStates)
+			unsigned int shortestPathSteps = dijkstra.infinity;
+			for (const unsigned int i : this->endStates)
 			{
 				auto& step = this->packedSteps[i];
 				++currentSolutionCheck;
@@ -772,10 +772,10 @@ namespace TimeSaver
 				targetState.slots[c] = ++carIndex;
 
 			this->endStates.clear();
-			for (size_t i = 0; i < this->stepsCount(); ++i)
+			for (unsigned int i = 0; i < this->stepsCount(); ++i)
 			{
-				size_t matching = 0;
-				for (size_t n = 0; n < this->nodes.size(); ++n)
+				unsigned int matching = 0;
+				for (unsigned int n = 0; n < this->nodes.size(); ++n)
 					matching += (this->packedSteps[i].state.node(n) == targetState.slots[n]) ? 1 : 0;
 
 				if(matching == this->nodes.size())
@@ -792,7 +792,7 @@ namespace TimeSaver
 
 			unsigned int turnouts = countTurnouts(), cars = countCars();
 
-			for (size_t i = 0; i < this->steps.size(); ++i)
+			for (unsigned int i = 0; i < this->steps.size(); ++i)
 			{
 				const auto& step = this->steps[i];
 				const PackedState state(step.state, turnouts, cars);
@@ -811,13 +811,13 @@ namespace TimeSaver
 			/*
 				#define TSS_FLEXIBLE
 				#include "tss.hpp"
-				static const size_t tss_steps_classic_2_size = 505;
+				static const unsigned int tss_steps_classic_2_size = 505;
 				static const TimeSaver::Solver::Precomputed::Step tss_steps_classic_2[] = { 
 				 0x2855,
 				 0x2aa2815,
 				 };
 				
-				static const size_t tss_steps_classic_2_actions_size = 1061;
+				static const unsigned int tss_steps_classic_2_actions_size = 1061;
 				static const TimeSaver::Solver::Precomputed::Action tss_steps_classic_2_actions[] = { 
 				0x3,
 				0x4,
@@ -828,11 +828,11 @@ namespace TimeSaver
 
 			out << "#define TSS_FLEXIBLE\n";
 			out << "#include \"tss.hpp\"\n";
-			out << "static const size_t " << name << "_size = " << std::dec << this->stepsCount() << ";\n";
+			out << "static const unsigned int " << name << "_size = " << std::dec << this->stepsCount() << ";\n";
 			out << "static const TimeSaver::Solver::Precomputed::Step " << name << "[] = { \n";
 
-			size_t actionsCount = 0;
-			for (size_t i = 0; i < this->stepsCount(); ++i)
+			unsigned int actionsCount = 0;
+			for (unsigned int i = 0; i < this->stepsCount(); ++i)
 			{
 				const auto& step = this->packedSteps[i];
 				// State
@@ -840,13 +840,13 @@ namespace TimeSaver
 				actionsCount += step.actions.size();
 			}
 			out << "};\n";
-			out << "static const size_t " << name << "_actions_size = " << std::dec << actionsCount << ";\n";
+			out << "static const unsigned int " << name << "_actions_size = " << std::dec << actionsCount << ";\n";
 			out << "static const TimeSaver::Solver::Precomputed::Action " << name << "_actions[] = { \n";
 			// put actions into one array, re-alignmend done on loading
-			for (size_t i = 0; i < this->stepsCount(); ++i)
+			for (unsigned int i = 0; i < this->stepsCount(); ++i)
 			{
 				const auto& step = this->packedSteps[i];
-				for (size_t a = 0; a < step.actions.size(); ++a)
+				for (unsigned int a = 0; a < step.actions.size(); ++a)
 				{
 					const auto& action = step.actions[a];
 					out << "0x" << std::hex << (int64_t)(((int64_t)i << 32) | (int64_t)action.data) << ",\n";
@@ -856,7 +856,7 @@ namespace TimeSaver
 		}
 #endif
 
-		const size_t steps_count()
+		const unsigned int steps_count()
 		{
 			return this->packetStepsSize;
 		}
@@ -896,7 +896,7 @@ namespace TimeSaver
 			return Connection(0, Connection::Direction::Forward);
 		}
 
-		void move(const size_t i, const Id from, const Connection connectionTo)
+		void move(const unsigned int i, const Id from, const Connection connectionTo)
 		{
 			auto to = connectionTo.target;
 			const Connection::Direction locoDirection = connectionTo.direction;
@@ -972,7 +972,7 @@ namespace TimeSaver
 		}
 
 		template<bool _setTurnoutTo>
-		void pull(const State &state, const size_t i, const Id from, const Connection connectionTo, const int lastNodePushedOn, Connection::TurnoutState turnoutDirection = Connection::TurnoutState::None)
+		void pull(const State &state, const unsigned int i, const Id from, const Connection connectionTo, const int lastNodePushedOn, Connection::TurnoutState turnoutDirection = Connection::TurnoutState::None)
 		{
 			auto to = connectionTo.target;
 			const Connection::Direction locoDirection = connectionTo.direction;
@@ -997,7 +997,7 @@ namespace TimeSaver
 		}
 
 		// pull cars onto from
-		void pull(State fromState, const Id from, const Connections connections, const size_t attach, const Connection::Direction locoDirection)
+		void pull(State fromState, const Id from, const Connections connections, const unsigned int attach, const Connection::Direction locoDirection)
 		{
 			for (const auto& connection : connections)
 			{
@@ -1075,12 +1075,12 @@ namespace TimeSaver
 			return true;
 		}
 
-		State nextStep(State state, const Id from, const Id to, const size_t attach, const Connection::Direction locoDirection)
+		State nextStep(State state, const Id from, const Id to, const unsigned int attach, const Connection::Direction locoDirection)
 		{
 			state.slots[to] = state.slots[from];
 			state.slots[from] = Empty;
 
-			//if (checkValidState(state))
+			if (checkValidState(state))
 			{
 				auto putState = state;
 				updateDontCare(putState);
@@ -1208,8 +1208,8 @@ namespace TimeSaver
 		}
 
 		template<typename... Args>
-		const size_t addStep(Args&&... args) {
-			size_t id = this->steps.size();
+		const unsigned int addStep(Args&&... args) {
+			unsigned int id = this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 			return id;
 		}
@@ -1240,7 +1240,7 @@ namespace TimeSaver
 		static const unsigned int Empty = 0;
 		unsigned int loco = 0;
 
-		size_t nextStepIndex = 0;
+		unsigned int nextStepIndex = 0;
 		State targetState;
 		Dijk dijkstra;
 
@@ -1251,7 +1251,7 @@ namespace TimeSaver
 
 		Steps steps;
 		PackedStep *packedSteps = nullptr;
-		size_t packetStepsSize = 0;
-		std::vector<size_t> endStates;
+		unsigned int packetStepsSize = 0;
+		std::vector<unsigned int> endStates;
 	};
 }

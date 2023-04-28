@@ -61,6 +61,13 @@ int main()
 #define FWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, TimeSaver::Connection::TurnoutState::A_C)
 #define BWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_C)
 
+#define SIZEOF(it)    std::cout << "sizeof(" << #it << "): " << sizeof(it) << "\n" << std::flush;
+
+    SIZEOF(TimeSaver::Solver);
+    SIZEOF(TimeSaver::Solver::Solver::State);
+    SIZEOF(TimeSaver::Solver::Solver::Step);
+    SIZEOF(TimeSaver::Solver::Solver::PackedState);
+    SIZEOF(TimeSaver::Solver::Solver::PackedStep);
 
     TimeSaver::Nodes/*<20>*/ classic{ {
         {0, {FWD(1)}},
