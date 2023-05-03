@@ -413,12 +413,11 @@ namespace TimeSaver
 
 			const unsigned int id;
 			const State state;
-			const unsigned int loco;
 			std::vector<Action> actions;
 			
-			Step(const unsigned int id) : id(id), state(), actions(), loco() { };
-			Step(const unsigned int id, const State state) : id(id), state(state), actions(), loco(state.findLoco()) { };
-			Step(const unsigned int id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions), loco(state.findLoco()) { };
+			Step(const unsigned int id) : id(id), state(), actions() { };
+			Step(const unsigned int id, const State state) : id(id), state(state), actions() { };
+			Step(const unsigned int id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions) { };
 
 			Step operator=(Step other)
 			{
@@ -426,7 +425,7 @@ namespace TimeSaver
 				return s;
 			}
 
-			Step(const Step& s) : id(s.id), state(s.state), actions(s.actions), loco(s.loco) { }
+			Step(const Step& s) : id(s.id), state(s.state), actions(s.actions) { }
 
 			bool hasActionToOther(const Action & otherAction)
 			{
@@ -513,6 +512,8 @@ namespace TimeSaver
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
 #endif
+			locoPosSteps.resize(this->nodes.size());
+			locoPosSteps.clear();
 			for (unsigned int i = 0; i < this->nodes.size(); ++i)
 				state.turnouts[i] = this->nodes[i].isTurnout() ? Connection::TurnoutState::A_B : Connection::TurnoutState::None;
 
@@ -1211,6 +1212,9 @@ namespace TimeSaver
 		const unsigned int addStep(Args&&... args) {
 			unsigned int id = this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
+
+			locoPosSteps[this->steps[id].state.findLoco()].push_back(id);
+
 			return id;
 		}
 
@@ -1224,10 +1228,14 @@ namespace TimeSaver
 		int hasStepWithState(const State& state) const
 		{
 			const int loco = state.findLoco();
-			for (unsigned int i = 0; i < steps.size(); ++i)
-				if(steps[i].loco == loco)
-					if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
-						return i;
+			for (unsigned int j = 0; j < locoPosSteps[loco].size(); ++j)
+			{
+				const unsigned int i = locoPosSteps[loco][j];
+				//for (unsigned int i = 0; i < steps.size(); ++i)
+				//	if(steps[i].loco == loco)
+				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
+					return i;
+			}
 			return -1;
 		}
 
@@ -1250,6 +1258,7 @@ namespace TimeSaver
 		StatisticsCallback statistics;
 
 		Steps steps;
+		std::vector<std::vector<unsigned int>> locoPosSteps;
 		PackedStep *packedSteps = nullptr;
 		unsigned int packetStepsSize = 0;
 		std::vector<unsigned int> endStates;

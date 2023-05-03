@@ -184,8 +184,8 @@ int main()
         std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
         GENERATE(2, classic);
         GENERATE(3, classic);
-#ifdef TSS_WITH_FULL_EXPORT
         GENERATE(4, classic);
+#ifdef TSS_WITH_FULL_EXPORT
         GENERATE(5, classic);
 #endif
         file.close();
