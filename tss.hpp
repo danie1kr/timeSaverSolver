@@ -512,8 +512,8 @@ namespace TimeSaver
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
 #endif
-			locoPosSteps.resize(this->nodes.size());
 			locoPosSteps.clear();
+			locoPosSteps.resize(this->nodes.size());
 			for (unsigned int i = 0; i < this->nodes.size(); ++i)
 				state.turnouts[i] = this->nodes[i].isTurnout() ? Connection::TurnoutState::A_B : Connection::TurnoutState::None;
 
@@ -807,6 +807,12 @@ namespace TimeSaver
 		}
 
 #ifdef TSS_WITH_EXPORT
+		void exportPreample(std::ostream& out)
+		{
+			out << "#define TSS_FLEXIBLE\n";
+			out << "#include \"tss.hpp\"\n";
+		}
+	
 		void exportSteps(std::ostream& out, std::string name)
 		{
 			/*
@@ -827,8 +833,6 @@ namespace TimeSaver
 				};
 			*/			
 
-			out << "#define TSS_FLEXIBLE\n";
-			out << "#include \"tss.hpp\"\n";
 			out << "static const unsigned int " << name << "_size = " << std::dec << this->stepsCount() << ";\n";
 			out << "static const TimeSaver::Solver::Precomputed::Step " << name << "[] = { \n";
 

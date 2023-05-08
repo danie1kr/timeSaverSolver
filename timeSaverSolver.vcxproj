@@ -81,6 +81,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dijkstra\dijkstra.hpp" />
+    <ClInclude Include="external\argparse.hpp" />
     <ClInclude Include="tss.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

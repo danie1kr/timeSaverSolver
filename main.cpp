@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "external/argparse.hpp"
+
 #define TSS_FLEXIBLE
 #include "tss.hpp"
 
@@ -40,8 +42,37 @@ std::string varName(const std::string name, const size_t cars)
     return "tss_steps_" + name + "_" + std::to_string(cars);
 }
 
-int main()
+int main(int argc, const char* const argv[])
 {
+    argparse::ArgumentParser argparser("timeSaverSolver");
+
+    argparser.add_argument("--cars")
+        .required()
+        .help("number of cars to compute")
+        .metavar("CARS")
+        .scan<'i', int>();
+
+    argparser.add_argument("--outfile")
+        .help("output file")
+        .required()
+        .metavar("OUTFILE");
+
+    argparser.add_argument("--new")
+        .help("clear file before writing")
+        .default_value(false)
+        .implicit_value(true);
+
+    try {
+        argparser.parse_args(argc, argv);
+    }
+    catch (const std::runtime_error& err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << argparser;
+        std::exit(1);
+    }
+
+    auto fileMode = std::ofstream::out | (argparser["--new"] == true ? std::ofstream::trunc : std::ofstream::app);
+
     /*
         0=1=2=T3=4=5=6
              //
@@ -162,6 +193,8 @@ int main()
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
         tss.init(tss.random(cars), false); \
         tss.createGraph(); \
+        if(argparser["--new"] == true) \
+            tss.exportPreample(file); \
         tss.exportSteps(file, varName(STRINGIFY(layout), cars));  \
     }
 
@@ -174,9 +207,12 @@ int main()
     tss.solve(target);
 #else
 #ifdef TSS_WITH_EXPORT
+
+    if (auto outputFile = argparser.present("--outfile"))
     {
-        std::ofstream file("precomputed_tss_dbg.hpp", std::ofstream::out | std::ofstream::trunc);
-        GENERATE(2, classic);
+        auto cars = argparser.get<int>("--cars");
+        std::ofstream file(outputFile.value(), fileMode);
+        GENERATE(cars, classic);
         file.close();
     }
 #ifndef _DEBUG
@@ -184,8 +220,8 @@ int main()
         std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
         GENERATE(2, classic);
         GENERATE(3, classic);
-        GENERATE(4, classic);
 #ifdef TSS_WITH_FULL_EXPORT
+        GENERATE(4, classic);
         GENERATE(5, classic);
 #endif
         file.close();

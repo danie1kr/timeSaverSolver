@@ -26,5 +26,8 @@
     <ClInclude Include="dijkstra\dijkstra.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="external\argparse.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
