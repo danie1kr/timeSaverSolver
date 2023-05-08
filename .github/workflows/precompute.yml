@@ -14,9 +14,9 @@ jobs:
     - name: make
       run: make solver
     - name: compute debug 2
-      run: timeSaverSolver --cars 2 --outfile precomputed_tss_dbg.hpp --new
+      run: ./timeSaverSolver --cars 2 --outfile precomputed_tss_dbg.hpp --new
     - name: compute 2
-      run: timeSaverSolver --cars 2 --outfile precomputed_tss.hpp --new
+      run: ./timeSaverSolver --cars 2 --outfile precomputed_tss.hpp --new
     - name: compute 3
-      run: timeSaverSolver --cars 3 --outfile precomputed_tss.hpp
+      run: ./timeSaverSolver --cars 3 --outfile precomputed_tss.hpp
     #- name: push
