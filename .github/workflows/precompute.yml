@@ -1,9 +1,5 @@
 name: 'TSS Precompute'
 
-# **What it does**: Renders the content of every page and check all internal links.
-# **Why we have it**: To make sure all links connect correctly.
-# **Who does it impact**: Docs content.
-
 on:
   workflow_dispatch:
 
@@ -21,4 +17,4 @@ jobs:
         run: timeSaverSolver --cars 2 --outfile precomputed_tss.hpp --new
       - name: compute 3
         run: timeSaverSolver --cars 3 --outfile precomputed_tss.hpp
-      - name: push
+      #- name: push
