@@ -1,0 +1,22 @@
+name: 'TSS Precompute'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  precompute:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3.5.2
+      with:
+        submodules: recursive
+    - name: make
+      run: make solver
+    - name: compute debug 2
+      run: ./timeSaverSolver --cars 2 --outfile precomputed_tss_dbg.hpp --new
+    - name: compute 2
+      run: ./timeSaverSolver --cars 2 --outfile precomputed_tss.hpp --new
+    - name: compute 3
+      run: ./timeSaverSolver --cars 3 --outfile precomputed_tss.hpp
+    #- name: push
