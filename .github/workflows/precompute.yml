@@ -10,7 +10,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3.5.2
     - name: make
-      run: make solver
+      run: |
+        cat Makefile
+        make solver
     - name: compute debug 2
       run: timeSaverSolver --cars 2 --outfile precomputed_tss_dbg.hpp --new
     - name: compute 2
