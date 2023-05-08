@@ -215,6 +215,7 @@ int main(int argc, const char* const argv[])
         GENERATE(cars, classic);
         file.close();
     }
+/*
 #ifndef _DEBUG
     {
         std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
@@ -227,7 +228,7 @@ int main(int argc, const char* const argv[])
         file.close();
     }
 #endif
-#endif // !_DEBUG
+#endif // !_DEBUG*/
 #endif
 
     /*
