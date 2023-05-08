@@ -1,10 +1,10 @@
-name: 'web build'
+name: 'emSDK Web Build'
 
 on:
   workflow_dispatch:
 
 jobs:
-  precompute:
+  Compile:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
