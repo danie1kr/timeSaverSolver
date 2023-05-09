@@ -22,7 +22,14 @@ jobs:
     - name: Compile web.cpp
       run: |
         source emsdk/emsdk_env.sh
-        em++ jsTSS/web.cpp -o Emscripten/Release/web.o -g0 -O3 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -c
-        em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -O3 -o Emscripten/Release/jsTSS.html --shell-file shell.html
-    # -copy
-    # -name : push
+        make web
+    - name: commit files
+      run: |
+        git config --local user.email "37019555+danie1kr@users.noreply.github.com"
+        git config --local user.name "danie1kr"
+        git add Emscripten/Release/jsTSS.*
+        git commit -m "Add compiled web frontend"
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        branch: ${{ github.head_ref }}
