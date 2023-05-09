@@ -173,6 +173,7 @@ int main(int argc, const char* const argv[])
         );
 
 #define STRINGIFY(x) #x
+#define FILENAME(prefix, cars, layout)  prefix + "_" + STRINGIFY(layout) + "_" + std::to_string(cars)
 #define GENERATE(cars, layout, cpp, hpp, hppName) { \
         std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n" << std::flush; \
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
@@ -194,9 +195,9 @@ int main(int argc, const char* const argv[])
     if (auto outputFile = argparser.present("--outfile"))
     {
         auto cars = argparser.get<int>("--cars");
-        std::ofstream hpp(outputFile.value() + ".hpp", std::ofstream::out | std::ofstream::trunc);
-        std::ofstream cpp(outputFile.value() + ".cpp", std::ofstream::out | std::ofstream::trunc);
-        GENERATE(cars, classic, cpp, hpp, outputFile.value() + ".hpp");
+        std::ofstream hpp(FILENAME(outputFile.value(), cars, classic) + ".hpp", std::ofstream::out | std::ofstream::trunc);
+        std::ofstream cpp(FILENAME(outputFile.value(), cars, classic) + ".cpp", std::ofstream::out | std::ofstream::trunc);
+        GENERATE(cars, classic, cpp, hpp, FILENAME(outputFile.value(), cars, classic) + ".hpp");
         cpp.close();
         hpp.close();
     }
