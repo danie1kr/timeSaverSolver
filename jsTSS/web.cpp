@@ -12,7 +12,6 @@
 em++ jsTSS/web.cpp -o Emscripten/Debug/web.o -D_DEBUG -g0 -O0 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -c
 em++ Emscripten/Debug/web.o --bind -g3 -s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -O0 -o Emscripten/Debug/jsTSS.html --shell-file shell.html
 
-
 // RELEASE
 em++ jsTSS/web.cpp -o Emscripten/Release/web.o -g0 -O3 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -c
 em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -O3 -o Emscripten/Release/jsTSS.html --shell-file shell.html
