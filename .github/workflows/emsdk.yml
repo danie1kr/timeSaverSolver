@@ -1,0 +1,28 @@
+name: 'emSDK Web Build'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Compile:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3.5.2
+      with:
+        submodules: recursive
+    - name: Install emSDK
+      run: |
+        git clone https://github.com/emscripten-core/emsdk.git
+        cd emsdk
+        git pull
+        ./emsdk install latest
+        ./emsdk activate latest
+        cd ..
+    - name: Compile web.cpp
+      run: |
+        source emsdk/emsdk_env.sh
+        em++ jsTSS/web.cpp -o Emscripten/Release/web.o -g0 -O3 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -c
+        em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -O3 -o Emscripten/Release/jsTSS.html --shell-file shell.html
+    # -copy
+    # -name : push
