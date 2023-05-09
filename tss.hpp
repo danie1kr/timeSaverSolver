@@ -807,13 +807,7 @@ namespace TimeSaver
 		}
 
 #ifdef TSS_WITH_EXPORT
-		void exportPreample(std::ostream& out)
-		{
-			out << "#define TSS_FLEXIBLE\n";
-			out << "#include \"tss.hpp\"\n";
-		}
-	
-		void exportSteps(std::ostream& out, std::string name)
+		void exportSteps(std::ostream& cpp, std::ostream& hpp, std::string hppName, std::string name)
 		{
 			/*
 				#define TSS_FLEXIBLE
@@ -831,22 +825,29 @@ namespace TimeSaver
 				0x100000006,
 				0x200000007,
 				};
-			*/			
+			*/
+			hpp << "#define TSS_FLEXIBLE\n";
+			hpp << "#include \"tss.hpp\"\n";
+			hpp << "extern const unsigned int " << name << "_size;\n";
+			hpp << "extern const TimeSaver::Solver::Precomputed::Step " << name << "[];\n";
+			hpp << "extern const unsigned int " << name << "_actions_size;\n";
+			hpp << "extern const TimeSaver::Solver::Precomputed::Action " << name << "_actions[];\n";
 
-			out << "static const unsigned int " << name << "_size = " << std::dec << this->stepsCount() << ";\n";
-			out << "static const TimeSaver::Solver::Precomputed::Step " << name << "[] = { \n";
+			cpp << "#include \"" << hppName << "\"\n";
+			cpp << "const unsigned int " << name << "_size = " << std::dec << this->stepsCount() << ";\n";
+			cpp << "const TimeSaver::Solver::Precomputed::Step " << name << "[] = { \n";
 
 			unsigned int actionsCount = 0;
 			for (unsigned int i = 0; i < this->stepsCount(); ++i)
 			{
 				const auto& step = this->packedSteps[i];
 				// State
-				out << "0x" << std::hex << (int64_t)step.state.data << ",\n";
+				cpp << "0x" << std::hex << (int64_t)step.state.data << ",\n";
 				actionsCount += step.actions.size();
 			}
-			out << "};\n";
-			out << "static const unsigned int " << name << "_actions_size = " << std::dec << actionsCount << ";\n";
-			out << "static const TimeSaver::Solver::Precomputed::Action " << name << "_actions[] = { \n";
+			cpp << "};\n";
+			cpp << "const unsigned int " << name << "_actions_size = " << std::dec << actionsCount << ";\n";
+			cpp << "const TimeSaver::Solver::Precomputed::Action " << name << "_actions[] = { \n";
 			// put actions into one array, re-alignmend done on loading
 			for (unsigned int i = 0; i < this->stepsCount(); ++i)
 			{
@@ -854,10 +855,10 @@ namespace TimeSaver
 				for (unsigned int a = 0; a < step.actions.size(); ++a)
 				{
 					const auto& action = step.actions[a];
-					out << "0x" << std::hex << (int64_t)(((int64_t)i << 32) | (int64_t)action.data) << ",\n";
+					cpp << "0x" << std::hex << (int64_t)(((int64_t)i << 32) | (int64_t)action.data) << ",\n";
 				}
 			}
-			out << "};\n";
+			cpp << "};\n";
 		}
 #endif
 

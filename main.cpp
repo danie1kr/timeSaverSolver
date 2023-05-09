@@ -57,11 +57,6 @@ int main(int argc, const char* const argv[])
         .required()
         .metavar("OUTFILE");
 
-    argparser.add_argument("--new")
-        .help("clear file before writing")
-        .default_value(false)
-        .implicit_value(true);
-
     try {
         argparser.parse_args(argc, argv);
     }
@@ -70,8 +65,6 @@ int main(int argc, const char* const argv[])
         std::cerr << argparser;
         std::exit(1);
     }
-
-    auto fileMode = std::ofstream::out | (argparser["--new"] == true ? std::ofstream::trunc : std::ofstream::app);
 
     /*
         0=1=2=T3=4=5=6
@@ -91,14 +84,6 @@ int main(int argc, const char* const argv[])
 #define BWD_A_B(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_B)
 #define FWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, TimeSaver::Connection::TurnoutState::A_C)
 #define BWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_C)
-
-#define SIZEOF(it)    std::cout << "sizeof(" << #it << "): " << sizeof(it) << "\n" << std::flush;
-
-    SIZEOF(TimeSaver::Solver);
-    SIZEOF(TimeSaver::Solver::Solver::State);
-    SIZEOF(TimeSaver::Solver::Solver::Step);
-    SIZEOF(TimeSaver::Solver::Solver::PackedState);
-    SIZEOF(TimeSaver::Solver::Solver::PackedStep);
 
     TimeSaver::Nodes/*<20>*/ classic{ {
         {0, {FWD(1)}},
@@ -188,14 +173,12 @@ int main(int argc, const char* const argv[])
         );
 
 #define STRINGIFY(x) #x
-#define GENERATE(cars, layout) { \
+#define GENERATE(cars, layout, cpp, hpp, hppName) { \
         std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n" << std::flush; \
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
         tss.init(tss.random(cars), false); \
         tss.createGraph(); \
-        if(argparser["--new"] == true) \
-            tss.exportPreample(file); \
-        tss.exportSteps(file, varName(STRINGIFY(layout), cars));  \
+        tss.exportSteps(cpp, hpp, hppName, varName(STRINGIFY(layout), cars));  \
     }
 
     TSS tss(classic, print, step, statistics, distStorage, precStorage);
@@ -211,9 +194,11 @@ int main(int argc, const char* const argv[])
     if (auto outputFile = argparser.present("--outfile"))
     {
         auto cars = argparser.get<int>("--cars");
-        std::ofstream file(outputFile.value(), fileMode);
-        GENERATE(cars, classic);
-        file.close();
+        std::ofstream hpp(outputFile.value() + ".hpp", std::ofstream::out | std::ofstream::trunc);
+        std::ofstream cpp(outputFile.value() + ".cpp", std::ofstream::out | std::ofstream::trunc);
+        GENERATE(cars, classic, cpp, hpp, outputFile.value() + ".hpp");
+        cpp.close();
+        hpp.close();
     }
 /*
 #ifndef _DEBUG

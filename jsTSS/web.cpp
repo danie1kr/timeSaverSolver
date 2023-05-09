@@ -6,12 +6,33 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
+/*
+* 
+// DEBUG
+em++ jsTSS/web.cpp -o Emscripten/Debug/web.o -D_DEBUG -g0 -O0 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -c
+em++ Emscripten/Debug/web.o --bind -g3 -s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -O0 -o Emscripten/Debug/jsTSS.html --shell-file shell.html
+
+
+// RELEASE
+em++ jsTSS/web.cpp -o Emscripten/Release/web.o -g0 -O3 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -c
+em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -O3 -o Emscripten/Release/jsTSS.html --shell-file shell.html
+
+*/
+
 #define TSS_FLEXIBLE
 #include "../tss.hpp"
+#include "../precomputed_tss_classic_2.hpp"
+#include "../precomputed_tss_classic_3.hpp"
+#include "../precomputed_tss_classic_4.hpp"
+
 #ifdef _DEBUG
-#include "../precomputed_tss_dbg.hpp"
+const unsigned int tss_steps_classic_3_size = 0;
+const TimeSaver::Solver::Precomputed::Step tss_steps_classic_3[];
+const unsigned int tss_steps_classic_4_size = 0;
+const TimeSaver::Solver::Precomputed::Step tss_steps_classic_4[];
+const unsigned int tss_steps_classic_5_size = 0;
+const TimeSaver::Solver::Precomputed::Step tss_steps_classic_5[];
 #else
-#include "../precomputed_tss.hpp"
 #endif
 
 void (*errorJS)(const char* err) = nullptr;
@@ -181,8 +202,8 @@ TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layou
 		return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
 	else if (layout == 0 && cars == 4)
 		return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
-	else if (layout == 0 && cars == 5)
-		return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
+//	else if (layout == 0 && cars == 5)
+	//	return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
 #endif
 	return { nullptr, 0, nullptr, 0 };
 }
