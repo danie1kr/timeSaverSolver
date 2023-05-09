@@ -17,10 +17,10 @@ jobs:
       run: ./timeSaverSolver --cars 2 --outfile precomputed_tss
     - name: compute 3
       run: ./timeSaverSolver --cars 3 --outfile precomputed_tss
-    #- name: compute 4
-    #  run: ./timeSaverSolver --cars 4 --outfile precomputed_tss
-    #- name: compute 5
-    #  run: ./timeSaverSolver --cars 5 --outfile precomputed_tss
+    - name: compute 4
+      run: ./timeSaverSolver --cars 4 --outfile precomputed_tss
+    - name: compute 5
+      run: ./timeSaverSolver --cars 5 --outfile precomputed_tss
     - name: commit files
       run: |
         git config --local user.email "37019555+danie1kr@users.noreply.github.com"
