@@ -27,7 +27,7 @@ jobs:
       run: |
         git config --local user.email "37019555+danie1kr@users.noreply.github.com"
         git config --local user.name "danie1kr"
-        git add Emscripten/Release/jsTSS.*
+        git add precomputed_tss_*.o Emscripten/Release/jsTSS.*
         git commit -m "Add compiled web frontend"
     - name: Push changes
       uses: ad-m/github-push-action@master

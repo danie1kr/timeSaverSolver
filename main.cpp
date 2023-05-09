@@ -201,19 +201,7 @@ int main(int argc, const char* const argv[])
         cpp.close();
         hpp.close();
     }
-/*
-#ifndef _DEBUG
-    {
-        std::ofstream file("precomputed_tss.hpp", std::ofstream::out | std::ofstream::trunc);
-        GENERATE(2, classic);
-        GENERATE(3, classic);
-#ifdef TSS_WITH_FULL_EXPORT
-        GENERATE(4, classic);
-        GENERATE(5, classic);
-#endif
-        file.close();
-    }
-#endif*/
+
 #endif // !_DEBUG
 #endif
 
