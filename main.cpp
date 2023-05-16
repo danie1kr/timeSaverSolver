@@ -42,6 +42,41 @@ std::string varName(const std::string name, const size_t cars)
     return "tss_steps_" + name + "_" + std::to_string(cars);
 }
 
+#ifdef TSS_WITH_IMPORT
+#define TSS_FLEXIBLE
+#include "tss.hpp"
+#include "precomputed_tss_classic_2.hpp"
+#include "precomputed_tss_classic_3.hpp"
+#include "precomputed_tss_classic_4.hpp"
+#include "precomputed_tss_classic_5.hpp"
+
+#ifdef _DEBUG
+const unsigned int tss_steps_classic_4_size = 0;
+const TimeSaver::Solver::Precomputed::Step tss_steps_classic_4[] = { {0} };
+const unsigned int tss_steps_classic_4_actions_size = 0;
+const TimeSaver::Solver::Precomputed::Action tss_steps_classic_4_actions[] = { {0} };
+const unsigned int tss_steps_classic_5_size = 0;
+const TimeSaver::Solver::Precomputed::Step tss_steps_classic_5[] = { {0} };
+const unsigned int tss_steps_classic_5_actions_size = 0;
+const TimeSaver::Solver::Precomputed::Action tss_steps_classic_5_actions[] = { {0} };
+#endif
+
+TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layout, unsigned int cars)
+{
+    if (layout == 0 && cars == 2)
+        return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
+    else if (layout == 0 && cars == 3)
+        return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
+#ifndef _DEBUG
+    else if (layout == 0 && cars == 4)
+        return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
+    else if (layout == 0 && cars == 5)
+        return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
+#endif
+    return { nullptr, 0, nullptr, 0 };
+}
+#endif
+
 int main(int argc, const char* const argv[])
 {
     argparse::ArgumentParser argparser("timeSaverSolver");
@@ -182,16 +217,44 @@ int main(int argc, const char* const argv[])
         tss.exportSteps(cpp, hpp, hppName, varName(STRINGIFY(layout), cars));  \
     }
 
-    TSS tss(classic, print, step, statistics, distStorage, precStorage);
     //#define TSS_WITH_IMPORT
 #ifdef TSS_WITH_IMPORT
-#include "precomputed_tss.hpp"
-    tss.init(tss_steps_classic_4_a);
-    auto target = tss.randomFromStepsGraph();
-    tss.solve(target);
+#ifdef _DEBUG
+    const unsigned int tss_steps_classic_4_size = 0;
+    const TimeSaver::Solver::Precomputed::Step tss_steps_classic_4[] = { {0} };
+    const unsigned int tss_steps_classic_4_actions_size = 0;
+    const TimeSaver::Solver::Precomputed::Action tss_steps_classic_4_actions[] = { {0} };
+    const unsigned int tss_steps_classic_5_size = 0;
+    const TimeSaver::Solver::Precomputed::Step tss_steps_classic_5[] = { {0} };
+    const unsigned int tss_steps_classic_5_actions_size = 0;
+    const TimeSaver::Solver::Precomputed::Action tss_steps_classic_5_actions[] = { {0} };
+#endif
+
+    const auto layout = 0;
+    const auto cars = 3;
+
+    TimeSaver::Solver* solver = nullptr;
+    solver = new TimeSaver::Solver(classic , print, step, statistics, distStorage, precStorage);
+    solver->init(precomputedStepsGraph(layout, cars));
+    auto randomStartStep = std::rand() % solver->stepsCount();
+    auto carPlacementStart = solver->fromPackedStepsGraph(randomStartStep);
+    auto difficulty = 0;
+    auto randomEndStep = solver->randomEndState(randomStartStep, difficulty);
+    auto carPlacementEnd = solver->fromPackedStepsGraph(randomEndStep);
+    solver->solve_dijkstra_init(randomStartStep);
+
+    bool result = false;
+    do
+    {
+        result = solver->solve_dijkstra_step();
+    } while (result);
+
+    solver->solve_dijkstra_markEndStepsLike(randomEndStep);
+    auto shortestPath = solver->solve_dijkstra_shortestPath();
 #else
 #ifdef TSS_WITH_EXPORT
 
+    TSS tss(classic, print, step, statistics, distStorage, precStorage);
     if (auto outputFile = argparser.present("--outfile"))
     {
         auto cars = argparser.get<int>("--cars");

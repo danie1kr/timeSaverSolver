@@ -47,9 +47,18 @@
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
+      <OptimizationLevel>O1</OptimizationLevel>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\precomputed_tss_classic_2.cpp" />
+    <ClCompile Include="..\precomputed_tss_classic_3.cpp" />
+    <ClCompile Include="..\precomputed_tss_classic_4.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\precomputed_tss_classic_5.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="web.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -57,8 +66,10 @@
     <None Include="shell.html" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\precomputed_tss.hpp" />
-    <ClInclude Include="..\precomputed_tss_dbg.hpp" />
+    <ClInclude Include="..\precomputed_tss_classic_2.hpp" />
+    <ClInclude Include="..\precomputed_tss_classic_3.hpp" />
+    <ClInclude Include="..\precomputed_tss_classic_4.hpp" />
+    <ClInclude Include="..\precomputed_tss_classic_5.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

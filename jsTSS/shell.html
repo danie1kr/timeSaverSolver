@@ -149,7 +149,7 @@
     <select id="layouts" class="settings"></select>
     <form action="#">
         <p class="range-field">
-            <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="5" />
+            <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="3" />
         </p>
     </form>
     <form action="#">
@@ -265,7 +265,6 @@
             _.each(carPlacement, (value, index) => {
                 cy.$('node[id="' + value + '"]').data("carName", idToCarName(index));
             });
-
         }
 
         function cyUpdate(state, turnouts) {
@@ -273,10 +272,10 @@
             _.each(state, (value, index) => {
                 cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
             });/*
-                                                        _.each(turnouts, (value, index) => {
-                                                            if(value !== 0)
-                                                            cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
-                                                        });*/
+            _.each(turnouts, (value, index) => {
+                if(value !== 0)
+                cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
+            });*/
         }
 
         function wasmLoaded() {
@@ -328,6 +327,7 @@
                     cy.destroy();
                 cy = cytoscapeCreate();
                 cytoscapePopulate();
+                $("#rangeCars").max(Module.getMaximumCarCount());
             });
             cy = cytoscapeCreate();
             cytoscapePopulate();

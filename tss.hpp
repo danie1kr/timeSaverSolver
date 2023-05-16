@@ -304,15 +304,15 @@ namespace TimeSaver
 
 			const int64_t data;
 
+			static const unsigned int extractCars(const int64_t data)
+			{
+				return (data >> 3) & 0b111;
+			}
+
 		private:
 			static const unsigned int extractTurnouts(const int64_t data)
 			{
 				return data & 0b111;
-			}
-
-			static const unsigned int extractCars(const int64_t data)
-			{
-				return (data >> 3) & 0b111;
 			}
 
 			static int64_t fromState(const State state, const unsigned int turnouts, const unsigned int cars)
@@ -483,11 +483,11 @@ namespace TimeSaver
 			if (this->packedSteps != nullptr)
 				delete this->packedSteps;
 
-			this->packetStepsSize = storage.stepsCount;
-			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->packetStepsSize);
+			this->packedStepsSize = storage.stepsCount;
+			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->packedStepsSize);
 
 			unsigned int turnouts = countTurnouts(), cars = countCars();
-			for (unsigned int i = 0; i < this->packetStepsSize; ++i)
+			for (unsigned int i = 0; i < this->packedStepsSize; ++i)
 			{
 				const auto& step = storage.steps[i];
 				const PackedState state(step.state);
@@ -578,8 +578,9 @@ namespace TimeSaver
 		{
 			CarPlacement result;
 			const unsigned int cars = countCars();
+			result.resize(cars);
 			for (unsigned int j = 0; j < this->nodes.size(); ++j)
-				for (unsigned int k = 1; k < cars; ++k)
+				for (unsigned int k = 1; k <= cars; ++k)
 					if (this->packedSteps[i].state.node(j) == k)
 						result[k - 1] = j;
 
@@ -588,7 +589,7 @@ namespace TimeSaver
 
 		const unsigned int stepsCount() const
 		{
-			return this->packetStepsSize;
+			return this->packedStepsSize;
 		}
 
 		const unsigned int randomEndState(unsigned int start, unsigned int difficulty = -1) const
@@ -599,8 +600,8 @@ namespace TimeSaver
 			{
 				const unsigned int base = 20;
 				const unsigned int dev = 4;
-				auto range = (base + dev) * difficulty;
-				auto random = (std::rand() % dev + base) * difficulty;
+				auto range = (base + dev) * (difficulty+1);
+				auto random = (std::rand() % dev + base) * (difficulty+1);
 				if (start < range / 2)
 					return (start + range) % this->stepsCount();
 				else if (start + range / 2 > this->stepsCount())
@@ -749,10 +750,17 @@ namespace TimeSaver
 		const unsigned int countCars() const
 		{
 			unsigned int cars = 0;
-			for (unsigned int i = 0; i < this->steps[0].state.slots.size(); ++i)
-				if (this->steps[0].state.slots[i] != Empty)
-					++cars;
+			if (this->steps.size() > 0)
+			{
+				for (unsigned int i = 0; i < this->steps[0].state.slots.size(); ++i)
+					if (this->steps[0].state.slots[i] != Empty)
+						++cars;
 
+			}
+			else if (this->packedStepsSize > 0)
+			{
+				cars = PackedState::extractCars(this->packedSteps[0].state.data);
+			}
 			return cars;
 		}
 
@@ -789,7 +797,7 @@ namespace TimeSaver
 			if (this->packedSteps != nullptr)
 				delete this->packedSteps;
 			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->steps.size());
-			this->packetStepsSize = this->steps.size();
+			this->packedStepsSize = this->steps.size();
 
 			unsigned int turnouts = countTurnouts(), cars = countCars();
 
@@ -864,7 +872,7 @@ namespace TimeSaver
 
 		const unsigned int steps_count()
 		{
-			return this->packetStepsSize;
+			return this->packedStepsSize;
 		}
 
 
@@ -1265,7 +1273,7 @@ namespace TimeSaver
 		Steps steps;
 		std::vector<std::vector<unsigned int>> locoPosSteps;
 		PackedStep *packedSteps = nullptr;
-		unsigned int packetStepsSize = 0;
+		unsigned int packedStepsSize = 0;
 		std::vector<unsigned int> endStates;
 	};
 }

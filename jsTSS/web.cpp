@@ -26,12 +26,14 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 #include "../precomputed_tss_classic_5.hpp"
 
 #ifdef _DEBUG
-const unsigned int tss_steps_classic_3_size = 0;
-const TimeSaver::Solver::Precomputed::Step tss_steps_classic_3[];
 const unsigned int tss_steps_classic_4_size = 0;
-const TimeSaver::Solver::Precomputed::Step tss_steps_classic_4[];
+const TimeSaver::Solver::Precomputed::Step tss_steps_classic_4[] = { {0} };
+const unsigned int tss_steps_classic_4_actions_size = 0;
+const TimeSaver::Solver::Precomputed::Action tss_steps_classic_4_actions[] = { {0} };
 const unsigned int tss_steps_classic_5_size = 0;
-const TimeSaver::Solver::Precomputed::Step tss_steps_classic_5[];
+const TimeSaver::Solver::Precomputed::Step tss_steps_classic_5[] = { {0} };
+const unsigned int tss_steps_classic_5_actions_size = 0;
+const TimeSaver::Solver::Precomputed::Action tss_steps_classic_5_actions[] = { {0} };
 #else
 #endif
 
@@ -197,13 +199,13 @@ TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layou
 {
 	if (layout == 0 && cars == 2)
 		return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
-#ifndef _DEBUG
 	else if (layout == 0 && cars == 3)
 		return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
+#ifndef _DEBUG
 	else if (layout == 0 && cars == 4)
 		return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
-//	else if (layout == 0 && cars == 5)
-	//	return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
+	else if (layout == 0 && cars == 5)
+		return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
 #endif
 	return { nullptr, 0, nullptr, 0 };
 }
@@ -251,6 +253,17 @@ emscripten::val getLayoutNodes(unsigned int layout) {
 	}
 	else
 		return emscripten::val("getLayoutName: incompatible index");
+}
+
+emscripten::val getMaximumCarCount(unsigned int layout) {
+	
+	return emscripten::val(
+#ifdef _DEBUG
+		layout == 0 ? 3 : 3
+#else
+		layout == 0 ? 5 : 5
+#endif
+	);
 }
 
 extern "C" {
@@ -468,6 +481,7 @@ EMSCRIPTEN_BINDINGS(timeSaverSolver) {
 	function("getLayoutCount", &getLayoutCount);
 	function("getLayoutName", &getLayoutName);
 	function("getLayoutNodes", &getLayoutNodes);
+	function("getMaximumCarCount", &getMaximumCarCount);
 	function("getCarLayout", &getCarLayout);
 	function("getRandomStartState", &getRandomStartState);
 	function("getRandomEndState", &getRandomEndState);
