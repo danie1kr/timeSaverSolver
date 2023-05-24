@@ -1,5 +1,5 @@
 solver: main.cpp
-	g++ -O3 -o timeSaverSolver -DTSS_WITH_EXPORT main.cpp
+	g++ -std=c++2a -O3 -o timeSaverSolver -DTSS_WITH_EXPORT main.cpp
 
 PRECOMPUTED=$(wildcard precomputed/precomputed_tss*.cpp)
 OBJECTS=$(patsubst %.cpp, %.o, $(PRECOMPUTED))
