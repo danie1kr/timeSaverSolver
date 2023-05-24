@@ -6,6 +6,9 @@
 #include <map>
 #include <functional>
 #include <string>
+#include <ios>
+#include <iostream>
+#include <sstream>
 
 #include "dijkstra/dijkstra.hpp"
 
@@ -851,7 +854,7 @@ namespace TimeSaver
 		{
 			/*
 				#define TSS_FLEXIBLE
-				#include "tss.hpp"
+				#include "../tss.hpp"
 				static const unsigned int tss_steps_classic_2_size = 505;
 				static const TimeSaver::Solver::Precomputed::Step tss_steps_classic_2[] = { 
 				 0x2855,
@@ -867,7 +870,7 @@ namespace TimeSaver
 				};
 			*/
 			hpp << "#define TSS_FLEXIBLE\n";
-			hpp << "#include \"tss.hpp\"\n";
+			hpp << "#include \"../tss.hpp\"\n";
 			hpp << "extern const unsigned int " << name << "_size;\n";
 			hpp << "extern const TimeSaver::Solver::Precomputed::Step " << name << "[];\n";
 			hpp << "extern const unsigned int " << name << "_actions_size;\n";
