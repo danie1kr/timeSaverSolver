@@ -1,7 +1,7 @@
 solver: main.cpp
 	g++ -O3 -o timeSaverSolver -DTSS_WITH_EXPORT main.cpp
 
-PRECOMPUTED=$(wildcard precomputed_tss*.cpp)
+PRECOMPUTED=$(wildcard precomputed/precomputed_tss*.cpp)
 OBJECTS=$(patsubst %.cpp, %.o, $(PRECOMPUTED))
 
 web: $(OBJECTS) web.o

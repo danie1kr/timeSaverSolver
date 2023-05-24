@@ -531,7 +531,7 @@ namespace TimeSaver
 			loco = cars[0];
 			if(!keep)
 				this->steps.clear();
-			this->nextStepIndex = this->steps.size();
+			this->nextStepIndex = (unsigned int)this->steps.size();
 
 			int nextIndex = this->hasStepWithState(state);
 			if (nextIndex == -1)
@@ -644,6 +644,11 @@ namespace TimeSaver
 			dijkstra.dijkstra_init(this->stepsCount(), start);
 		}
 
+		const unsigned int solve_dijkstra_expectedIterations()
+		{
+			return this->stepsCount();
+		}
+
 		void solve_dijkstra_markEndStepsLike(const unsigned int selectedEndStep)
 		{
 			this->endStates.clear();
@@ -659,7 +664,34 @@ namespace TimeSaver
 		}
 
 		bool solve_dijkstra_step()
+		{/*
+			return solve_dijkstra_step<1>();
+		}
+
+		template<unsigned int _Iterations>
+		bool solve_dijkstra_step()
 		{
+			unsigned int i = 0;
+			while (i < _Iterations)
+			{
+				++i;
+				if(!dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
+					std::vector<size_t> neighbors;
+					for (auto neighbor : this->packedSteps[i].actions)
+						neighbors.push_back(neighbor.target());
+					return neighbors;
+					},
+					[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const size_t {
+						// look through prec of a to decide how man turnouts changed
+						for (auto neighbor : this->packedSteps[a].actions)
+							if (neighbor.target() == b)
+								return (size_t)1;
+
+						return (size_t)0;
+					}))
+					return false;
+			}
+			return true;*/
 			return dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 				std::vector<size_t> neighbors;
 				for (auto neighbor : this->packedSteps[i].actions)
@@ -689,7 +721,7 @@ namespace TimeSaver
 				if (path.size() < shortestPathSteps)
 				{
 					shortestPath = path;
-					shortestPathSteps = path.size();
+					shortestPathSteps = (unsigned int)path.size();
 				}
 			}
 			statistics((unsigned int)this->stepsCount(), (unsigned int)this->endStates.size());
@@ -797,7 +829,7 @@ namespace TimeSaver
 			if (this->packedSteps != nullptr)
 				delete this->packedSteps;
 			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->steps.size());
-			this->packedStepsSize = this->steps.size();
+			this->packedStepsSize = (unsigned int)this->steps.size();
 
 			unsigned int turnouts = countTurnouts(), cars = countCars();
 
@@ -1223,7 +1255,7 @@ namespace TimeSaver
 
 		template<typename... Args>
 		const unsigned int addStep(Args&&... args) {
-			unsigned int id = this->steps.size();
+			unsigned int id = (unsigned int)this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 
 			locoPosSteps[this->steps[id].state.findLoco()].push_back(id);

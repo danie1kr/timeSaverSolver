@@ -173,6 +173,8 @@
         let cy = null;
         let carPlacement = "";
         let selectedStartStep = -1;
+        let dijkstraSteps = 0;
+        let dijkstraDone = 0;
 
         function cytoscapeCreate() {
             return cy = cytoscape({
@@ -293,13 +295,25 @@
                 $("#solverProgress").css("width", (p * 100) + "%");
             }
 
+
             function solve() {
-                if (Module.timeSaverSolver().value !== Module.TSSState.Finalize)
+                performance.mark("solve-started");
+                if (Module.timeSaverSolver().value !== Module.TSSState.Finalize) {
+                    dijkstraDone++;
+                    progress(dijkstraDone / dijkstraSteps);
                     _.defer(solve);
+                }
                 else {
                     progress(1);
                     console.log("shortest path: " + Module.getShortestPath());
                 }
+                performance.mark("solve-finished");
+                const solveMeasure = performance.measure(
+                    "solve-duration",
+                    "solve-started",
+                    "solve-finished"
+                );
+                console.log(solveMeasure.duration);
             }
 
             $("#btnRandomizeStart").on('click', e => {
@@ -320,6 +334,9 @@
                 console.log(carPlacement);
             });
             $("#btnSolve").on('click', e => {
+                progress(0);
+                dijkstraSteps = Module.getExpectedDijkstraSteps();
+                dijkstraDone = 0;
                 _.defer(solve);
             });
             $("#layouts").on('change', e => {

@@ -416,12 +416,25 @@ emscripten::val getRandomEndState(unsigned int selectedStartStep, unsigned int d
 	}
 
 	selectedEndStep = solver->randomEndState(selectedStartStep, difficulty);
+	if (selectedStartStep != selectedEndStep)
+		state = TSSState::InitDijkstra;
 	return emscripten::val(selectedEndStep);
+}
+
+emscripten::val getExpectedDijkstraSteps()
+{
+	if (check() == false || state == TSSState::Error || state != TSSState::InitDijkstra)
+	{
+		error("timeSaverSolver: Incompatible states. Please reload");
+		return emscripten::val(TSSState::Error);
+	}
+
+	return emscripten::val(solver->solve_dijkstra_expectedIterations());
 }
 
 emscripten::val timeSaverSolver()
 {
-	if (check() == false || state == TSSState::Error || state == TSSState::InitTSS)
+	if (check() == false || state == TSSState::Error || state == TSSState::ChooseStartAndEnd)
 	{
 		error("timeSaverSolver: Incompatible states. Please reload");
 		return emscripten::val(TSSState::Error);
@@ -439,7 +452,7 @@ emscripten::val timeSaverSolver()
 	}
 	case TSSState::StepDikjstra:
 	{
-		auto result = solver->solve_dijkstra_step();
+		auto result = solver->solve_dijkstra_step/*<25>*/();
 		if (result == false)
 			state = TSSState::MarkEndDijkstra;
 		break;
@@ -485,6 +498,7 @@ EMSCRIPTEN_BINDINGS(timeSaverSolver) {
 	function("getCarLayout", &getCarLayout);
 	function("getRandomStartState", &getRandomStartState);
 	function("getRandomEndState", &getRandomEndState);
+	function("getExpectedDijkstraSteps", &getExpectedDijkstraSteps);
 	function("timeSaverSolverInit", &timeSaverSolverInit);
 	function("timeSaverSolver", &timeSaverSolver);
 	function("getState", &getState);

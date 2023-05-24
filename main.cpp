@@ -258,8 +258,8 @@ int main(int argc, const char* const argv[])
     if (auto outputFile = argparser.present("--outfile"))
     {
         auto cars = argparser.get<int>("--cars");
-        std::ofstream hpp(FILENAME(outputFile.value(), cars, classic) + ".hpp", std::ofstream::out | std::ofstream::trunc);
-        std::ofstream cpp(FILENAME(outputFile.value(), cars, classic) + ".cpp", std::ofstream::out | std::ofstream::trunc);
+        std::ofstream hpp("precomputed/" + FILENAME(outputFile.value(), cars, classic) + ".hpp", std::ofstream::out | std::ofstream::trunc);
+        std::ofstream cpp("precomputed/" + FILENAME(outputFile.value(), cars, classic) + ".cpp", std::ofstream::out | std::ofstream::trunc);
         GENERATE(cars, classic, cpp, hpp, FILENAME(outputFile.value(), cars, classic) + ".hpp");
         cpp.close();
         hpp.close();

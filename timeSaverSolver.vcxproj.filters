@@ -18,16 +18,16 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="precomputed_tss_classic_5.cpp">
+    <ClCompile Include="precomputed\precomputed_tss_classic_2.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="precomputed_tss_classic_4.cpp">
+    <ClCompile Include="precomputed\precomputed_tss_classic_3.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="precomputed_tss_classic_3.cpp">
+    <ClCompile Include="precomputed\precomputed_tss_classic_4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="precomputed_tss_classic_2.cpp">
+    <ClCompile Include="precomputed\precomputed_tss_classic_5.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,17 +41,20 @@
     <ClInclude Include="external\argparse.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="precomputed_tss_classic_2.hpp">
+    <ClInclude Include="precomputed\precomputed_tss_classic_2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="precomputed_tss_classic_3.hpp">
+    <ClInclude Include="precomputed\precomputed_tss_classic_3.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="precomputed_tss_classic_4.hpp">
+    <ClInclude Include="precomputed\precomputed_tss_classic_4.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="precomputed_tss_classic_5.hpp">
+    <ClInclude Include="precomputed\precomputed_tss_classic_5.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Makefile" />
   </ItemGroup>
 </Project>

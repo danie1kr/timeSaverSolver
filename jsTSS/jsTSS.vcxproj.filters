@@ -2,32 +2,18 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="web.cpp" />
-    <ClCompile Include="..\precomputed_tss_classic_2.cpp">
+    <ClCompile Include="..\precomputed\precomputed_tss_classic_2.cpp">
       <Filter>precompute</Filter>
     </ClCompile>
-    <ClCompile Include="..\precomputed_tss_classic_3.cpp">
+    <ClCompile Include="..\precomputed\precomputed_tss_classic_3.cpp">
       <Filter>precompute</Filter>
     </ClCompile>
-    <ClCompile Include="..\precomputed_tss_classic_4.cpp">
+    <ClCompile Include="..\precomputed\precomputed_tss_classic_4.cpp">
       <Filter>precompute</Filter>
     </ClCompile>
-    <ClCompile Include="..\precomputed_tss_classic_5.cpp">
+    <ClCompile Include="..\precomputed\precomputed_tss_classic_5.cpp">
       <Filter>precompute</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\precomputed_tss_classic_2.hpp">
-      <Filter>precompute</Filter>
-    </ClInclude>
-    <ClInclude Include="..\precomputed_tss_classic_3.hpp">
-      <Filter>precompute</Filter>
-    </ClInclude>
-    <ClInclude Include="..\precomputed_tss_classic_4.hpp">
-      <Filter>precompute</Filter>
-    </ClInclude>
-    <ClInclude Include="..\precomputed_tss_classic_5.hpp">
-      <Filter>precompute</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="main.js" />
@@ -37,5 +23,19 @@
     <Filter Include="precompute">
       <UniqueIdentifier>{b0888cd4-a156-4491-93c8-55d208b457d7}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_2.hpp">
+      <Filter>precompute</Filter>
+    </ClInclude>
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_3.hpp">
+      <Filter>precompute</Filter>
+    </ClInclude>
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_4.hpp">
+      <Filter>precompute</Filter>
+    </ClInclude>
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_5.hpp">
+      <Filter>precompute</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
