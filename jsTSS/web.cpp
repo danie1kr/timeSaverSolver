@@ -20,10 +20,10 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 
 #define TSS_FLEXIBLE
 #include "../tss.hpp"
-#include "../precomputed_tss_classic_2.hpp"
-#include "../precomputed_tss_classic_3.hpp"
-#include "../precomputed_tss_classic_4.hpp"
-#include "../precomputed_tss_classic_5.hpp"
+#include "../precomputed/precomputed_tss_classic_2.hpp"
+#include "../precomputed/precomputed_tss_classic_3.hpp"
+#include "../precomputed/precomputed_tss_classic_4.hpp"
+#include "../precomputed/precomputed_tss_classic_5.hpp"
 
 #ifdef _DEBUG
 const unsigned int tss_steps_classic_4_size = 0;

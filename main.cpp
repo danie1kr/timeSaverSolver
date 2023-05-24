@@ -45,10 +45,10 @@ std::string varName(const std::string name, const size_t cars)
 #ifdef TSS_WITH_IMPORT
 #define TSS_FLEXIBLE
 #include "tss.hpp"
-#include "precomputed_tss_classic_2.hpp"
-#include "precomputed_tss_classic_3.hpp"
-#include "precomputed_tss_classic_4.hpp"
-#include "precomputed_tss_classic_5.hpp"
+#include "precomputed/precomputed_tss_classic_2.hpp"
+#include "precomputed/precomputed_tss_classic_3.hpp"
+#include "precomputed/precomputed_tss_classic_4.hpp"
+#include "precomputed/precomputed_tss_classic_5.hpp"
 
 #ifdef _DEBUG
 const unsigned int tss_steps_classic_4_size = 0;

@@ -23,9 +23,11 @@ jobs:
       run: ./timeSaverSolver --cars 5 --outfile precomputed_tss
     - name: commit files
       run: |
+        ls -la
+        ls -la precomputed
         git config --local user.email "37019555+danie1kr@users.noreply.github.com"
         git config --local user.name "danie1kr"
-        git add precomputed_tss_*.hpp precomputed_tss_*.cpp
+        git add precomputed/precomputed_tss_*.hpp precomputed/precomputed_tss_*.cpp
         git commit -m "Add Precomputation Files"
     - name: Push changes
       uses: ad-m/github-push-action@master

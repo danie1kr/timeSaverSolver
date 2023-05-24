@@ -25,9 +25,11 @@ jobs:
         make web
     - name: commit files
       run: |
+        ls -la
+        ls -la precomputed
         git config --local user.email "37019555+danie1kr@users.noreply.github.com"
         git config --local user.name "danie1kr"
-        git add precomputed_tss_*.o Emscripten/Release/jsTSS.*
+        git add precomputed/precomputed_tss_*.o Emscripten/Release/jsTSS.*
         git commit -m "Add compiled web frontend"
     - name: Push changes
       uses: ad-m/github-push-action@master

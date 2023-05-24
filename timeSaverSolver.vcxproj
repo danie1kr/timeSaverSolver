@@ -128,6 +128,8 @@
     <ClInclude Include="tss.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".github\workflows\emsdk.yml" />
+    <None Include=".github\workflows\precompute.yml" />
     <None Include="Makefile" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
