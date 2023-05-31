@@ -30,6 +30,6 @@ jobs:
         git add precomputed/precomputed_tss_*.hpp precomputed/precomputed_tss_*.cpp
         git commit -m "Add Precomputation Files"
     - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        branch: ${{ github.head_ref }}
+      run: |
+        #git push origin main:precomputed
+        git push origin main

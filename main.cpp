@@ -2,6 +2,8 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
+#include <random>
 
 #include "external/argparse.hpp"
 
@@ -92,6 +94,12 @@ int main(int argc, const char* const argv[])
         .required()
         .metavar("OUTFILE");
 
+    argparser.add_argument("--layout")
+        .help("layout classic: 0, inglenook: 1")
+        .required()
+        .metavar("LAYOUT")
+        .scan<'i', int>();
+
     try {
         argparser.parse_args(argc, argv);
     }
@@ -141,7 +149,28 @@ int main(int argc, const char* const argv[])
         {17, {FWD(18)}},
         {18, {BWD(17), FWD(12)}},
     } };
-    using TSS = TimeSaver::Solver;// <classic.size(), 5>;
+
+    TimeSaver::Nodes inglenook { {
+        {0, { FWD(1) }},
+        { 1, {BWD(0), FWD(2)} },
+        { 2, {BWD(1), FWD(3)} },
+        { 3, {BWD(2), FWD(4)} },
+        { 4, {BWD(3), FWD_A_B(5), FWD_A_C(10)} },
+        { 5, {BWD(4), FWD(6)} },
+        { 6, {BWD(5), FWD(7)} },
+        { 7, {BWD(6), FWD(8)} },
+        { 8, {BWD(7), FWD(9)} },
+        { 9, {BWD(8)} },
+        { 10, {BWD(4), FWD_A_B(14), FWD_A_C(11)} },
+        { 11, {BWD(10), FWD(12)} },
+        { 12, {BWD(11), FWD(13)} },
+        { 13, {BWD(12)} },
+        { 14, {BWD(10), FWD(15)} },
+        { 15, {BWD(14), FWD(16)} },
+        { 16, {BWD(15)} },
+        } };
+
+    using TSS = TimeSaver::Solver;
 
 
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
@@ -209,10 +238,10 @@ int main(int argc, const char* const argv[])
 
 #define STRINGIFY(x) #x
 #define FILENAME(prefix, cars, layout)  prefix + "_" + STRINGIFY(layout) + "_" + std::to_string(cars)
-#define GENERATE(cars, layout, cpp, hpp, hppName) { \
+#define GENERATE(cars, startPosition, layout, cpp, hpp, hppName) { \
         std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n" << std::flush; \
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
-        tss.init(tss.random(cars), false); \
+        tss.init(startPosition, false); \
         tss.createGraph(); \
         tss.exportSteps(cpp, hpp, hppName, varName(STRINGIFY(layout), cars));  \
     }
@@ -254,15 +283,61 @@ int main(int argc, const char* const argv[])
 #else
 #ifdef TSS_WITH_EXPORT
 
-    TSS tss(classic, print, step, statistics, distStorage, precStorage);
     if (auto outputFile = argparser.present("--outfile"))
     {
         auto cars = argparser.get<int>("--cars");
-        std::ofstream hpp("precomputed/" + FILENAME(outputFile.value(), cars, classic) + ".hpp", std::ofstream::out | std::ofstream::trunc);
-        std::ofstream cpp("precomputed/" + FILENAME(outputFile.value(), cars, classic) + ".cpp", std::ofstream::out | std::ofstream::trunc);
-        GENERATE(cars, classic, cpp, hpp, FILENAME(outputFile.value(), cars, classic) + ".hpp");
-        cpp.close();
-        hpp.close();
+        auto layout = argparser.get<int>("--layout");
+
+        if (layout == 0)
+        {
+            auto carPlacement = [](const unsigned int cars) -> TSS::CarPlacement
+            {
+                std::random_device rd;
+                std::mt19937 g(rd());
+                std::vector<unsigned int> legalLocoPlaces = { 4, 5, 6, 8, 9, 10, 13, 15, 16, 17, 18 };
+                std::vector<unsigned int> legalCarPlaces = { 0, 1, 2, 4, 5, 6, 8, 9, 10, 13, 15, 16, 17, 18 };
+                std::shuffle(legalCarPlaces.begin(), legalCarPlaces.end(), g);
+
+                TSS::CarPlacement carPlacement = { };
+                carPlacement.insert(carPlacement.end(), legalCarPlaces.begin(), legalCarPlaces.begin() + cars);
+                
+                legalLocoPlaces.erase(
+                    std::remove_if(legalLocoPlaces.begin(), legalLocoPlaces.end(),
+                        [&](unsigned int value) {
+                            return std::find(carPlacement.begin(), carPlacement.end(), value) != carPlacement.end();
+                        }),
+                    legalLocoPlaces.end());
+                std::shuffle(legalLocoPlaces.begin(), legalLocoPlaces.end(), g);
+                carPlacement.insert(carPlacement.begin(), legalLocoPlaces.begin(), legalLocoPlaces.begin() + 1);
+                return carPlacement;
+            }(cars);
+
+            std::ofstream hpp("precomputed/" + FILENAME(outputFile.value(), cars, classic) + ".hpp", std::ofstream::out | std::ofstream::trunc);
+            std::ofstream cpp("precomputed/" + FILENAME(outputFile.value(), cars, classic) + ".cpp", std::ofstream::out | std::ofstream::trunc);
+            GENERATE(cars, carPlacement, classic, cpp, hpp, FILENAME(outputFile.value(), cars, classic) + ".hpp");
+            cpp.close();
+            hpp.close();
+        }
+        else if (layout == 1)
+        {
+            auto carPlacement = [](const unsigned int cars) -> TSS::CarPlacement
+            {
+                std::random_device rd;
+                std::mt19937 g(rd());
+                std::vector<unsigned int> legalPlaces = { 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16 };
+                std::shuffle(legalPlaces.begin(), legalPlaces.end(), g);
+
+                TSS::CarPlacement carPlacement = { 1 };
+                carPlacement.insert(carPlacement.end(), legalPlaces.begin(), legalPlaces.begin() + cars);
+                return carPlacement;
+            }(cars);
+
+            std::ofstream hpp("precomputed/" + FILENAME(outputFile.value(), cars, inglenook) + ".hpp", std::ofstream::out | std::ofstream::trunc);
+            std::ofstream cpp("precomputed/" + FILENAME(outputFile.value(), cars, inglenook) + ".cpp", std::ofstream::out | std::ofstream::trunc);
+            GENERATE(cars, carPlacement, inglenook, cpp, hpp, FILENAME(outputFile.value(), cars, inglenook) + ".hpp");
+            cpp.close();
+            hpp.close();
+        }
     }
 
 #endif // !_DEBUG
