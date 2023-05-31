@@ -13,14 +13,22 @@ jobs:
         submodules: recursive
     - name: make solver
       run: make solver
-    - name: compute 2
-      run: ./timeSaverSolver --cars 2 --outfile precomputed_tss
-    - name: compute 3
-      run: ./timeSaverSolver --cars 3 --outfile precomputed_tss
-    - name: compute 4
-      run: ./timeSaverSolver --cars 4 --outfile precomputed_tss
-    - name: compute 5
-      run: ./timeSaverSolver --cars 5 --outfile precomputed_tss
+    - name: compute classic 2
+      run: ./timeSaverSolver --cars 2 --outfile precomputed_tss --layout 0
+    - name: compute classic 3
+      run: ./timeSaverSolver --cars 3 --outfile precomputed_tss --layout 0
+    - name: compute classic 4
+      run: ./timeSaverSolver --cars 4 --outfile precomputed_tss --layout 0
+    - name: compute classic 5
+      run: ./timeSaverSolver --cars 5 --outfile precomputed_tss --layout 0
+    - name: compute inglenook 2
+      run: ./timeSaverSolver --cars 2 --outfile precomputed_tss --layout 1
+    - name: compute inglenook 3
+      run: ./timeSaverSolver --cars 3 --outfile precomputed_tss --layout 1
+    - name: compute inglenook 4
+      run: ./timeSaverSolver --cars 4 --outfile precomputed_tss --layout 1
+    - name: compute inglenook 5
+      run: ./timeSaverSolver --cars 5 --outfile precomputed_tss --layout 1
     - name: commit files
       run: |
         ls -la
