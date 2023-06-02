@@ -10,10 +10,64 @@
 #include <iostream>
 #include <sstream>
 
+#define WITH_OPENMP
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 #include "dijkstra/dijkstra.hpp"
 
 namespace TimeSaver
 {
+
+#ifdef WITH_OPENMP
+	struct Lock
+	{
+		void read_start()
+		{
+			bool writeOngoing;
+			do
+			{
+#pragma omp atomic read
+				writeOngoing = writing;
+			} while (writeOngoing);
+
+#pragma omp atomic
+			++readers;
+		}
+
+		void read_end()
+		{
+#pragma omp atomic
+			--readers;
+		}
+
+		void write_start()
+		{
+			unsigned int readOngoing;
+			do
+			{
+#pragma omp atomic read
+				readOngoing = readers;
+			} while (readOngoing > 0);
+
+#pragma omp atomic write
+			writing = true;
+		}
+
+		void write_end()
+		{
+#pragma omp atomic write
+			writing = false;
+		}
+
+		unsigned int readers = 0;
+		bool writing = false;
+	};
+
+	Lock stepsLock;
+#endif
+
 	using Id = unsigned char;
 
 	class Connection
@@ -701,11 +755,11 @@ namespace TimeSaver
 					neighbors.push_back(neighbor.target());
 				return neighbors;
 				},
-				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const size_t {
+				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
 					// look through prec of a to decide how man turnouts changed
 					for (auto neighbor : this->packedSteps[a].actions)
 						if (neighbor.target() == b)
-							return (size_t)1;
+							return 1;
 
 					return 0;
 				});
@@ -759,6 +813,89 @@ namespace TimeSaver
 				pack();
 			}
 		}
+
+#ifdef WITH_OPENMP
+		const unsigned int omp_thread_count() const 
+		{
+			unsigned int n = 0;
+#pragma omp parallel reduction(+:n)
+			n += 1;
+			return n;
+		}
+
+		void createGraphOMP()
+		{
+			unsigned int index = 0;
+			unsigned int idle = 0;
+
+			for (unsigned int t = 0; t < omp_thread_count(); ++t)
+				idle |= 1 << t;
+
+			const unsigned int maxIdle = idle;
+
+			#pragma omp parallel shared(index, idle)
+			{
+				const unsigned int me = 1 << omp_get_thread_num();
+				const unsigned int mask = ~me;
+
+				unsigned int idlers = 0;
+
+				while (idlers != maxIdle)
+				{
+					unsigned int myI = -1;
+#pragma omp critical
+					{
+						if (index < this->steps.size())
+						{
+							myI = index;
+							++index;
+						}
+					}
+
+					if (myI == -1)
+					{
+#pragma omp atomic
+						idle |= me;
+					}
+					else
+					{
+#pragma omp atomic
+						idle &= mask;
+
+//#pragma omp critical
+	//					printf("\nthread %d picking up step %i\n", omp_get_thread_num(), myI);
+
+						unsigned int i = myI;
+						auto& step = this->steps[i];
+						auto loco = this->findLoco(step.state);
+						if (loco != -1)
+						{
+							auto node = nodes[loco];
+
+							for (auto& connection : node.connections)
+							{
+								// loco can only follow set turnouts
+								if (this->nodes[loco].isTurnout() && connection.isTurnoutConnection())
+								{
+									if (connection.turnoutState != this->steps[i].state.turnouts[loco])
+										continue;
+								}
+								// check if loco can move
+								this->move(i, loco, connection);
+							}
+
+#pragma omp critical
+							creation((unsigned int)i, (unsigned int)this->steps.size(), 0);
+						}
+					}
+#pragma omp atomic read
+					idlers = idle;
+				}
+			}
+
+			pack();
+		}
+#endif
 
 		unsigned int quickSolve()
 		{
@@ -886,7 +1023,7 @@ namespace TimeSaver
 				const auto& step = this->packedSteps[i];
 				// State
 				cpp << "0x" << std::hex << (int64_t)step.state.data << ",\n";
-				actionsCount += step.actions.size();
+				actionsCount += (unsigned int)step.actions.size();
 			}
 			cpp << "};\n";
 			cpp << "const unsigned int " << name << "_actions_size = " << std::dec << actionsCount << ";\n";
@@ -1134,10 +1271,15 @@ namespace TimeSaver
 				auto putState = state;
 				updateDontCare(putState);
 
-				int nextIndex = this->hasStepWithState(putState);
+				int nextIndex;
+//#pragma omp critical
+				{
+				nextIndex = this->hasStepWithState(putState);
 				if (nextIndex == -1)
 					nextIndex = (int)this->addStep(putState);
+				}
 				this->steps[attach].addAction(typename Step::Action(nextIndex, locoDirection));
+				
 			}
 			// futher pulls/pushes need the state without dontCare
 			return state;
@@ -1257,11 +1399,18 @@ namespace TimeSaver
 		}
 
 		template<typename... Args>
-		const unsigned int addStep(Args&&... args) {
+		const unsigned int addStep(Args&&... args)
+		{
+#ifdef WITH_OPENMP
+			stepsLock.write_start();
+#endif
 			unsigned int id = (unsigned int)this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 
 			locoPosSteps[this->steps[id].state.findLoco()].push_back(id);
+#ifdef WITH_OPENMP
+			stepsLock.write_end();
+#endif
 
 			return id;
 		}
@@ -1275,15 +1424,24 @@ namespace TimeSaver
 
 		int hasStepWithState(const State& state) const
 		{
+#ifdef WITH_OPENMP
+			stepsLock.read_start();
+#endif
 			const int loco = state.findLoco();
 			for (unsigned int j = 0; j < locoPosSteps[loco].size(); ++j)
 			{
 				const unsigned int i = locoPosSteps[loco][j];
-				//for (unsigned int i = 0; i < steps.size(); ++i)
-				//	if(steps[i].loco == loco)
 				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
+				{
+#ifdef WITH_OPENMP
+					stepsLock.read_end();
+#endif
 					return i;
+				}
 			}
+#ifdef WITH_OPENMP
+			stepsLock.read_end();
+#endif
 			return -1;
 		}
 

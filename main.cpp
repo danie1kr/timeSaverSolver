@@ -195,13 +195,13 @@ int main(int argc, const char* const argv[])
 #ifndef _DEBUG
         if (step % 5000 == 0 || step == steps - 1)
 #endif
-            std::cout << "\r" << "Step " << step << " / " << steps << " possible solutions: " << solutions << std::flush;
+            std::cout << "\r" << "Step " << step << " / " << steps << std::flush;
     };
 
     auto statisticsNone = [](const unsigned int steps, const unsigned int solutions) {};
     auto statistics = [](const unsigned int steps, const unsigned int solutions)
     {
-        std::cout << "\n" << "Step " << steps << " / " << steps << " possible solutions: " << solutions << std::flush;
+        std::cout << "\n" << "Step " << steps << " / " << steps << solutions << std::flush;
     };
 
     std::vector<TSS::DistanceStorage::StorageType> dist;
