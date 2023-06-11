@@ -15,6 +15,11 @@
 #include <omp.h>
 #endif
 
+#define TSS_OPT_LOCOPOS	1
+#define TSS_OPT_MAP		2
+
+#define TSS_OPT	TSS_OPT_MAP
+
 #include "dijkstra/dijkstra.hpp"
 
 namespace TimeSaver
@@ -334,7 +339,7 @@ namespace TimeSaver
 
 		struct PackedState
 		{
-			PackedState(const State state, const unsigned int turnouts, const unsigned int cars) : turnouts(turnouts), cars(cars), data(PackedState::fromState(state, turnouts, cars)) {};
+			PackedState(const State state, const unsigned int turnouts, const unsigned int cars) : turnouts(turnouts), cars(cars), data(PackedState::fromState<true>(state, turnouts, cars)) {};
 			PackedState(const int64_t data) : turnouts(extractTurnouts(data)), cars(extractCars(data)), data(data) {};
 
 			const Connection::TurnoutState turnoutState(const unsigned int turnout) const
@@ -366,41 +371,45 @@ namespace TimeSaver
 				return (data >> 3) & 0b111;
 			}
 
-		private:
-			static const unsigned int extractTurnouts(const int64_t data)
-			{
-				return data & 0b111;
-			}
-
+			template<const bool _WithMeta>
 			static int64_t fromState(const State state, const unsigned int turnouts, const unsigned int cars)
 			{
 				int64_t data = 0;
 
 #define REQ_BITS(n) ceil(log(n) / log(2.0));
 
-				data |= (turnouts & 0b111) << 0;
-				data |= (cars & 0b111) << 3;
-
+				const int64_t metaShift = _WithMeta ? 6 : 0;
+				if (_WithMeta)
+				{
+					data |= (turnouts & 0b111) << 0;
+					data |= (cars & 0b111) << 3;
+				}
 				for (unsigned int c = 1; c <= cars; ++c)
 					for (unsigned int i = 0; i < state.slots.size(); ++i)
 						if (state.slots[i] == c)
-							data |= ((int64_t)(i & 0b11111)) << (int64_t)(6 + (c - 1) * 5);
+							data |= ((int64_t)(i & 0b11111)) << (int64_t)(metaShift + (c - 1) * 5);
 
 				unsigned int turnout = 0;
 				for (unsigned int t = 0; t < state.turnouts.size(); ++t)
 					if (state.turnouts[t] != Connection::TurnoutState::None)
 					{
 						if (state.turnouts[t] == Connection::TurnoutState::A_B)
-							data |= ((int64_t)0b00) << (int64_t)(6 + cars * 5 + turnout * 2);
+							data |= ((int64_t)0b00) << (int64_t)(metaShift + cars * 5 + turnout * 2);
 						else if (state.turnouts[t] == Connection::TurnoutState::A_C)
-							data |= ((int64_t)0b01) << (int64_t)(6 + cars * 5 + turnout * 2);
+							data |= ((int64_t)0b01) << (int64_t)(metaShift + cars * 5 + turnout * 2);
 						else if (state.turnouts[t] == Connection::TurnoutState::DontCare)
-							data |= ((int64_t)0b10) << (int64_t)(6 + cars * 5 + turnout * 2);
+							data |= ((int64_t)0b10) << (int64_t)(metaShift + cars * 5 + turnout * 2);
 
 						++turnout;
 					}
 
 				return data;
+			}
+
+		private:
+			static const unsigned int extractTurnouts(const int64_t data)
+			{
+				return data & 0b111;
 			}
 			const unsigned int turnouts;
 			const unsigned int cars;
@@ -569,10 +578,22 @@ namespace TimeSaver
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
 #endif
+
+#if(TSS_OPT == TSS_OPT_LOCOPOS)
 			locoPosSteps.clear();
 			locoPosSteps.resize(this->nodes.size());
+#elif(TSS_OPT == TSS_OPT_MAP)
+			stateMap.clear();
+			numTurnouts = 0;
+			numCars = (unsigned int)cars.size();
+#endif
 			for (unsigned int i = 0; i < this->nodes.size(); ++i)
+			{
 				state.turnouts[i] = this->nodes[i].isTurnout() ? Connection::TurnoutState::A_B : Connection::TurnoutState::None;
+#if(TSS_OPT == TSS_OPT_MAP)
+				numTurnouts += this->nodes[i].isTurnout() ? 1 : 0;
+#endif
+			}
 
 			for (auto& s : state.slots)
 				s = 0;
@@ -1407,7 +1428,12 @@ namespace TimeSaver
 			unsigned int id = (unsigned int)this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 
+#if(TSS_OPT == TSS_OPT_LOCOPOS)
 			locoPosSteps[this->steps[id].state.findLoco()].push_back(id);
+#elif(TSS_OPT == TSS_OPT_MAP)
+			auto key = PackedState::fromState<false>(this->steps[id].state, numTurnouts, numCars);
+			this->stateMap.emplace(key, id);
+#endif
 #ifdef WITH_OPENMP
 			stepsLock.write_end();
 #endif
@@ -1427,12 +1453,26 @@ namespace TimeSaver
 #ifdef WITH_OPENMP
 			stepsLock.read_start();
 #endif
+
+#if(TSS_OPT == TSS_OPT_LOCOPOS)
 			const int loco = state.findLoco();
 			for (unsigned int j = 0; j < locoPosSteps[loco].size(); ++j)
 			{
 				const unsigned int i = locoPosSteps[loco][j];
 				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
 				{
+#elif(TSS_OPT == TSS_OPT_MAP)
+			{
+				{
+					auto key = PackedState::fromState<false>(state, numTurnouts, numCars);
+					auto it = this->stateMap.find(key);
+					int i = it == this->stateMap.end() ? -1 : (int)it->second;
+#else
+			for(unsigned int i = 0; i < this->steps.size(); ++i)
+			{
+				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
+				{
+#endif
 #ifdef WITH_OPENMP
 					stepsLock.read_end();
 #endif
@@ -1464,7 +1504,12 @@ namespace TimeSaver
 		StatisticsCallback statistics;
 
 		Steps steps;
+#if(TSS_OPT == TSS_OPT_LOCOPOS)
 		std::vector<std::vector<unsigned int>> locoPosSteps;
+#elif(TSS_OPT == TSS_OPT_MAP)
+		std::map<uint64_t, size_t> stateMap;
+		unsigned int numTurnouts, numCars;
+#endif
 		PackedStep *packedSteps = nullptr;
 		unsigned int packedStepsSize = 0;
 		std::vector<unsigned int> endStates;
