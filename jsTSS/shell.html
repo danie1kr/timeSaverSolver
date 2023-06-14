@@ -284,7 +284,8 @@
 
             let layouts = Module.getLayoutCount();
             for (let i = 0; i < layouts; ++i)
-                $("#layouts").append($("<option>").prop("value", i).html(Module.getLayoutName(i)));
+                $("#layouts").append($("<option>").prop("value", i).prop("selected", i == 0 ? "selected" : "").html(Module.getLayoutName(i)));
+
             let error = Module.addFunction(e => console.error(Module.UTF8ToString(e)), 'vi');
             let print = Module.addFunction((info, state, turnouts) => console.log(info, state, turnouts), 'viii');
             let step = Module.addFunction((step, steps, solutions) => { progress(step / steps); }, 'viii');
@@ -295,25 +296,35 @@
                 $("#solverProgress").css("width", (p * 100) + "%");
             }
 
-
             function solve() {
-                performance.mark("solve-started");
-                if (Module.timeSaverSolver().value !== Module.TSSState.Finalize) {
+                //performance.mark("solve-started");
+                if (Module.timeSaverSolver().value === Module.TSSState.InitDijkstra) {
+                    progress(0);
+                    dijkstraSteps = Module.getExpectedSteps();
+                    dijkstraDone = 0;
+                    _.defer(solve);
+                }
+                else if (Module.timeSaverSolver().value === Module.TSSState.StepDikjstra) {
                     dijkstraDone++;
                     progress(dijkstraDone / dijkstraSteps);
                     _.defer(solve);
                 }
-                else {
+                else if (Module.timeSaverSolver().value === Module.TSSState.Finalize) {
                     progress(1);
                     console.log("shortest path: " + Module.getShortestPath());
                 }
-                performance.mark("solve-finished");
+                else if (Module.timeSaverSolver().value === Module.TSSState.Error) {
+                    console.error("error during timeSaverSolver()");
+                }
+                else
+                    _.defer(solve);
+                /*performance.mark("solve-finished");
                 const solveMeasure = performance.measure(
                     "solve-duration",
                     "solve-started",
                     "solve-finished"
                 );
-                console.log(solveMeasure.duration);
+                console.log(solveMeasure.duration);*/
             }
 
             $("#btnRandomizeStart").on('click', e => {
@@ -335,16 +346,17 @@
             });
             $("#btnSolve").on('click', e => {
                 progress(0);
-                dijkstraSteps = Module.getExpectedDijkstraSteps();
+                dijkstraSteps = Module.getExpectedSteps();
                 dijkstraDone = 0;
                 _.defer(solve);
             });
             $("#layouts").on('change', e => {
+                let layout = parseInt($(e.target).val());
                 if (cy)
                     cy.destroy();
                 cy = cytoscapeCreate();
                 cytoscapePopulate();
-                $("#rangeCars").max(Module.getMaximumCarCount());
+                $("#rangeCars").prop("max", Module.getMaximumCarCount(layout));
             });
             cy = cytoscapeCreate();
             cytoscapePopulate();

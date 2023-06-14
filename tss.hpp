@@ -10,15 +10,19 @@
 #include <iostream>
 #include <sstream>
 
-#define WITH_OPENMP
+//#define WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
-#define TSS_OPT_LOCOPOS	1
-#define TSS_OPT_MAP		2
+#define TSS_OPT_LOCOPOS	1	// loco + 3 cars on timesaver: ~8 minutes on github
+#define TSS_OPT_MAP		2	// loco + 3 cars on timesaver: ~7 seconds on github
 
+#ifndef TSS_OPT
 #define TSS_OPT	TSS_OPT_MAP
+#endif
+
+//#define TSS_WITH_PACKED
 
 #include "dijkstra/dijkstra.hpp"
 
@@ -415,6 +419,7 @@ namespace TimeSaver
 			const unsigned int cars;
 		};
 
+#ifdef TSS_WITH_PACKED
 		struct PackedStep
 		{
 			struct PackedAction
@@ -466,7 +471,8 @@ namespace TimeSaver
 				const unsigned int actionsCount;
 			};
 		};
-
+		using PackedSteps = std::vector<PackedStep>;
+#endif
 		struct Step
 		{
 			struct Action
@@ -509,7 +515,6 @@ namespace TimeSaver
 		};
 		using Dijk = Dijkstra<unsigned long>;
 		using Steps = std::vector<Step>;
-		using PackedSteps = std::vector<PackedStep>;
 
 	public:
 		enum class Result : unsigned int
@@ -525,7 +530,12 @@ namespace TimeSaver
 #else
 		using CarPlacement = std::array<unsigned int, _Cars>;
 #endif
+
+#ifdef TSS_WITH_PACKED
 		using PrintCallback = std::function<void(const std::string, const PackedState&)>;
+#else
+		using PrintCallback = std::function<void(const std::string, const State&)>;
+#endif
 		using GraphCreationCallback = std::function<void(const unsigned int step, const unsigned int steps, const unsigned int solutions)>;
 		using StatisticsCallback = std::function<void(const unsigned int steps, const unsigned int solutions)>;
 
@@ -544,6 +554,7 @@ namespace TimeSaver
 
 		}
 
+#ifdef TSS_WITH_PACKED
 		Result init(Solver::Precomputed::Storage storage)
 		{
 			if (this->packedSteps != nullptr)
@@ -570,6 +581,7 @@ namespace TimeSaver
 
 			return Result::OK;
 		}
+#endif
 
 		Result init(CarPlacement cars, const bool keep = false)
 		{
@@ -651,7 +663,21 @@ namespace TimeSaver
 
 			return result;
 		}
-		
+
+		const CarPlacement fromStepsGraph(const unsigned int i) const
+		{
+			CarPlacement result;
+			const unsigned int cars = countCars();
+			result.resize(cars);
+			for (unsigned int j = 0; j < this->nodes.size(); ++j)
+				for (unsigned int k = 1; k <= cars; ++k)
+					if (this->steps[i].state.slots[j] == k)
+						result[k - 1] = j;
+
+			return result;
+		}
+
+#ifdef TSS_WITH_PACKED
 		const CarPlacement fromPackedStepsGraph(const unsigned int i) const
 		{
 			CarPlacement result;
@@ -664,10 +690,14 @@ namespace TimeSaver
 
 			return result;
 		}
-
+#endif
 		const unsigned int stepsCount() const
 		{
+#ifdef TSS_WITH_PACKED
 			return this->packedStepsSize;
+#else
+			return (const unsigned int)this->steps.size();
+#endif
 		}
 
 		const unsigned int randomEndState(unsigned int start, unsigned int difficulty = -1) const
@@ -734,11 +764,30 @@ namespace TimeSaver
 			{
 				unsigned int matching = 0;
 				for (unsigned int n = 0; n < this->nodes.size(); ++n)
+#ifdef TSS_WITH_PACKED
 					matching += (this->packedSteps[i].state.node(n) == this->packedSteps[selectedEndStep].state.node(n)) ? 1 : 0;
-
+#else
+					matching += (this->steps[i].state.slots[n] == this->steps[selectedEndStep].state.slots[n]) ? 1 : 0;
+#endif
 				if (matching == this->nodes.size())
 					this->endStates.push_back(i);
 			}
+		}
+
+		const unsigned int solve_dijkstra_markEndStepsLike(const CarPlacement carPlacementEnd)
+		{
+			this->endStates.clear();
+			for (unsigned int i = 0; i < this->stepsCount(); ++i)
+			{
+				unsigned int matching = 0;
+				for (unsigned int c = 0; c < carPlacementEnd.size(); ++c)
+					matching += (this->steps[i].state.slots[carPlacementEnd[c]] == c + 1) ? 1 : 0;
+
+				if (matching == carPlacementEnd.size())
+					this->endStates.push_back(i);
+			}
+
+			return this->endStates.size();
 		}
 
 		bool solve_dijkstra_step()
@@ -772,14 +821,24 @@ namespace TimeSaver
 			return true;*/
 			return dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 				std::vector<size_t> neighbors;
+#ifdef TSS_WITH_PACKED
 				for (auto neighbor : this->packedSteps[i].actions)
 					neighbors.push_back(neighbor.target());
+#else
+				for (auto neighbor : this->steps[i].actions)
+					neighbors.push_back(neighbor.target);
+#endif
 				return neighbors;
 				},
 				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
 					// look through prec of a to decide how man turnouts changed
+#ifdef TSS_WITH_PACKED
 					for (auto neighbor : this->packedSteps[a].actions)
 						if (neighbor.target() == b)
+#else
+					for (auto neighbor : this->steps[a].actions)
+						if (neighbor.target == b)
+#endif							
 							return 1;
 
 					return 0;
@@ -793,7 +852,7 @@ namespace TimeSaver
 			unsigned int shortestPathSteps = dijkstra.infinity;
 			for (const unsigned int i : this->endStates)
 			{
-				auto& step = this->packedSteps[i];
+				//auto& step = this->packedSteps[i];
 				++currentSolutionCheck;
 				auto path = dijkstra.shortestPath(i);
 				if (path.size() < shortestPathSteps)
@@ -806,13 +865,22 @@ namespace TimeSaver
 			if (this->endStates.size() == 0)
 				return 0;
 
+#ifdef TSS_WITH_PACKED
 			print("Start\n", this->packedSteps[0].state);
-
 			PackedState packedTargetState(targetState, countTurnouts(), countCars());
 			print("End\n", packedTargetState);
+#else
+			print("Start\n", this->steps[0].state);
+			print("End\n", targetState);
+#endif
+
 #ifdef _DEBUG
 			for (auto it = shortestPath.rbegin(); it != shortestPath.rend(); ++it)
+#ifdef TSS_WITH_PACKED
 				print(std::string("Step").append(std::to_string((unsigned int)(*it))), this->packedSteps[(*it)].state);
+#else
+				print(std::string("Step").append(std::to_string((unsigned int)(*it))), this->steps[(*it)].state);
+#endif
 #endif
 			return (unsigned int)shortestPathSteps;
 		}
@@ -830,8 +898,9 @@ namespace TimeSaver
 			{
 				// build graph
 				while (solve_step());
-
+#ifdef TSS_WITH_PACKED
 				pack();
+#endif
 			}
 		}
 
@@ -950,10 +1019,12 @@ namespace TimeSaver
 						++cars;
 
 			}
+#ifdef TSS_WITH_PACKED
 			else if (this->packedStepsSize > 0)
 			{
 				cars = PackedState::extractCars(this->packedSteps[0].state.data);
 			}
+#endif
 			return cars;
 		}
 
@@ -978,13 +1049,18 @@ namespace TimeSaver
 			{
 				unsigned int matching = 0;
 				for (unsigned int n = 0; n < this->nodes.size(); ++n)
+#ifdef TSS_WITH_PACKED
 					matching += (this->packedSteps[i].state.node(n) == targetState.slots[n]) ? 1 : 0;
+#else
+					matching += (this->steps[i].state.slots[n] == targetState.slots[n]) ? 1 : 0;
+#endif
 
 				if(matching == this->nodes.size())
 					this->endStates.push_back(i);
 			}
 		}
 
+#ifdef TSS_WITH_PACKED
 		void pack()
 		{
 			if (this->packedSteps != nullptr)
@@ -1006,10 +1082,12 @@ namespace TimeSaver
 				new (packedSteps + i) PackedStep(state, actions);
 			}
 		}
+#endif
 
 #ifdef TSS_WITH_EXPORT
 		void exportSteps(std::ostream& cpp, std::ostream& hpp, std::string hppName, std::string name)
 		{
+#ifdef TSS_WITH_PACKED
 			/*
 				#define TSS_FLEXIBLE
 				#include "../tss.hpp"
@@ -1060,17 +1138,11 @@ namespace TimeSaver
 				}
 			}
 			cpp << "};\n";
+#endif
 		}
 #endif
 
-		const unsigned int steps_count()
-		{
-			return this->packedStepsSize;
-		}
-
-
-#ifdef TSS_FLEXIBLE
-#else
+#ifndef TSS_FLEXIBLE
 		using Nodes = Nodes<_Nodes>;
 #endif
 
@@ -1510,8 +1582,11 @@ namespace TimeSaver
 		std::map<uint64_t, size_t> stateMap;
 		unsigned int numTurnouts, numCars;
 #endif
+
+#ifdef TSS_WITH_PACKED
 		PackedStep *packedSteps = nullptr;
 		unsigned int packedStepsSize = 0;
+#endif
 		std::vector<unsigned int> endStates;
 	};
 }

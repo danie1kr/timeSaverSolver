@@ -37,27 +37,42 @@
       <HtmlShellFile>shell.html</HtmlShellFile>
       <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH</AdditionalOptions>
       <EmBind>true</EmBind>
+      <EmitSymbolMap>true</EmitSymbolMap>
     </Link>
+    <ClCompile>
+      <AdditionalOptions>-Wbad-function-cast -Wcast-function-type %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
     <Link>
       <HtmlShellFile>shell.html</HtmlShellFile>
-      <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH</AdditionalOptions>
+      <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -gsource-map</AdditionalOptions>
       <EmBind>true</EmBind>
+      <EmitSymbolMap>true</EmitSymbolMap>
+      <GenerateDebugInformation>MoreDebugInformation</GenerateDebugInformation>
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
-      <OptimizationLevel>O1</OptimizationLevel>
+      <OptimizationLevel>Custom</OptimizationLevel>
+      <AdditionalOptions>-Wbad-function-cast -Wcast-function-type %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\precomputed\precomputed_tss_classic_2.cpp" />
-    <ClCompile Include="..\precomputed\precomputed_tss_classic_3.cpp" />
+    <ClCompile Include="..\precomputed\precomputed_tss_classic_2.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\precomputed\precomputed_tss_classic_3.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_4.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_5.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="web.cpp" />
   </ItemGroup>
@@ -66,8 +81,18 @@
     <None Include="shell.html" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\precomputed\precomputed_tss_classic_2.hpp" />
-    <ClInclude Include="..\precomputed\precomputed_tss_classic_3.hpp" />
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_2.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+      </ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_3.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+      </ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+      </ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\precomputed\precomputed_tss_classic_4.hpp" />
     <ClInclude Include="..\precomputed\precomputed_tss_classic_5.hpp" />
   </ItemGroup>
