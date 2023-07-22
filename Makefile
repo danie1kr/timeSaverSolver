@@ -13,7 +13,6 @@ web.o: jsTSS/web.cpp
 $(OBJECTS): %.o : %.cpp
 	em++ $< -c -g0 -O3 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -o $@
 
-
 .PHONY: update clean
 clean:
 	rm timeSaverSolver *.o

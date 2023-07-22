@@ -22,7 +22,7 @@
 #define TSS_OPT	TSS_OPT_MAP
 #endif
 
-//#define TSS_WITH_PACKED
+#define TSS_WITH_PACKED
 
 #include "dijkstra/dijkstra.hpp"
 
@@ -787,7 +787,7 @@ namespace TimeSaver
 					this->endStates.push_back(i);
 			}
 
-			return this->endStates.size();
+			return (unsigned int)this->endStates.size();
 		}
 
 		bool solve_dijkstra_step()
