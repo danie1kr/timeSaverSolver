@@ -19,11 +19,15 @@ jobs:
         ./emsdk install latest
         ./emsdk activate latest
         cd ..
+    - uses: actions/download-artifact@v3
+      with:
+        name: precomputed_tss
     - name: Compile web.cpp
       run: |
         source emsdk/emsdk_env.sh
         make web
     - name: commit files
+      if: false
       run: |
         ls -la
         ls -la precomputed
@@ -32,6 +36,18 @@ jobs:
         git add precomputed/precomputed_tss_*.o Emscripten/Release/jsTSS.*
         git commit -m "Add compiled web frontend"
     - name: Push changes
+      if: false
       uses: ad-m/github-push-action@master
       with:
         branch: ${{ github.head_ref }}
+    - uses: geekyeggo/delete-artifact@v2
+      with:
+          name: precompiled_tss
+    - name: store artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: precompiled_tss
+        path: |
+            precomputed
+            Emscripten/Release/jsTSS.html
+            jsTSS/web.o

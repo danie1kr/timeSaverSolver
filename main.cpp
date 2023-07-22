@@ -172,12 +172,17 @@ int main(int argc, const char* const argv[])
 
     using TSS = TimeSaver::Solver;
 
-
+#ifdef TSS_WITH_PACKED
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
 #define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
     auto printNone = [](const std::string info, const TSS::PackedState& state) {};
-
     auto print = [](const std::string info, const TSS::PackedState& state) {
+#else
+#define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
+#define T(i,t) "T" #i "[" << (state.turnouts[t] == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnouts[t] == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
+    auto printNone = [](const std::string info, const TSS::State& state) {};
+    auto print = [](const std::string info, const TSS::State& state) {
+#endif
         std::cout << std::setfill(' ') << info <<
             S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3, 0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
             "                          //" << "\n" <<
@@ -193,7 +198,7 @@ int main(int argc, const char* const argv[])
     auto stepNone = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
     auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {
 #ifndef _DEBUG
-        if (step % 5000 == 0 || step == steps - 1)
+        if (step % 50000 == 0 || step == steps - 1)
 #endif
             std::cout << "\r" << "Step " << step << " / " << steps << std::flush;
     };
