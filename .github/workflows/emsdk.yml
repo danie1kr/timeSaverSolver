@@ -26,6 +26,10 @@ jobs:
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: precompute.yml
         path: precomputed
+    - name: Set Swap Space
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 10
     - name: Compile web.cpp
       run: |
         source emsdk/emsdk_env.sh
