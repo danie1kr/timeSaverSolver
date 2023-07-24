@@ -25,6 +25,7 @@ jobs:
         name: precomputed_tss
         github_token: ${{secrets.GITHUB_TOKEN}}
         workflow: precompute.yml
+        path: precomputed
     - name: Compile web.cpp
       run: |
         source emsdk/emsdk_env.sh

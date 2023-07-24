@@ -3,16 +3,16 @@
   <ItemGroup>
     <ClCompile Include="web.cpp" />
     <ClCompile Include="..\precomputed\precomputed_tss_classic_2.cpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_3.cpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_4.cpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_5.cpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -20,22 +20,22 @@
     <None Include="shell.html" />
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="precompute">
+    <Filter Include="precomputed">
       <UniqueIdentifier>{b0888cd4-a156-4491-93c8-55d208b457d7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\precomputed\precomputed_tss_classic_2.hpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClInclude>
     <ClInclude Include="..\precomputed\precomputed_tss_classic_3.hpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClInclude>
     <ClInclude Include="..\precomputed\precomputed_tss_classic_4.hpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClInclude>
     <ClInclude Include="..\precomputed\precomputed_tss_classic_5.hpp">
-      <Filter>precompute</Filter>
+      <Filter>precomputed</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
