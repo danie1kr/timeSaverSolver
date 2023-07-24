@@ -19,9 +19,12 @@ jobs:
         ./emsdk install latest
         ./emsdk activate latest
         cd ..
-    - uses: actions/download-artifact@v3
+    - name: Download artifact
+      uses: dawidd6/action-download-artifact@v2
       with:
         name: precomputed_tss
+        github_token: ${{secrets.GITHUB_TOKEN}}
+        workflow: precompute.yml
     - name: Compile web.cpp
       run: |
         source emsdk/emsdk_env.sh
