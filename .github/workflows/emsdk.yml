@@ -20,6 +20,7 @@ jobs:
         ./emsdk activate latest
         cd ..
     - name: Download artifact
+      if: false
       uses: dawidd6/action-download-artifact@v2
       with:
         name: precomputed_tss
@@ -27,6 +28,7 @@ jobs:
         workflow: precompute.yml
         path: precomputed
     - name: Set Swap Space
+      if: false
       uses: pierotofy/set-swap-space@master
       with:
         swap-size-gb: 10
@@ -43,15 +45,21 @@ jobs:
         git config --local user.name "danie1kr"
         git add precomputed/precomputed_tss_*.o Emscripten/Release/jsTSS.*
         git commit -m "Add compiled web frontend"
+    - name: gzip content
+      run: tar -czvf precompiled_tss.tar.gz precomputed Emscripten/Release/jsTSS.html jsTSS/web.o
+    - name: upload to owncloud
+      run: curl -X PUT -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz" --data-binary @"./precomputed_tss.tar.gz"
     - name: Push changes
       if: false
       uses: ad-m/github-push-action@master
       with:
         branch: ${{ github.head_ref }}
     - uses: geekyeggo/delete-artifact@v2
+      if: false
       with:
           name: precompiled_tss
     - name: store artifact
+      if: false
       uses: actions/upload-artifact@v3
       with:
         name: precompiled_tss
