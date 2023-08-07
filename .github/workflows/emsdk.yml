@@ -33,9 +33,10 @@ jobs:
       with:
         swap-size-gb: 10
     - name: download from owncloud
-      run: curl -X GET -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz -o "./precompiled_tss.tar.gz"
+      run: curl -X GET -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz" -o "./precompiled_tss.tar.gz"
     - name: gzip content
       run: |
+        df -h
         ls -larth
         tar -xzvf precompiled_tss.tar.gz precomputed Emscripten/Release/jsTSS.html jsTSS/web.o
         ls -larth
