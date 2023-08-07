@@ -28,17 +28,16 @@ jobs:
         workflow: precompute.yml
         path: precomputed
     - name: Set Swap Space
-      if: false
       uses: pierotofy/set-swap-space@master
       with:
-        swap-size-gb: 10
+        swap-size-gb: 20
     - name: download from owncloud
-      run: curl -X GET -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz" -o "./precompiled_tss.tar.gz"
+      run: curl -X GET -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precomputed_tss.tar.gz" -o "./precomputed_tss.tar.gz"
     - name: gzip content
       run: |
         df -h
         ls -larth
-        tar -xzvf precompiled_tss.tar.gz precomputed Emscripten/Release/jsTSS.html jsTSS/web.o
+        tar -xzvf precomputed_tss.tar.gz precomputed Emscripten/Release/jsTSS.html jsTSS/web.o
         ls -larth
         ls -larth precomputed
         ls -larth jsTSS
@@ -58,7 +57,7 @@ jobs:
     - name: gzip content
       run: tar -czvf precompiled_tss.tar.gz precomputed Emscripten/Release/jsTSS.html jsTSS/web.o
     - name: upload to owncloud
-      run: curl -X PUT -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz" --data-binary @"./precomputed_tss.tar.gz"
+      run: curl -X PUT -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz" --data-binary @"./precompiled_tss.tar.gz"
     - name: Push changes
       if: false
       uses: ad-m/github-push-action@master
