@@ -36,15 +36,21 @@ jobs:
         git config --local user.name "danie1kr"
         git add precomputed/precomputed_tss_*.hpp precomputed/precomputed_tss_*.cpp
         git commit -m "Add Precomputation Files"
+    - name: gzip content
+      run: tar -czvf precomputed_tss.tar.gz precomputed
+    - name: upload to owncloud
+      run: curl -X PUT -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precomputed_tss.tar.gz" --data-binary @"./precomputed_tss.tar.gz"
     - name: Push changes
       if: false
       run: |
         #git push origin main:precomputed
         git push origin main
     - uses: geekyeggo/delete-artifact@v2
+      if: false
       with:
           name: precomputed_tss
     - name: store artifact
+      if: false
       uses: actions/upload-artifact@v3
       with:
         name: precomputed_tss
