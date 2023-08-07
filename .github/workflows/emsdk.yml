@@ -32,6 +32,15 @@ jobs:
       uses: pierotofy/set-swap-space@master
       with:
         swap-size-gb: 10
+    - name: download from owncloud
+      run: curl -X GET -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz -o "./precompiled_tss.tar.gz"
+    - name: gzip content
+      run: |
+        ls -larth
+        tar -xzvf precompiled_tss.tar.gz precomputed Emscripten/Release/jsTSS.html jsTSS/web.o
+        ls -larth
+        ls -larth precomputed
+        ls -larth jsTSS
     - name: Compile web.cpp
       run: |
         source emsdk/emsdk_env.sh
