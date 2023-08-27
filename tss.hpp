@@ -1107,7 +1107,7 @@ namespace TimeSaver
 				};
 			*/
 			hpp << "#define TSS_FLEXIBLE\n";
-			hpp << "#define " << define;
+			hpp << "#define " << define << "\n";
 			hpp << "#include \"../tss.hpp\"\n";
 			hpp << "extern const unsigned int " << name << "_size;\n";
 			hpp << "extern const TimeSaver::Solver::Precomputed::Step " << name << "[];\n";
