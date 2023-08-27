@@ -1085,11 +1085,12 @@ namespace TimeSaver
 #endif
 
 #ifdef TSS_WITH_EXPORT
-		void exportSteps(std::ostream& cpp, std::ostream& hpp, std::string hppName, std::string name)
+		void exportSteps(std::ostream& cpp, std::ostream& hpp, std::string hppName, std::string name, std::string define)
 		{
 #ifdef TSS_WITH_PACKED
 			/*
 				#define TSS_FLEXIBLE
+				#define define
 				#include "../tss.hpp"
 				static const unsigned int tss_steps_classic_2_size = 505;
 				static const TimeSaver::Solver::Precomputed::Step tss_steps_classic_2[] = { 
@@ -1106,6 +1107,7 @@ namespace TimeSaver
 				};
 			*/
 			hpp << "#define TSS_FLEXIBLE\n";
+			hpp << "#define " << define;
 			hpp << "#include \"../tss.hpp\"\n";
 			hpp << "extern const unsigned int " << name << "_size;\n";
 			hpp << "extern const TimeSaver::Solver::Precomputed::Step " << name << "[];\n";

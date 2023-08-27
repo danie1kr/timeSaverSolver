@@ -8,6 +8,7 @@
 #include "external/argparse.hpp"
 
 #define TSS_FLEXIBLE
+#define TSS_HAS_DEFINE(cars, layout)    std::string("HAS_TSS_") + STRINGIFY(layout) + "_" + std::to_string(cars)
 #include "tss.hpp"
 
 enum class Layout : unsigned char
@@ -47,10 +48,18 @@ std::string varName(const std::string name, const size_t cars)
 #ifdef TSS_WITH_IMPORT
 #define TSS_FLEXIBLE
 #include "tss.hpp"
+#if __has_include("precomputed/precomputed_tss_classic_2.hpp")
 #include "precomputed/precomputed_tss_classic_2.hpp"
+#endif
+#if __has_include("precomputed/precomputed_tss_classic_3.hpp")
 #include "precomputed/precomputed_tss_classic_3.hpp"
+#endif
+#if __has_include("precomputed/precomputed_tss_classic_4.hpp")
 #include "precomputed/precomputed_tss_classic_4.hpp"
+#endif
+#if __has_include("precomputed/precomputed_tss_classic_5.hpp")
 #include "precomputed/precomputed_tss_classic_5.hpp"
+#endif
 
 #ifdef _DEBUG
 const unsigned int tss_steps_classic_4_size = 0;
@@ -70,10 +79,14 @@ TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layou
     else if (layout == 0 && cars == 3)
         return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
 #ifndef _DEBUG
+#ifdef HAS_TSS_CLASSIC_4
     else if (layout == 0 && cars == 4)
         return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
+#endif
+#ifdef HAS_TSS_CLASSIC_5
     else if (layout == 0 && cars == 5)
         return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
+#endif
 #endif
     return { nullptr, 0, nullptr, 0 };
 }
@@ -248,7 +261,7 @@ int main(int argc, const char* const argv[])
         TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
         tss.init(startPosition, false); \
         tss.createGraph(); \
-        tss.exportSteps(cpp, hpp, hppName, varName(STRINGIFY(layout), cars));  \
+        tss.exportSteps(cpp, hpp, hppName, varName(STRINGIFY(layout), cars), TSS_HAS_DEFINE(cars, layout));  \
     }
 
     //#define TSS_WITH_IMPORT
