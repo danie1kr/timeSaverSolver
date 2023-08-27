@@ -22,10 +22,18 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 #include "../tss.hpp"
 
 #ifdef TSS_WITH_PACKED
+#if __has_include("../precomputed/precomputed_tss_classic_2.hpp")
 #include "../precomputed/precomputed_tss_classic_2.hpp"
+#endif
+#if __has_include("../precomputed/precomputed_tss_classic_3.hpp")
 #include "../precomputed/precomputed_tss_classic_3.hpp"
+#endif
+#if __has_include("../precomputed/precomputed_tss_classic_4.hpp")
 #include "../precomputed/precomputed_tss_classic_4.hpp"
+#endif
+#if __has_include("../precomputed/precomputed_tss_classic_5.hpp")
 #include "../precomputed/precomputed_tss_classic_5.hpp"
+#endif
 
 #ifdef _DEBUG
 const unsigned int tss_steps_classic_4_size = 0;
@@ -248,10 +256,14 @@ TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layou
 	else if (layout == 0 && cars == 3)
 		return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
 #ifndef _DEBUG
+#ifdef HAS_TSS_CLASSIC_4
 	else if (layout == 0 && cars == 4)
 		return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
+#endif
+#ifdef HAS_TSS_CLASSIC_5
 	else if (layout == 0 && cars == 5)
 		return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
+#endif
 #endif
 	return { nullptr, 0, nullptr, 0 };
 }
