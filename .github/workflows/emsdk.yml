@@ -55,7 +55,7 @@ jobs:
         git add precomputed/precomputed_tss_*.o Emscripten/Release/jsTSS.*
         git commit -m "Add compiled web frontend"
     - name: gzip content
-      run: tar -czvf precompiled_tss.tar.gz precomputed Emscripten/Release/jsTSS.html jsTSS/web.o
+      run: tar -czvf precompiled_tss.tar.gz precomputed Emscripten/Release/jsTSS.html web.o
     - name: upload to owncloud
       run: curl -X PUT -u ${{ secrets.OWNCLOUD_CREDENTIALS }} "${{ secrets.OWNCLOUD_TARGET }}/precompiled_tss.tar.gz" --data-binary @"./precompiled_tss.tar.gz"
     - name: Push changes
