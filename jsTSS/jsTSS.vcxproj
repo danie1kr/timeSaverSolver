@@ -59,20 +59,28 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_2.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_3.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_4.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
-    <ClCompile Include="..\precomputed\precomputed_tss_classic_5.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">true</ExcludedFromBuild>
+    <ClCompile Include="..\precomputed\precomputed_tss_inglenook_2.cpp">
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+    </ClCompile>
+    <ClCompile Include="..\precomputed\precomputed_tss_inglenook_3.cpp">
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+    </ClCompile>
+    <ClCompile Include="..\precomputed\precomputed_tss_inglenook_4.cpp">
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="web.cpp" />
   </ItemGroup>
@@ -81,20 +89,12 @@
     <None Include="shell.html" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\precomputed\precomputed_tss_classic_2.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
-      </ExcludedFromBuild>
-    </ClInclude>
-    <ClInclude Include="..\precomputed\precomputed_tss_classic_3.hpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
-      </ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
-      </ExcludedFromBuild>
-    </ClInclude>
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_2.hpp" />
+    <ClInclude Include="..\precomputed\precomputed_tss_classic_3.hpp" />
     <ClInclude Include="..\precomputed\precomputed_tss_classic_4.hpp" />
-    <ClInclude Include="..\precomputed\precomputed_tss_classic_5.hpp" />
+    <ClInclude Include="..\precomputed\precomputed_tss_inglenook_2.hpp" />
+    <ClInclude Include="..\precomputed\precomputed_tss_inglenook_3.hpp" />
+    <ClInclude Include="..\precomputed\precomputed_tss_inglenook_4.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

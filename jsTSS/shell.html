@@ -165,6 +165,11 @@
     </div>
 
     <div id="railway"></div>
+    <form action="#">
+        <p class="range-field">
+            <input class="settings" type="range" id="step" placeholder="3" min="1" max="1" />
+        </p>
+    </form>
 
     <script src="lodash.min.js"></script>
     <script src="zepto.min.js"></script>
@@ -175,6 +180,7 @@
         let selectedStartStep = -1;
         let dijkstraSteps = 0;
         let dijkstraDone = 0;
+        let shortestPath = [];
 
         function cytoscapeCreate() {
             return cy = cytoscape({
@@ -274,10 +280,10 @@
             _.each(state, (value, index) => {
                 cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
             });/*
-            _.each(turnouts, (value, index) => {
-                if(value !== 0)
-                cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
-            });*/
+                _.each(turnouts, (value, index) => {
+                    if(value !== 0)
+                    cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
+                });*/
         }
 
         function wasmLoaded() {
@@ -296,24 +302,34 @@
                 $("#solverProgress").css("width", (p * 100) + "%");
             }
 
+            function updateShortestPathUI() {
+                if (shortestPath.length > 0) {
+                    $("#step").prop("max", shortestPath.length - 1);
+                }
+            }
+
             function solve() {
                 //performance.mark("solve-started");
-                if (Module.timeSaverSolver().value === Module.TSSState.InitDijkstra) {
+                const state = Module.timeSaverSolver();
+                if (state === Module.TSSState.InitDijkstra) {
                     progress(0);
                     dijkstraSteps = Module.getExpectedSteps();
                     dijkstraDone = 0;
                     _.defer(solve);
                 }
-                else if (Module.timeSaverSolver().value === Module.TSSState.StepDikjstra) {
+                else if (state === Module.TSSState.StepDikjstra) {
                     dijkstraDone++;
                     progress(dijkstraDone / dijkstraSteps);
                     _.defer(solve);
                 }
-                else if (Module.timeSaverSolver().value === Module.TSSState.Finalize) {
+                else if (state === Module.TSSState.Finalize) {
                     progress(1);
-                    console.log("shortest path: " + Module.getShortestPath());
+                    let path = Module.getShortestPath();
+                    shortestPath = _.map(_.split(path, ","), m => parseInt(m));
+                    updateShortestPathUI();
+                    console.log("shortest path: " + shortestPath);
                 }
-                else if (Module.timeSaverSolver().value === Module.TSSState.Error) {
+                else if (state === Module.TSSState.Error) {
                     console.error("error during timeSaverSolver()");
                 }
                 else
@@ -334,7 +350,7 @@
                 selectedStartStep = Module.getRandomStartState();
                 carPlacement = Module.getCarLayout(selectedStartStep);
                 cyDisplayCarPlacement(_.split(carPlacement, ","));
-                console.log(carPlacement);
+                console.log(selectedStartStep + ": " + carPlacement);
             });
 
             $("#btnRandomizeEnd").on('click', e => {
@@ -342,7 +358,7 @@
                 selectedEndStep = Module.getRandomEndState(selectedStartStep, diff);
                 carPlacement = Module.getCarLayout(selectedEndStep);
                 cyDisplayCarPlacement(_.split(carPlacement, ","));
-                console.log(carPlacement);
+                console.log(selectedEndStep + ": " + carPlacement);
             });
             $("#btnSolve").on('click', e => {
                 progress(0);
@@ -357,6 +373,14 @@
                 cy = cytoscapeCreate();
                 cytoscapePopulate();
                 $("#rangeCars").prop("max", Module.getMaximumCarCount(layout));
+            });
+            $("#step").on('change', e => {
+                let idx = $(e.target).val();
+                if (idx < shortestPath.length) {
+                    let step = shortestPath[$(e.target).val()];
+                    let carPlacement = Module.getCarLayout(step);
+                    cyDisplayCarPlacement(_.split(carPlacement, ","));
+                }
             });
             cy = cytoscapeCreate();
             cytoscapePopulate();

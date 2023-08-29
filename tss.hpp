@@ -845,7 +845,7 @@ namespace TimeSaver
 				});
 		}
 
-		unsigned int solve_dijkstra_shortestPath()
+		typename Dijk::Path solve_dijkstra_shortestPath()
 		{
 			typename Dijk::Path shortestPath;
 			unsigned int currentSolutionCheck = 0;
@@ -863,7 +863,7 @@ namespace TimeSaver
 			}
 			statistics((unsigned int)this->stepsCount(), (unsigned int)this->endStates.size());
 			if (this->endStates.size() == 0)
-				return 0;
+				return {};
 
 #ifdef TSS_WITH_PACKED
 			print("Start\n", this->packedSteps[0].state);
@@ -882,7 +882,7 @@ namespace TimeSaver
 				print(std::string("Step").append(std::to_string((unsigned int)(*it))), this->steps[(*it)].state);
 #endif
 #endif
-			return (unsigned int)shortestPathSteps;
+			return shortestPath;
 		}
 
 		unsigned int solve(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
@@ -987,7 +987,7 @@ namespace TimeSaver
 		}
 #endif
 
-		unsigned int quickSolve()
+		const unsigned int quickSolve()
 		{
 			if (this->stepsCount() == 0)
 				return 0;
@@ -996,7 +996,7 @@ namespace TimeSaver
 
 			while (solve_dijkstra_step());
 
-			return solve_dijkstra_shortestPath();
+			return (const unsigned int)solve_dijkstra_shortestPath().size();
 		}
 
 		const unsigned int countTurnouts() const

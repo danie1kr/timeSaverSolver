@@ -36,10 +36,6 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 #endif
 
 #ifdef _DEBUG
-const unsigned int tss_steps_classic_4_size = 0;
-const TimeSaver::Solver::Precomputed::Step tss_steps_classic_4[] = { {0} };
-const unsigned int tss_steps_classic_4_actions_size = 0;
-const TimeSaver::Solver::Precomputed::Action tss_steps_classic_4_actions[] = { {0} };
 const unsigned int tss_steps_classic_5_size = 0;
 const TimeSaver::Solver::Precomputed::Step tss_steps_classic_5[] = { {0} };
 const unsigned int tss_steps_classic_5_actions_size = 0;
@@ -255,11 +251,12 @@ TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layou
 		return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
 	else if (layout == 0 && cars == 3)
 		return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
-#ifndef _DEBUG
+
 #ifdef HAS_TSS_CLASSIC_4
 	else if (layout == 0 && cars == 4)
 		return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
 #endif
+#ifndef _DEBUG
 #ifdef HAS_TSS_CLASSIC_5
 	else if (layout == 0 && cars == 5)
 		return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
@@ -358,7 +355,7 @@ enum class TSSState : unsigned int
 
 TSSState state = TSSState::InitTSS;
 TimeSaver::Solver* solver = nullptr;
-unsigned int shortestPath = 0;
+TimeSaver::Solver::Dijk::Path shortestPath = {};
 #ifdef TSS_WITH_PACKED
 unsigned int selectedStartStep = 0;
 unsigned int selectedEndStep = 0;
@@ -391,7 +388,7 @@ emscripten::val getState()
 
 emscripten::val getShortestPath()
 {
-	return emscripten::val(shortestPath);
+	return emscripten::val(join(shortestPath, ","));
 }
 
 #define STRINGIFY(x) #x
@@ -430,7 +427,7 @@ emscripten::val timeSaverSolverInit(unsigned int layout, unsigned int numberOfCa
 	::numberOfCars = numberOfCars;
 	//solver->solve_init(fromString(carPlacement));
 #endif
-	shortestPath = 0;
+	shortestPath = {};
 
 	state = TSSState::ChooseStartAndEnd;
 

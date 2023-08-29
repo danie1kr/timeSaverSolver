@@ -117,7 +117,8 @@
   <ItemGroup>
     <None Include=".github\workflows\emsdk.yml" />
     <None Include=".github\workflows\precompute.yml" />
-    <None Include="make-web-full.ps1" />
+    <None Include="make-web-dev.ps1" />
+    <None Include="make-web-prod.ps1" />
     <None Include="Makefile" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

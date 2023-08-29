@@ -41,6 +41,7 @@
     <None Include=".github\workflows\precompute.yml">
       <Filter>github-workflows</Filter>
     </None>
-    <None Include="make-web-full.ps1" />
+    <None Include="make-web-dev.ps1" />
+    <None Include="make-web-prod.ps1" />
   </ItemGroup>
 </Project>
