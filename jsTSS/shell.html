@@ -232,9 +232,15 @@
 
             let layout = parseInt($("#layouts").val());
             let layoutNodes = JSON.parse(Module.getLayoutNodes(layout));
+            let turnoutId = 0;
             _.each(layoutNodes, n => {
 
-                nodes.push({ group: 'nodes', data: { id: n.id }, position: { x: n.x, y: n.y }, classes: "node" });
+                let node = { group: 'nodes', data: { id: n.id }, position: { x: n.x, y: n.y }, classes: "node" };
+                if (n.connections.length > 2) {
+                    node.data.turnoutId = turnoutId;
+                    ++turnoutId;
+                }
+                nodes.push(node);
 
                 _.each(n.connections, c => {
                     let other = _.find(layoutNodes, node => node.id === c.target);
@@ -273,6 +279,28 @@
             _.each(carPlacement, (value, index) => {
                 cy.$('node[id="' + value + '"]').data("carName", idToCarName(index));
             });
+        }
+
+        function cyDisplayTurnoutState(turnouts) {
+            cy.edges(".A_B").removeClass("DontCare").show();
+            cy.edges(".A_C").removeClass("DontCare").show();
+            _.each(turnouts, (value, index) => {
+                let node = cy.$('node[turnoutId=' + index + ']');
+                if (value === "DontCare") {
+                    // always show as normal
+                    // node.connectedEdges(".A_B, .A_C").addClass("DontCare");
+                }
+                else if (value === "A_B") {
+                    node.connectedEdges(".A_C").hide();
+                }
+                else if (value === "A_C") {
+                    node.connectedEdges(".A_B").hide();
+                }
+                else {
+
+                }
+
+            })
         }
 
         function cyUpdate(state, turnouts) {
@@ -325,7 +353,7 @@
                 else if (state === Module.TSSState.Finalize) {
                     progress(1);
                     let path = Module.getShortestPath();
-                    shortestPath = _.map(_.split(path, ","), m => parseInt(m));
+                    shortestPath = JSON.parse(path);// _.map(_.split(path, ","), m => parseInt(m));
                     updateShortestPathUI();
                     console.log("shortest path: " + shortestPath);
                 }
@@ -378,8 +406,10 @@
                 let idx = $(e.target).val();
                 if (idx < shortestPath.length) {
                     let step = shortestPath[$(e.target).val()];
-                    let carPlacement = Module.getCarLayout(step);
+                    let carPlacement = Module.getCarLayout(step.i);
                     cyDisplayCarPlacement(_.split(carPlacement, ","));
+                    let turnouts = Module.getTurnouts(step.i);
+                    cyDisplayTurnoutState(JSON.parse(turnouts));
                 }
             });
             cy = cytoscapeCreate();

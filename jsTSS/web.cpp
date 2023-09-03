@@ -388,7 +388,44 @@ emscripten::val getState()
 
 emscripten::val getShortestPath()
 {
-	return emscripten::val(join(shortestPath, ","));
+	if (shortestPath.size() < 2)
+		return emscripten::val("");
+
+	std::string path = "[{\"i\": 0, \"cost\": 0, \"locoDirection\": null}, ";
+
+	for (auto i = 1; i < shortestPath.size(); ++i)
+	{
+		const auto prev = i > 2 ? shortestPath[i - 2] : TimeSaver::Solver::Dijk::unset;
+		const auto from = shortestPath[i - 1];
+		const auto to = shortestPath[i];
+
+		const auto cAd = solver->costAndDirection(prev, from, to);
+
+		path += "{";
+		path += "\"i\": " + std::to_string(shortestPath[i]);
+		path += ",\"cost\":" + std::to_string(cAd.cost);
+		path += ",\"locoDirection\":" + (cAd.locoDirection == TimeSaver::Connection::Direction::Forward ? std::string("\"f\"") : std::string("\"b\"")) + "}";
+		if (i < shortestPath.size() - 1)
+			path += ",";
+	}
+	path += "]";
+	return emscripten::val(path);
+}
+
+emscripten::val getTurnouts(unsigned int step)
+{
+	std::string turnouts = "[";
+	for (unsigned int t = 0; t < solver->countTurnouts(); ++t)
+	{
+		const auto state = solver->turnoutState(step, t);
+
+		turnouts += "\"" + TimeSaver::Connection::toString(state) + "\"";
+
+		if (t < solver->countTurnouts() - 1)
+			turnouts += ",";
+	}
+	turnouts += "]";
+	return emscripten::val(turnouts);
 }
 
 #define STRINGIFY(x) #x
@@ -599,6 +636,7 @@ EMSCRIPTEN_BINDINGS(timeSaverSolver) {
 	function("timeSaverSolver", &timeSaverSolver);
 	function("getState", &getState);
 	function("getShortestPath", &getShortestPath);
+	function("getTurnouts", &getTurnouts);
 	
 	emscripten::enum_<TimeSaver::Connection::TurnoutState>("TurnoutState")
 		.value("A_B", TimeSaver::Connection::TurnoutState::A_B)

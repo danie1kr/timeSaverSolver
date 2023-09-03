@@ -96,6 +96,19 @@ namespace TimeSaver
 			DontCare
 		};
 
+		static const std::string toString(const TurnoutState t)
+		{
+			switch (t)
+			{
+			case TurnoutState::None: return std::string("None");
+			case TurnoutState::A_B: return std::string("A_B");
+			case TurnoutState::A_C: return std::string("A_C");
+			case TurnoutState::DontCare: return std::string("DontCare");
+			}
+
+			return "?";
+		}
+
 		inline Connection(const Id target, const Direction direction, const TurnoutState turnoutState = TurnoutState::None)
 			: target(target), direction(direction), turnoutState(turnoutState)
 		{
@@ -690,6 +703,23 @@ namespace TimeSaver
 
 			return result;
 		}
+
+		const unsigned int getNumTurnouts() const
+		{
+			return this->numTurnouts;
+		}
+
+		const Connection::TurnoutState turnoutState(const unsigned int step, const unsigned int turnout) const
+		{
+#ifdef TSS_WITH_PACKED
+			if (step > this->packedStepsSize || turnout > this->getNumTurnouts())
+				return Connection::TurnoutState::None;
+
+			return this->packedSteps[step].state.turnoutState(turnout);
+#else
+			not implemented
+#endif
+		}
 #endif
 		const unsigned int stepsCount() const
 		{
@@ -790,6 +820,62 @@ namespace TimeSaver
 			return (unsigned int)this->endStates.size();
 		}
 
+		struct Cost
+		{
+			const unsigned int cost;
+			const Connection::Direction locoDirection;
+			Cost(const unsigned int cost, const Connection::Direction locoDirection)
+				: cost(cost), locoDirection(locoDirection)
+			{
+
+			}
+		};
+
+		const Cost costAndDirection(size_t previous, size_t from, size_t to)
+		{
+			unsigned int cost = 0;
+			Connection::Direction locoDirection = Connection::Direction::Forward;
+			for (auto neighbor : this->packedSteps[from].actions)
+				if (neighbor.target() == to)
+				{
+					if (previous != Dijk::unset)
+					{
+#ifdef TSS_WITH_PACKED
+						locoDirection = neighbor.locoDirection();
+						// + direction changed ? 1 : 0
+						const auto it = std::find_if(this->packedSteps[previous].actions.begin(), this->packedSteps[previous].actions.end(),
+							[&from](const PackedStep::PackedAction& action) -> bool {
+								return action.target() == from;
+							});
+						if (it != this->packedSteps[previous].actions.end())
+							cost += ((*it).locoDirection() != neighbor.locoDirection() ? 1 : 0);
+						// + #turnouts changed
+						for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
+							cost += this->packedSteps[from].state.turnoutState(t) != this->packedSteps[to].state.turnoutState(t) ? 1 : 0;
+#else
+						locoDirection = neighbor.locoDirection;
+						// + direction changed ? 1 : 0
+						const auto it = std::find_if(this->steps[previous].actions.begin(), this->steps[previous].actions.end(),
+							[&a](const Step::Action& action) -> bool {
+								return action.target == from;
+							});
+						if (it != this->steps[previous].actions.end())
+							cost += ((*it).locoDirection != neighbor.locoDirection ? 1 : 0);
+						// + #turnouts changed
+						for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
+							cost += this->steps[from].state.turnouts[t] != this->steps[to].state.turnouts[t] ? 1 : 0;
+#endif	
+					}
+					return Cost(cost, locoDirection);
+				}
+			return Cost(cost, locoDirection);
+		}
+
+		unsigned int cost(size_t previous, size_t from, size_t to)
+		{
+			return costAndDirection(previous, from, to).cost;
+		}
+
 		bool solve_dijkstra_step()
 		{/*
 			return solve_dijkstra_step<1>();
@@ -831,6 +917,11 @@ namespace TimeSaver
 				return neighbors;
 				},
 				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
+					const auto preA = prec(a);
+					if (preA != Dijk::unset)
+						return this->cost(preA, a, b);
+					return 0;
+					/*
 					// look through prec of a to decide how man turnouts changed
 #ifdef TSS_WITH_PACKED
 					for (auto neighbor : this->packedSteps[a].actions)
@@ -839,9 +930,41 @@ namespace TimeSaver
 					for (auto neighbor : this->steps[a].actions)
 						if (neighbor.target == b)
 #endif							
-							return 1;
+						{
+							const auto preA = prec(a);
+							if (preA != Dijk::unset)
+								return this->cost(preA, a, b);
+							
+							{
+#ifdef TSS_WITH_PACKED
+								// + direction changed ? 1 : 0
+								const auto it = std::find_if(this->packedSteps[preA].actions.begin(), this->packedSteps[preA].actions.end(),
+									[&a](const PackedStep::PackedAction& action) -> bool {
+										return action.target() == a;
+									});
+								if (it != this->packedSteps[preA].actions.end())
+									cost += ((*it).locoDirection() != neighbor.locoDirection() ? 1 : 0);
+								// + #turnouts changed
+								for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
+									cost += this->packedSteps[a].state.turnoutState(t) != this->packedSteps[b].state.turnoutState(t) ? 1 : 0;
+#else
+								// + direction changed ? 1 : 0
+								const auto it = std::find_if(this->steps[preA].actions.begin(), this->steps[preA].actions.end(),
+									[&a](const Step::Action& action) -> bool {
+										return action.target == a;
+									});
+								if (it != this->steps[preA].actions.end())
+									cost += ((*it).locoDirection != neighbor.locoDirection ? 1 : 0);
+								// + #turnouts changed
+								for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
+									cost += this->steps[a].state.turnouts[t] != this->steps[b].state.turnouts[t] ? 1 : 0;
+#endif	
+							}
+							 
+							return cost;
+						}
 
-					return 0;
+					return 0;*/
 				});
 		}
 
@@ -867,7 +990,7 @@ namespace TimeSaver
 
 #ifdef TSS_WITH_PACKED
 			print("Start\n", this->packedSteps[0].state);
-			PackedState packedTargetState(targetState, countTurnouts(), countCars());
+			PackedState packedTargetState(targetState, this->getNumTurnouts(), countCars());
 			print("End\n", packedTargetState);
 #else
 			print("Start\n", this->steps[0].state);
@@ -999,14 +1122,17 @@ namespace TimeSaver
 			return (const unsigned int)solve_dijkstra_shortestPath().size();
 		}
 
-		const unsigned int countTurnouts() const
+		const unsigned int countTurnouts()
 		{
-			unsigned int turnouts = 0;
+			if (numTurnouts != -1)
+				return numTurnouts;
+
+			numTurnouts = 0;
 			for (const auto& node : this->nodes)
 				if (node.isTurnout())
-					++turnouts;
+					++numTurnouts;
 
-			return turnouts;
+			return numTurnouts;
 		}
 
 		const unsigned int countCars() const
@@ -1068,7 +1194,7 @@ namespace TimeSaver
 			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->steps.size());
 			this->packedStepsSize = (unsigned int)this->steps.size();
 
-			unsigned int turnouts = countTurnouts(), cars = countCars();
+			unsigned int turnouts = this->getNumTurnouts(), cars = countCars();
 
 			for (unsigned int i = 0; i < this->steps.size(); ++i)
 			{
@@ -1582,8 +1708,9 @@ namespace TimeSaver
 		std::vector<std::vector<unsigned int>> locoPosSteps;
 #elif(TSS_OPT == TSS_OPT_MAP)
 		std::map<uint64_t, size_t> stateMap;
-		unsigned int numTurnouts, numCars;
+		unsigned int numCars;
 #endif
+		unsigned int numTurnouts = -1;
 
 #ifdef TSS_WITH_PACKED
 		PackedStep *packedSteps = nullptr;
