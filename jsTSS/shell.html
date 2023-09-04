@@ -165,6 +165,10 @@
     </div>
 
     <div id="railway"></div>
+
+    <a class="waves-effect waves-light btn" id="btnStepPrev">Prev</a>
+    <p id="currentStep"></p>
+    <a class="waves-effect waves-light btn" id="btnStepNext">Next</a>
     <form action="#">
         <p class="range-field">
             <input class="settings" type="range" id="step" placeholder="3" min="1" max="1" />
@@ -308,10 +312,10 @@
             _.each(state, (value, index) => {
                 cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
             });/*
-                _.each(turnouts, (value, index) => {
-                    if(value !== 0)
-                    cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
-                });*/
+                    _.each(turnouts, (value, index) => {
+                        if(value !== 0)
+                        cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
+                    });*/
         }
 
         function wasmLoaded() {
@@ -410,8 +414,18 @@
                     cyDisplayCarPlacement(_.split(carPlacement, ","));
                     let turnouts = Module.getTurnouts(step.i);
                     cyDisplayTurnoutState(JSON.parse(turnouts));
+
+                    $("#currentStep").html("Step: " + $(e.target).val() + " [" + step.i + "]");
                 }
             });
+
+            let updateStep = (dir) => {
+                const val = parseInt($("#step").val()) + dir;
+                $("#step").val(val);
+                $("#step").trigger('change');
+            };
+            $("#btnStepPrev").on('click', _.bind(updateStep, this, -1));
+            $("#btnStepNext").on('click', _.bind(updateStep, this, +1));
             cy = cytoscapeCreate();
             cytoscapePopulate();
         };
