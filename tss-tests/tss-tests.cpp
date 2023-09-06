@@ -41,9 +41,9 @@ namespace tsstests
 
     std::vector<TSS::DistanceStorage::StorageType> dist;
     TSS::DistanceStorage distStorage(
-        [](const size_t elements, const size_t sizePerElement)
+        [](const size_t elements, const TSS::DistanceStorage::StorageType defaultValue)
         {
-            dist.resize(elements);
+            dist.resize(elements, defaultValue);
         },
         [](const size_t i, const TSS::DistanceStorage::StorageType value)
         {
@@ -57,9 +57,9 @@ namespace tsstests
 
     std::vector<TSS::PrecStorage::StorageType> prec;
     TSS::PrecStorage precStorage(
-        [](const size_t elements, const size_t sizePerElement)
+        [](const size_t elements, const TSS::PrecStorage::StorageType defaultValue)
         {
-            prec.resize(elements);
+            prec.resize(elements, defaultValue);
         },
         [](const size_t i, const TSS::PrecStorage::StorageType value)
         {

@@ -215,9 +215,9 @@ const std::vector<Layout> layouts{
 std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
 std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
 TimeSaver::Solver::DistanceStorage distStorage(
-	[](const size_t elements, const size_t sizePerElement)
+	[](const size_t elements, const TimeSaver::Solver::DistanceStorage::StorageType defaultValue)
 	{
-		dist.resize(elements);
+		dist.resize(elements, defaultValue);
 	},
 	[](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
 	{
@@ -230,9 +230,9 @@ TimeSaver::Solver::DistanceStorage distStorage(
 	);
 
 TimeSaver::Solver::PrecStorage precStorage(
-	[](const size_t elements, const size_t sizePerElement)
+	[](const size_t elements, const TimeSaver::Solver::PrecStorage::StorageType defaultValue)
 	{
-		prec.resize(elements);
+		prec.resize(elements, defaultValue);
 	},
 	[](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
 	{
@@ -527,6 +527,7 @@ emscripten::val getRandomEndState(unsigned int selectedStartStep, unsigned int d
 	return emscripten::val(selectedEndStep);
 }
 
+const auto  dijkstra_step_size = 250;
 emscripten::val getExpectedSteps()
 {
 	if (check() == false || state == TSSState::Error)
@@ -535,10 +536,14 @@ emscripten::val getExpectedSteps()
 		return emscripten::val(TSSState::Error);
 	}
 
+	std::string value = "{ \"expectedIterations\": ";
 	if (state == TSSState::InitDijkstra)
-		return emscripten::val(solver->solve_dijkstra_expectedIterations());
+		value += std::to_string(solver->solve_dijkstra_expectedIterations());
 	else
-		return emscripten::val(0);
+		value += "0";
+
+	value += ", \"stepIterations\":" + std::to_string(dijkstra_step_size) + "}";
+	return emscripten::val(value);
 }
 
 emscripten::val timeSaverSolver()
@@ -576,7 +581,7 @@ emscripten::val timeSaverSolver()
 	}
 	case TSSState::StepDikjstra:
 	{
-		auto result = solver->solve_dijkstra_step/*<25>*/();
+		auto result = solver->solve_dijkstra_step<dijkstra_step_size>();
 		if (result == false)
 			state = TSSState::MarkEndDijkstra;
 		break;

@@ -224,9 +224,9 @@ int main(int argc, const char* const argv[])
 
     std::vector<TSS::DistanceStorage::StorageType> dist;
     TSS::DistanceStorage distStorage(
-        [&dist](const size_t elements, const size_t sizePerElement)
+        [&dist](const size_t elements, const TSS::DistanceStorage::StorageType sizePerElement)
         {
-            dist.resize(elements);
+            dist.resize(elements, sizePerElement);
         },
         [&dist](const size_t i, const TSS::DistanceStorage::StorageType value)
         {
@@ -240,9 +240,9 @@ int main(int argc, const char* const argv[])
 
     std::vector<TSS::PrecStorage::StorageType> prec;
     TSS::PrecStorage precStorage(
-        [&prec](const size_t elements, const size_t sizePerElement)
+        [&prec](const size_t elements, const TSS::PrecStorage::StorageType defaultValue)
         {
-            prec.resize(elements);
+            prec.resize(elements, defaultValue);
         },
         [&prec](const size_t i, const TSS::PrecStorage::StorageType value)
         {

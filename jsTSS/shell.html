@@ -18,22 +18,8 @@
             display: block;
         }
 
-        textarea.emscripten {
-            font-family: monospace;
-            width: 80%;
-        }
-
         div.emscripten {
             text-align: center;
-        }
-
-        div.emscripten_border {
-            border: 1px solid black;
-        }
-        /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-        canvas.emscripten {
-            border: 0px none;
-            background-color: black;
         }
 
         .spinner {
@@ -96,84 +82,106 @@
             width: 500px;
             height: 300px;
         }
+
+        #content {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <hr />
-    <figure style="overflow:visible;" id="spinner"><div class="spinner"></div><center style="margin-top:0.5em"><strong>emscripten</strong></center></figure>
-    <div class="emscripten" id="status">Downloading...</div>
-    <div class="emscripten">
-        <progress value="0" max="100" id="progress" hidden=1></progress>
+    <div id="loading">
+        <figure style="overflow:visible;" id="spinner"><div class="spinner"></div><center style="margin-top:0.5em"><strong>emscripten</strong></center></figure>
+        <div class="emscripten" id="status">Downloading...</div>
+        <div class="emscripten">
+            <progress value="0" max="100" id="progress" hidden=1></progress>
+        </div>
     </div>
-    <div class="emscripten_border">
-        <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
-    </div>
-    <hr />
-    <div class="emscripten">
-        <input type="checkbox" id="resize">Resize canvas
-        <input type="checkbox" id="pointerLock" checked>Lock/hide mouse pointer
-        &nbsp;&nbsp;&nbsp;
-        <input type="button" value="Fullscreen" onclick="Module.requestFullscreen(document.getElementById('pointerLock').checked,
-                                                                                document.getElementById('resize').checked)">
-    </div>
+    <div id="content" class="container">
 
-    <div class="input-field">
-        <input class="settings" placeholder="Loco" id="loco" type="text">
-        <label for="loco">Locomotive</label>
-    </div>
-    <div class="input-field">
-        <input class="settings" placeholder="1" id="wagon0" type="text">
-        <label for="wagon0">1st Wagon</label>
-    </div>
-    <div class="input-field">
-        <input class="settings" placeholder="2" id="wagon1" type="text">
-        <label for="wagon1">2nd Wagon</label>
-    </div>
-    <div class="input-field">
-        <input class="settings" placeholder="3" id="wagon2" type="text">
-        <label for="wagon2">3rd Wagon</label>
-    </div>
-    <div class="input-field">
-        <input class="settings" placeholder="4" id="wagon3" type="text">
-        <label for="wagon3">4th Wagon</label>
-    </div>
-    <div class="input-field">
-        <input class="settings" placeholder="5" id="wagon4" type="text">
-        <label for="wagon4">5th Wagon</label>
-    </div>
+        <div class="row">
+            <div class="col s2 input-field">
+                <input class="settings" placeholder="Loco" id="loco" type="text">
+                <label for="loco">Locomotive</label>
+            </div>
+            <div class="col s2 input-field">
+                <input class="settings" placeholder="1" id="wagon0" type="text">
+                <label for="wagon0">1st Wagon</label>
+            </div>
+            <div class="col s2 input-field">
+                <input class="settings" placeholder="2" id="wagon1" type="text">
+                <label for="wagon1">2nd Wagon</label>
+            </div>
+            <div class="col s2 input-field">
+                <input class="settings" placeholder="3" id="wagon2" type="text">
+                <label for="wagon2">3rd Wagon</label>
+            </div>
+            <div class="col s2 input-field">
+                <input class="settings" placeholder="4" id="wagon3" type="text">
+                <label for="wagon3">4th Wagon</label>
+            </div>
+            <div class="col s2 input-field">
+                <input class="settings" placeholder="5" id="wagon4" type="text">
+                <label for="wagon4">5th Wagon</label>
+            </div>
+        </div>
 
-    <hr />
-    <textarea class="emscripten" id="output" rows="8"></textarea>
-    <hr>
+        <div class="row">
+            <div class="col s3 input-field">
+                <select id="layouts" class="settings"></select>
+                <label for="layouts">Layout</label>
+            </div>
+            <div class="col s3 input-field">
+                <form action="#">
+                    <p class="range-field">
+                        <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="3" />
+                    </p>
+                </form>
+                <label for="rangeCars"># Wagons</label>
+            </div>
+            <div class="col s3 input-field">
+                <form action="#">
+                    <p class="range-field">
+                        <input class="settings" type="range" id="rangeDifficulty" placeholder="3" min="1" max="5" />
+                    </p>
+                </form>
+                <label for="rangeDifficulty">Difficulty</label>
+            </div>
+        </div>
 
-    <select id="layouts" class="settings"></select>
-    <form action="#">
-        <p class="range-field">
-            <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="3" />
-        </p>
-    </form>
-    <form action="#">
-        <p class="range-field">
-            <input class="settings" type="range" id="difficulty" placeholder="3" min="1" max="5" />
-        </p>
-    </form>
-    <a class="waves-effect waves-light btn" id="btnRandomizeStart">randomize iniital</a>
-    <a class="waves-effect waves-light btn" id="btnRandomizeEnd">randomize finish</a>
-    <a class="waves-effect waves-light btn" id="btnSolve">solve</a>
-    <div class="progress">
-        <div class="determinate" id="solverProgress"></div>
+        <div class="row">
+            <div class="col s4">
+                <a class="waves-effect waves-light btn" id="btnRandomizeStart">randomize initial</a>
+            </div>
+            <div class="col s4">
+                <a class="waves-effect waves-light btn" id="btnRandomizeEnd">randomize finish</a>
+            </div>
+            <div class="col s4">
+                <a class="waves-effect waves-light btn" id="btnSolve">solve</a>
+            </div>
+        </div>
+        <div class="progress">
+            <div class="determinate" id="solverProgress"></div>
+        </div>
+
+        <div id="railway"></div>
+
+        <div class="row">
+            <div class="col s2"><a class="waves-effect waves-light btn" id="btnStepPrev">Prev</a></div>
+            <div class="col s2"><span id="currentStep"></span></div>
+            <div class="col s2"> <a class="waves-effect waves-light btn" id="btnStepNext">Next</a></div>
+            <div class="col s6">
+                </p><form action="#">
+                    <p class="range-field">
+                        <input class="settings" type="range" id="rangeStep" placeholder="3" min="1" max="1" />
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <hr />
+            <textarea class="emscripten" id="output" rows="8"></textarea>
+        <hr>
     </div>
-
-    <div id="railway"></div>
-
-    <a class="waves-effect waves-light btn" id="btnStepPrev">Prev</a>
-    <p id="currentStep"></p>
-    <a class="waves-effect waves-light btn" id="btnStepNext">Next</a>
-    <form action="#">
-        <p class="range-field">
-            <input class="settings" type="range" id="step" placeholder="3" min="1" max="1" />
-        </p>
-    </form>
 
     <script src="lodash.min.js"></script>
     <script src="zepto.min.js"></script>
@@ -185,6 +193,57 @@
         let dijkstraSteps = 0;
         let dijkstraDone = 0;
         let shortestPath = [];
+
+        const State = {
+            Initial: 0,
+            LayoutSet: 1,
+            StartPosSet: 2,
+            EndPosSet: 3,
+            Solved: 4
+        };
+        let state = State.Initial;
+
+        function enable(inputs) {
+            _.each(inputs, i => $("#" + i).removeClass("disabled"));
+        }
+        function disable(inputs) {
+            _.each(inputs, i => $("#" + i).addClass("disabled"));
+        }
+
+        function updateUI() {
+            switch (state) {
+                case State.Initial:
+                {
+                    enable(["layouts", "rangeCars", "rangeDifficulty"]);
+                    disable(["btnRandomizeStart", "btnRandomizeEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                    break;
+                }
+                case State.LayoutSet:
+                {
+                    enable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart"]);
+                    disable(["btnRandomizeEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                    break;
+                }
+                case State.StartPosSet:
+                {
+                    enable(["rangeDifficulty", "btnRandomizeEnd"]);
+                    disable(["layouts", "rangeCars", "btnRandomizeStart", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                    break;
+                }
+                case State.EndPosSet:
+                {
+                    enable(["btnSolve"]);
+                    disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                    break;
+                }
+                case State.Solved:
+                {
+                    enable(["btnStepPrev", "btnStepNext", "rangeStep"]);
+                    disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnSolve"]);
+                    break;
+                }
+            }
+        }
 
         function cytoscapeCreate() {
             return cy = cytoscape({
@@ -312,17 +371,14 @@
             _.each(state, (value, index) => {
                 cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
             });/*
-                    _.each(turnouts, (value, index) => {
-                        if(value !== 0)
-                        cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
-                    });*/
+            _.each(turnouts, (value, index) => {
+                if(value !== 0)
+                cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
+            });*/
         }
 
         function wasmLoaded() {
 
-            let layouts = Module.getLayoutCount();
-            for (let i = 0; i < layouts; ++i)
-                $("#layouts").append($("<option>").prop("value", i).prop("selected", i == 0 ? "selected" : "").html(Module.getLayoutName(i)));
 
             let error = Module.addFunction(e => console.error(Module.UTF8ToString(e)), 'vi');
             let print = Module.addFunction((info, state, turnouts) => console.log(info, state, turnouts), 'viii');
@@ -336,32 +392,36 @@
 
             function updateShortestPathUI() {
                 if (shortestPath.length > 0) {
-                    $("#step").prop("max", shortestPath.length - 1);
+                    $("#rangeStep").prop("max", shortestPath.length - 1);
                 }
             }
 
+            let progressUpdateInterval = null;
             function solve() {
                 //performance.mark("solve-started");
-                const state = Module.timeSaverSolver();
-                if (state === Module.TSSState.InitDijkstra) {
-                    progress(0);
-                    dijkstraSteps = Module.getExpectedSteps();
-                    dijkstraDone = 0;
+                const tssState = Module.timeSaverSolver();
+                if (tssState === Module.TSSState.StepDikjstra) {
+                    if (!progressUpdateInterval) {
+                        progressUpdateInterval = setInterval(() => {
+                            progress(dijkstraDone / dijkstraSteps.expectedIterations);
+                        }, 1000);
+                    }
+                    dijkstraDone += dijkstraSteps.stepIterations;
+                    dijkstraDone = Math.min(dijkstraDone, dijkstraSteps.expectedIterations)
                     _.defer(solve);
                 }
-                else if (state === Module.TSSState.StepDikjstra) {
-                    dijkstraDone++;
-                    progress(dijkstraDone / dijkstraSteps);
-                    _.defer(solve);
-                }
-                else if (state === Module.TSSState.Finalize) {
+                else if (tssState === Module.TSSState.Finalize) {
+                    clearInterval(progressUpdateInterval);
+                    progressUpdateInterval = null;
                     progress(1);
                     let path = Module.getShortestPath();
                     shortestPath = JSON.parse(path);// _.map(_.split(path, ","), m => parseInt(m));
                     updateShortestPathUI();
                     console.log("shortest path: " + shortestPath);
+                    state = State.Solved;
+                    updateUI();
                 }
-                else if (state === Module.TSSState.Error) {
+                else if (tssState === Module.TSSState.Error) {
                     console.error("error during timeSaverSolver()");
                 }
                 else
@@ -383,18 +443,24 @@
                 carPlacement = Module.getCarLayout(selectedStartStep);
                 cyDisplayCarPlacement(_.split(carPlacement, ","));
                 console.log(selectedStartStep + ": " + carPlacement);
+                state = State.StartPosSet;
+                updateUI();
             });
 
             $("#btnRandomizeEnd").on('click', e => {
-                let diff = parseInt($("#difficulty").val());
+                let diff = parseInt($("#rangeDifficulty").val());
                 selectedEndStep = Module.getRandomEndState(selectedStartStep, diff);
                 carPlacement = Module.getCarLayout(selectedEndStep);
                 cyDisplayCarPlacement(_.split(carPlacement, ","));
                 console.log(selectedEndStep + ": " + carPlacement);
+                state = State.EndPosSet;
+                updateUI();
             });
             $("#btnSolve").on('click', e => {
                 progress(0);
-                dijkstraSteps = Module.getExpectedSteps();
+                let expSteps = Module.getExpectedSteps();
+                console.log(expSteps);
+                dijkstraSteps = JSON.parse(expSteps);
                 dijkstraDone = 0;
                 _.defer(solve);
             });
@@ -405,8 +471,10 @@
                 cy = cytoscapeCreate();
                 cytoscapePopulate();
                 $("#rangeCars").prop("max", Module.getMaximumCarCount(layout));
+                state = State.LayoutSet;
+                updateUI();
             });
-            $("#step").on('change', e => {
+            $("#rangeStep").on('change', e => {
                 let idx = $(e.target).val();
                 if (idx < shortestPath.length) {
                     let step = shortestPath[$(e.target).val()];
@@ -420,21 +488,31 @@
             });
 
             let updateStep = (dir) => {
-                const val = parseInt($("#step").val()) + dir;
-                $("#step").val(val);
-                $("#step").trigger('change');
+                const val = parseInt($("#rangeStep").val()) + dir;
+                $("#rangeStep").val(val);
+                $("#rangeStep").trigger('change');
             };
             $("#btnStepPrev").on('click', _.bind(updateStep, this, -1));
             $("#btnStepNext").on('click', _.bind(updateStep, this, +1));
+
+            let layouts = Module.getLayoutCount();
+            for (let i = 0; i < layouts; ++i)
+                $("#layouts").append($("<option>").prop("value", i).prop("selected", i == 0 ? "selected" : "").html(Module.getLayoutName(i)));
+            $("#layouts").trigger('change');
+            M.FormSelect.init($("#layouts")[0]);
+
             cy = cytoscapeCreate();
             cytoscapePopulate();
+            updateUI();
         };
 
     </script>
     <script type='text/javascript'>
+        var loadingElement = document.getElementById('loading');
         var statusElement = document.getElementById('status');
         var progressElement = document.getElementById('progress');
         var spinnerElement = document.getElementById('spinner');
+        var contentElement = document.getElementById('content');
 
         var Module = {
             preRun: [],
@@ -456,16 +534,6 @@
                     }
                 };
             })(),
-            canvas: (function () {
-                var canvas = document.getElementById('canvas');
-
-                // As a default initial behavior, pop up an alert when webgl context is lost. To make your
-                // application robust, you may want to override this behavior before shipping!
-                // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
-                canvas.addEventListener("webglcontextlost", function (e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
-
-                return canvas;
-            })(),
             setStatus: function (text) {
                 if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
                 if (text === Module.setStatus.last.text) return;
@@ -485,6 +553,9 @@
                     progressElement.max = null;
                     progressElement.hidden = true;
                     if (!text) spinnerElement.hidden = true;
+                    loadingElement.hidden = true;
+                    contentElement.style.display = 'block';
+                    contentElement.hidden = false;
                 }
                 statusElement.innerHTML = text;
             },
@@ -521,8 +592,7 @@
                 $item.on('change', () => { putStateIntoURL(); });
                 $item.val(URLsp.get($item.attr("id")) || ($item.attr("placeholder") || 0));
             });
-
-        })
+        });
 
     </script>
     {{{ SCRIPT }}}

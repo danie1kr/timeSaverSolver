@@ -22,7 +22,7 @@
     <EmscriptenDir>C:\Users\daniel\AppData\Local\emsdk\upstream\emscripten\</EmscriptenDir>
   </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
-    <ConfigurationType>JSApplication</ConfigurationType>
+    <ConfigurationType>HTMLPage</ConfigurationType>
     <PlatformToolset>emcc</PlatformToolset>
     <EmscriptenDir>C:\Users\daniel\AppData\Local\emsdk\upstream\emscripten\</EmscriptenDir>
   </PropertyGroup>
@@ -32,6 +32,9 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+    <TargetExt>.html</TargetExt>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
     <Link>
       <HtmlShellFile>shell.html</HtmlShellFile>

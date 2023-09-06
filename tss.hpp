@@ -876,35 +876,40 @@ namespace TimeSaver
 			return costAndDirection(previous, from, to).cost;
 		}
 
-		bool solve_dijkstra_step()
-		{/*
+		const bool solve_dijkstra_step()
+		{
 			return solve_dijkstra_step<1>();
 		}
 
 		template<unsigned int _Iterations>
-		bool solve_dijkstra_step()
+		const bool solve_dijkstra_step()
 		{
-			unsigned int i = 0;
-			while (i < _Iterations)
+			unsigned int it = 0;
+			while (it < _Iterations)
 			{
-				++i;
-				if(!dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
+				++it;
+				if (!dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 					std::vector<size_t> neighbors;
+#ifdef TSS_WITH_PACKED
 					for (auto neighbor : this->packedSteps[i].actions)
 						neighbors.push_back(neighbor.target());
+#else
+					for (auto neighbor : this->steps[i].actions)
+						neighbors.push_back(neighbor.target);
+#endif
 					return neighbors;
 					},
-					[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const size_t {
-						// look through prec of a to decide how man turnouts changed
-						for (auto neighbor : this->packedSteps[a].actions)
-							if (neighbor.target() == b)
-								return (size_t)1;
-
-						return (size_t)0;
+					[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
+						const auto preA = prec(a);
+						if (preA != Dijk::unset)
+							return this->cost(preA, a, b);
+						return 0;
 					}))
 					return false;
 			}
-			return true;*/
+			return true;/*/
+		}
+		
 			return dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 				std::vector<size_t> neighbors;
 #ifdef TSS_WITH_PACKED
@@ -964,8 +969,8 @@ namespace TimeSaver
 							return cost;
 						}
 
-					return 0;*/
-				});
+					return 0;
+				});*/
 		}
 
 		typename Dijk::Path solve_dijkstra_shortestPath()
