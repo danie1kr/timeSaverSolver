@@ -65,6 +65,7 @@
     </Link>
     <ClCompile>
       <AdditionalOptions>-Wbad-function-cast -Wcast-function-type %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>TSS_DIJKSTRA_INTERNAL_MEMORY</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">
@@ -91,7 +92,7 @@
       <GenerateDebugInformation>MoreDebugInformation</GenerateDebugInformation>
     </Link>
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;TSS_DIJKSTRA_INTERNAL_MEMORY</PreprocessorDefinitions>
       <OptimizationLevel>Custom</OptimizationLevel>
       <AdditionalOptions>-Wbad-function-cast -Wcast-function-type %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

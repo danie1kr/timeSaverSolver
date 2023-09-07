@@ -10,7 +10,6 @@
 #include <iostream>
 #include <sstream>
 
-#define TSS_DIJKSTRA_INTERNAL_MEMORY
 //#define WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>

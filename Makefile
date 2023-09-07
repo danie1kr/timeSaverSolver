@@ -8,10 +8,10 @@ web: $(OBJECTS) web.o
 	em++ $(OBJECTS) web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -s TOTAL_MEMORY=134217728 -O3 -o Emscripten/Release/jsTSS.html --shell-file jsTSS/shell.html
 
 web.o: jsTSS/web.cpp
-	em++ $< -c -g0 -O3 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -o $@
+	em++ $< -c -g0 -O3 -DTSS_DIJKSTRA_INTERNAL_MEMORY -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -o $@
 
 $(OBJECTS): %.o : %.cpp
-	em++ $< -c -g0 -O3 -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -o $@
+	em++ $< -c -g0 -O3 -DTSS_DIJKSTRA_INTERNAL_MEMORY -DEMSCRIPTEN=1 -D__EMSCRIPTEN__=1 -MD -o $@
 
 .PHONY: update clean
 clean:
