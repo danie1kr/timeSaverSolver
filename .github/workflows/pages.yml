@@ -67,7 +67,7 @@ jobs:
         run: |
           mkdir pages
           cd pages
-          cp ../Emscripten/Release/jsTSS.html .
+          cp ../Emscripten/Release/jsTSS.html index.html
           cp ../Emscripten/Release/jsTSS.wasm .
           cp ../Emscripten/Release/*.css .
           cp ../Emscripten/Release/*.js .
