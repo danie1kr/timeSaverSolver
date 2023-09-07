@@ -1,0 +1,85 @@
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy TSS as Pages
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Single deploy job since we're just deploying
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Install emSDK
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          git pull
+          ./emsdk install latest
+          ./emsdk activate latest
+          cd ..
+      - name: make solver
+        run: make solver
+      - name: compute classic 2
+        run: ./timeSaverSolver --cars 2 --outfile precomputed_tss --layout 0
+      - name: compute classic 3
+        run: ./timeSaverSolver --cars 3 --outfile precomputed_tss --layout 0
+      - name: compute classic 4
+        run: ./timeSaverSolver --cars 4 --outfile precomputed_tss --layout 0
+  #    - name: compute classic 5
+  #      run: ./timeSaverSolver --cars 5 --outfile precomputed_tss --layout 0
+      - name: compute inglenook 2
+        run: ./timeSaverSolver --cars 2 --outfile precomputed_tss --layout 1
+      - name: compute inglenook 3
+        run: ./timeSaverSolver --cars 3 --outfile precomputed_tss --layout 1
+      - name: compute inglenook 4
+        run: ./timeSaverSolver --cars 4 --outfile precomputed_tss --layout 1
+      - name: compute inglenook 5
+        run: ./timeSaverSolver --cars 5 --outfile precomputed_tss --layout 1
+      - name: Compile web.cpp
+        run: |
+          source emsdk/emsdk_env.sh
+          make web
+      - name: collect
+        run: |
+          mkdir pages
+          cd pages
+          cp ../Emscripten/Release/jsTSS.html .
+          cp ../Emscripten/Release/jsTSS.wasm .
+          cp ../Emscripten/Release/*.css .
+          cp ../Emscripten/Release/*.js .
+          cp ../Emscripten/Release/*.woff2 .
+          ls -larth
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          # Upload entire repository
+          path: 'pages/'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
