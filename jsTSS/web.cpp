@@ -336,7 +336,7 @@ emscripten::val getLayoutNodes(unsigned int layout) {
 					node += ", ";
 			}
 			node += "]";
-			node += ", \"x\": " + std::to_string(layouts[layout].pos[i].x);
+			node += ", \"x\": " + std::to_string(2*layouts[layout].pos[i].x);
 			node += ", \"y\": " + std::to_string(layouts[layout].pos[i].y);
 
 			nodes += "{ " + node + " }";

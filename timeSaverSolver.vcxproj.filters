@@ -52,5 +52,8 @@
     </None>
     <None Include="make-web-dev.ps1" />
     <None Include="make-web-prod.ps1" />
+    <None Include=".github\workflows\pages.yml">
+      <Filter>github-workflows</Filter>
+    </None>
   </ItemGroup>
 </Project>

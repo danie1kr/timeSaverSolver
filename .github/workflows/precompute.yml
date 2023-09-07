@@ -27,8 +27,8 @@ jobs:
       run: ./timeSaverSolver --cars 3 --outfile precomputed_tss --layout 1
     - name: compute inglenook 4
       run: ./timeSaverSolver --cars 4 --outfile precomputed_tss --layout 1
-#    - name: compute inglenook 5
-#      run: ./timeSaverSolver --cars 5 --outfile precomputed_tss --layout 1
+    - name: compute inglenook 5
+      run: ./timeSaverSolver --cars 5 --outfile precomputed_tss --layout 1
     - name: gzip content
       run: tar -czvf precomputed_tss.tar.gz precomputed
     - name: upload to owncloud

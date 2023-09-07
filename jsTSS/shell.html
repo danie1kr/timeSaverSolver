@@ -86,9 +86,29 @@
         #content {
             display: none;
         }
+
+        .cyNodeLabel {
+            font-size: smaller;
+        }
+
+        #header {
+            width: 90%;
+        }
+
+        #header h2 {
+            text-align: center;
+        }
+
+        #header p {
+            text-align: right;
+        }
     </style>
 </head>
 <body>
+    <div id="header">
+        <h2>TimeSaverSolver</h2>
+        <p>[<a href="https://github.com/danie1kr/timeSaverSolver">git</a>] - © 2023</p>
+    </div>
     <div id="loading">
         <figure style="overflow:visible;" id="spinner"><div class="spinner"></div><center style="margin-top:0.5em"><strong>emscripten</strong></center></figure>
         <div class="emscripten" id="status">Downloading...</div>
@@ -97,7 +117,6 @@
         </div>
     </div>
     <div id="content" class="container">
-
         <div class="row">
             <div class="col s2 input-field">
                 <input class="settings" placeholder="Loco" id="loco" type="text">
@@ -179,7 +198,7 @@
         </div>
 
         <hr />
-            <textarea class="emscripten" id="output" rows="8"></textarea>
+        <textarea class="emscripten" id="output" rows="8"></textarea>
         <hr>
     </div>
 
@@ -213,35 +232,35 @@
         function updateUI() {
             switch (state) {
                 case State.Initial:
-                {
-                    enable(["layouts", "rangeCars", "rangeDifficulty"]);
-                    disable(["btnRandomizeStart", "btnRandomizeEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                    break;
-                }
+                    {
+                        enable(["layouts", "rangeCars", "rangeDifficulty"]);
+                        disable(["btnRandomizeStart", "btnRandomizeEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        break;
+                    }
                 case State.LayoutSet:
-                {
-                    enable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart"]);
-                    disable(["btnRandomizeEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                    break;
-                }
+                    {
+                        enable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart"]);
+                        disable(["btnRandomizeEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        break;
+                    }
                 case State.StartPosSet:
-                {
-                    enable(["rangeDifficulty", "btnRandomizeEnd"]);
-                    disable(["layouts", "rangeCars", "btnRandomizeStart", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                    break;
-                }
+                    {
+                        enable(["rangeDifficulty", "btnRandomizeEnd"]);
+                        disable(["layouts", "rangeCars", "btnRandomizeStart", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        break;
+                    }
                 case State.EndPosSet:
-                {
-                    enable(["btnSolve"]);
-                    disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                    break;
-                }
+                    {
+                        enable(["btnSolve"]);
+                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        break;
+                    }
                 case State.Solved:
-                {
-                    enable(["btnStepPrev", "btnStepNext", "rangeStep"]);
-                    disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnSolve"]);
-                    break;
-                }
+                    {
+                        enable(["btnStepPrev", "btnStepNext", "rangeStep"]);
+                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnSolve"]);
+                        break;
+                    }
             }
         }
 
@@ -255,8 +274,8 @@
                     {
                         selector: ".node",
                         style: {
-                            "width": 8,
-                            "height": 8
+                            "width": 6,
+                            "height": 6
                         }
                     },
                     {
@@ -269,7 +288,7 @@
                     {
                         selector: ".connector",
                         style: {
-                            "color": 'orange',
+                            "background-color": 'orange',
                             "width": 1,
                             "height": 1
                         }
@@ -283,7 +302,7 @@
                     valignBox: "center",
                     halignBox: "center",
                     tpl: function (data) {
-                        return '<p>' + (data.carName ? data.carName : "") + '</p>';
+                        return '<p class="cyNodeLabel">' + (data.carName ? data.carName : "") + '</p>';
                     }
                 }]);
         }
@@ -318,17 +337,12 @@
                     if (c.turnout !== "None")
                         edge.classes += " " + c.turnout;
                     edges.push(edge);
-                    /*
-                    let exists = _.find(edges, e => (e.data.source === to && e.data.target === n.id) || (e.data.source === n.id && e.data.target === to));
-                    if (!exists)
-                        edges.push({ group: 'edges', data: { source: to, target: n.id }, classes: "track" });
-                        */
                 });
             });
 
             cy.add(nodes);
             cy.add(edges);
-            cy.fit(20);
+            cy.fit(5);
         }
 
         function idToCarName(i) {
@@ -359,27 +373,17 @@
                 else if (value === "A_C") {
                     node.connectedEdges(".A_B").hide();
                 }
-                else {
-
-                }
-
-            })
+            });
         }
 
         function cyUpdate(state, turnouts) {
             cy.$('node').data("carName", "");
             _.each(state, (value, index) => {
                 cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
-            });/*
-            _.each(turnouts, (value, index) => {
-                if(value !== 0)
-                cy.$('node[id="' + index + '"').data("carName", idToCarName(value));
-            });*/
+            });
         }
 
         function wasmLoaded() {
-
-
             let error = Module.addFunction(e => console.error(Module.UTF8ToString(e)), 'vi');
             let print = Module.addFunction((info, state, turnouts) => console.log(info, state, turnouts), 'viii');
             let step = Module.addFunction((step, steps, solutions) => { progress(step / steps); }, 'viii');
@@ -504,14 +508,20 @@
             cy = cytoscapeCreate();
             cytoscapePopulate();
             updateUI();
+
+            var loadingElement = document.getElementById('loading');
+            var contentElement = document.getElementById('content');
+            loadingElement.hidden = true;
+            contentElement.style.display = 'block';
+            contentElement.hidden = false;
         };
 
     </script>
     <script type='text/javascript'>
-        var loadingElement = document.getElementById('loading');
         var statusElement = document.getElementById('status');
         var progressElement = document.getElementById('progress');
         var spinnerElement = document.getElementById('spinner');
+        var loadingElement = document.getElementById('loading');
         var contentElement = document.getElementById('content');
 
         var Module = {
@@ -553,9 +563,6 @@
                     progressElement.max = null;
                     progressElement.hidden = true;
                     if (!text) spinnerElement.hidden = true;
-                    loadingElement.hidden = true;
-                    contentElement.style.display = 'block';
-                    contentElement.hidden = false;
                 }
                 statusElement.innerHTML = text;
             },

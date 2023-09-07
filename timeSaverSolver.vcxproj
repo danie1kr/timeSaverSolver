@@ -183,6 +183,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".github\workflows\emsdk.yml" />
+    <None Include=".github\workflows\pages.yml" />
     <None Include=".github\workflows\precompute.yml" />
     <None Include="make-web-dev.ps1" />
     <None Include="make-web-prod.ps1" />
