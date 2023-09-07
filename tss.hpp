@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 
+#define TSS_DIJKSTRA_INTERNAL_MEMORY
 //#define WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -526,7 +527,11 @@ namespace TimeSaver
 				this->actions.push_back(action);
 			}
 		};
+#ifdef TSS_DIJKSTRA_INTERNAL_MEMORY
+		using Dijk = DijkstraInternalMemory<unsigned long>;
+#else
 		using Dijk = Dijkstra<unsigned long>;
+#endif
 		using Steps = std::vector<Step>;
 
 	public:
@@ -551,18 +556,26 @@ namespace TimeSaver
 #endif
 		using GraphCreationCallback = std::function<void(const unsigned int step, const unsigned int steps, const unsigned int solutions)>;
 		using StatisticsCallback = std::function<void(const unsigned int steps, const unsigned int solutions)>;
-
+#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
 		using DistanceStorage = Dijk::DistanceStorage;
 		using PrecStorage = Dijk::PrecStorage;
-
+#endif
 		Solver(
 #ifdef TSS_FLEXIBLE
 			const Nodes nodes,
 #else
 			const Nodes<_Nodes> nodes, 
 #endif
-			PrintCallback print, GraphCreationCallback creation, StatisticsCallback statistics, Dijk::DistanceStorage& dist, Dijk::PrecStorage& prec)
-			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF, dist, prec)
+			PrintCallback print, GraphCreationCallback creation, StatisticsCallback statistics
+#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
+			, Dijk::DistanceStorage& dist, Dijk::PrecStorage& prec
+#endif
+		)
+			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF
+#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
+				, dist, prec
+#endif
+			)
 		{
 
 		}
@@ -577,16 +590,18 @@ namespace TimeSaver
 			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->packedStepsSize);
 
 			unsigned int turnouts = countTurnouts(), cars = countCars();
+			unsigned int a = 0;
 			for (unsigned int i = 0; i < this->packedStepsSize; ++i)
 			{
 				const auto& step = storage.steps[i];
 				const PackedState state(step.state);
 
 				std::vector<PackedStep::PackedAction> actions;
-				for (unsigned int a = 0; a < storage.actionsCount; ++a)
+				// we stored them in order
+				while (storage.actions[a].id() == i)
 				{
-					if (storage.actions[a].id() == i)
-						actions.emplace_back(storage.actions[a].content());
+					actions.emplace_back(storage.actions[a].content());
+					++a;
 				}
 
 				new (packedSteps + i) PackedStep(state, actions);
@@ -838,7 +853,7 @@ namespace TimeSaver
 			for (auto neighbor : this->packedSteps[from].actions)
 				if (neighbor.target() == to)
 				{
-					if (previous != Dijk::unset)
+					if (previous != (size_t)-1)
 					{
 #ifdef TSS_WITH_PACKED
 						locoDirection = neighbor.locoDirection();
@@ -901,7 +916,7 @@ namespace TimeSaver
 					},
 					[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
 						const auto preA = prec(a);
-						if (preA != Dijk::unset)
+						if (preA != (size_t)-1)
 							return this->cost(preA, a, b);
 						return 0;
 					}))

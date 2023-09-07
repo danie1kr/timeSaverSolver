@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug Benchmark|Emscripten">
+      <Configuration>Debug Benchmark</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Emscripten">
       <Configuration>Debug</Configuration>
+      <Platform>Emscripten</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release Benchmark|Emscripten">
+      <Configuration>Release Benchmark</Configuration>
       <Platform>Emscripten</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Emscripten">
@@ -21,7 +29,17 @@
     <PlatformToolset>emcc</PlatformToolset>
     <EmscriptenDir>C:\Users\daniel\AppData\Local\emsdk\upstream\emscripten\</EmscriptenDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'" Label="Configuration">
+    <ConfigurationType>HTMLPage</ConfigurationType>
+    <PlatformToolset>emcc</PlatformToolset>
+    <EmscriptenDir>C:\Users\daniel\AppData\Local\emsdk\upstream\emscripten\</EmscriptenDir>
+  </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
+    <ConfigurationType>HTMLPage</ConfigurationType>
+    <PlatformToolset>emcc</PlatformToolset>
+    <EmscriptenDir>C:\Users\daniel\AppData\Local\emsdk\upstream\emscripten\</EmscriptenDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'" Label="Configuration">
     <ConfigurationType>HTMLPage</ConfigurationType>
     <PlatformToolset>emcc</PlatformToolset>
     <EmscriptenDir>C:\Users\daniel\AppData\Local\emsdk\upstream\emscripten\</EmscriptenDir>
@@ -35,10 +53,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
     <TargetExt>.html</TargetExt>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">
+    <TargetExt>.html</TargetExt>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">
     <Link>
       <HtmlShellFile>shell.html</HtmlShellFile>
-      <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH</AdditionalOptions>
+      <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -s TOTAL_MEMORY=134217728</AdditionalOptions>
       <EmBind>true</EmBind>
       <EmitSymbolMap>true</EmitSymbolMap>
     </Link>
@@ -46,7 +67,36 @@
       <AdditionalOptions>-Wbad-function-cast -Wcast-function-type %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">
+    <Link>
+      <HtmlShellFile>shell.html</HtmlShellFile>
+      <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -s TOTAL_MEMORY=134217728</AdditionalOptions>
+      <EmBind>true</EmBind>
+      <EmitSymbolMap>true</EmitSymbolMap>
+      <HeapMaximumSize>
+      </HeapMaximumSize>
+      <HeapInitialSize>
+      </HeapInitialSize>
+    </Link>
+    <ClCompile>
+      <AdditionalOptions>-Wbad-function-cast -Wcast-function-type %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">
+    <Link>
+      <HtmlShellFile>shell.html</HtmlShellFile>
+      <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -s TOTAL_MEMORY=134217728</AdditionalOptions>
+      <EmBind>true</EmBind>
+      <EmitSymbolMap>true</EmitSymbolMap>
+      <GenerateDebugInformation>MoreDebugInformation</GenerateDebugInformation>
+    </Link>
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG</PreprocessorDefinitions>
+      <OptimizationLevel>Custom</OptimizationLevel>
+      <AdditionalOptions>-Wbad-function-cast -Wcast-function-type %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">
     <Link>
       <HtmlShellFile>shell.html</HtmlShellFile>
       <AdditionalOptions>-s EXPORTED_RUNTIME_METHODS=addFunction,ccall,UTF8ToString -s ALLOW_TABLE_GROWTH -gsource-map</AdditionalOptions>
@@ -63,27 +113,39 @@
   <ItemGroup>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_2.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_3.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_4.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_inglenook_2.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_inglenook_3.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_inglenook_4.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="web.cpp" />
   </ItemGroup>

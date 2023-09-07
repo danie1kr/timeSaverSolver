@@ -4,6 +4,7 @@
 #include <fstream>
 #include <algorithm>
 #include <random>
+#include <chrono>
 
 #include "external/argparse.hpp"
 
@@ -44,6 +45,10 @@ std::string varName(const std::string name, const size_t cars)
 {
     return "tss_steps_" + name + "_" + std::to_string(cars);
 }
+
+#ifdef TSS_BENCHMARK
+#include "precomputed/precomputed_tss_classic_3.hpp"
+#endif
 
 #ifdef TSS_WITH_IMPORT
 #define TSS_FLEXIBLE
@@ -91,6 +96,25 @@ TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layou
     return { nullptr, 0, nullptr, 0 };
 }
 #endif
+
+class Stopwatch
+{
+public:
+    Stopwatch(std::string text)
+        : text(text), start(std::chrono::system_clock::now())
+    {
+
+    }
+
+    ~Stopwatch()
+    {
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start);
+        std::cout << text << " " << milliseconds.count() << "ms\n";
+    }
+private:
+    const std::string text;
+    const std::chrono::time_point<std::chrono::system_clock> start;
+};
 
 int main(int argc, const char* const argv[])
 {
@@ -222,6 +246,7 @@ int main(int argc, const char* const argv[])
         std::cout << "\n" << "Step " << steps << " / " << steps << solutions << std::flush;
     };
 
+#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
     std::vector<TSS::DistanceStorage::StorageType> dist;
     TSS::DistanceStorage distStorage(
         [&dist](const size_t elements, const TSS::DistanceStorage::StorageType sizePerElement)
@@ -253,6 +278,7 @@ int main(int argc, const char* const argv[])
             return prec[i];
         }
         );
+#endif
 
 #define STRINGIFY(x) #x
 #define FILENAME(prefix, cars, layout)  prefix + "_" + STRINGIFY(layout) + "_" + std::to_string(cars)
@@ -265,7 +291,7 @@ int main(int argc, const char* const argv[])
     }
 
     //#define TSS_WITH_IMPORT
-#ifdef TSS_WITH_IMPORT
+#if defined(TSS_WITH_IMPORT)
 #ifdef _DEBUG
     const unsigned int tss_steps_classic_4_size = 0;
     const TimeSaver::Solver::Precomputed::Step tss_steps_classic_4[] = { {0} };
@@ -298,8 +324,7 @@ int main(int argc, const char* const argv[])
 
     solver->solve_dijkstra_markEndStepsLike(randomEndStep);
     auto shortestPath = solver->solve_dijkstra_shortestPath();
-#else
-#ifdef TSS_WITH_EXPORT
+#elif defined(TSS_WITH_EXPORT)
 
     if (auto outputFile = argparser.present("--outfile"))
     {
@@ -358,8 +383,74 @@ int main(int argc, const char* const argv[])
         }
     }
 
-#endif // !_DEBUG
+#elif defined(TSS_BENCHMARK)
+#ifdef TSS_WITH_PACKED
+    {
+        const auto cars = 3;
+        const auto  dijkstra_step_size = 10000;
+        const auto selectedStartStep = 0;
+        const auto selectedEndStep = 96;
+
+        auto print = [](const std::string info, const TimeSaver::Solver::PackedState& state) {};
+
+        auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
+        auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
+
+        TimeSaver::Solver* solver = nullptr;
+        TimeSaver::Solver::Dijk::Path shortestPath = {};
+
+        {
+            auto s = Stopwatch("Solver Constructor");
+            solver = new TimeSaver::Solver(classic, print, step, statistics
+#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
+                , distStorage, precStorage
 #endif
+            );
+        }
+        {
+            auto s = Stopwatch("Solver Init");
+            solver->init({ tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size });
+        }
+        {
+            auto s = Stopwatch("Solver Dijkstra Init");
+            solver->solve_dijkstra_init(selectedStartStep);
+        }
+
+
+        {
+            auto s = Stopwatch("Solver Dijkstra Solve");
+
+            unsigned int dijkstra_solve_step = 0;
+            unsigned int dijkstra_solve_steps = solver->solve_dijkstra_expectedIterations();
+
+            auto continueSolve = true;
+            while (continueSolve)
+            {
+                dijkstra_solve_step += dijkstra_step_size;
+                {
+                    auto s = Stopwatch("Solver Dijkstra Step <" + std::to_string(dijkstra_step_size) + ">: " + std::to_string(dijkstra_solve_step) + " / " + std::to_string(dijkstra_solve_steps));
+                    continueSolve = solver->solve_dijkstra_step<dijkstra_step_size>();
+                }
+    #ifndef _DEBUG
+    //            if (dijkstra_solve_step % 50000 == 0 || dijkstra_solve_step == dijkstra_solve_steps - 1)
+    #endif
+    //                std::cout << "\r" << "Solve Step " << dijkstra_solve_step << " / " << dijkstra_solve_steps << std::flush;
+            }
+        }
+
+        {
+            auto s = Stopwatch("Solver Dijkstra Mark Endstep");
+            solver->solve_dijkstra_markEndStepsLike(selectedEndStep);
+        }
+
+        {
+            auto s = Stopwatch("Solver Dijkstra Shortest Path");
+            shortestPath = solver->solve_dijkstra_shortestPath();
+        }
+    }
+#endif
+#endif
+
 
     /*
     for (unsigned int i = 0; i < 5; ++i)

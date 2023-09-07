@@ -16,10 +16,16 @@
     <Filter Include="github-workflows">
       <UniqueIdentifier>{837a907d-8ac6-40d6-8421-c8a1eb8e0129}</UniqueIdentifier>
     </Filter>
+    <Filter Include="precomputed">
+      <UniqueIdentifier>{f41a617d-7251-4a15-8aab-5aa4bbf1df96}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="precomputed\precomputed_tss_classic_3.cpp">
+      <Filter>precomputed</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -31,6 +37,9 @@
     </ClInclude>
     <ClInclude Include="external\argparse.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="precomputed\precomputed_tss_classic_3.hpp">
+      <Filter>precomputed</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
