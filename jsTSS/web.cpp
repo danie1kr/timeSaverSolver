@@ -18,7 +18,6 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 
 */
 
-#define TSS_FLEXIBLE
 #include "../tss.hpp"
 
 #ifdef TSS_WITH_PACKED
@@ -617,6 +616,7 @@ emscripten::val timeSaverSolver()
 	case TSSState::ShortestPathDikjstra:
 	{	
 		shortestPath = solver->solve_dijkstra_shortestPath();
+		std::reverse(shortestPath.begin(), shortestPath.end());
 		state = TSSState::Finalize;
 		break;
 	}

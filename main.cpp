@@ -8,7 +8,6 @@
 
 #include "external/argparse.hpp"
 
-#define TSS_FLEXIBLE
 #define TSS_HAS_DEFINE(cars, layout)    std::string("HAS_TSS_") + STRINGIFY(layout) + "_" + std::to_string(cars)
 #include "tss.hpp"
 
@@ -51,7 +50,6 @@ std::string varName(const std::string name, const size_t cars)
 #endif
 
 #ifdef TSS_WITH_IMPORT
-#define TSS_FLEXIBLE
 #include "tss.hpp"
 #if __has_include("precomputed/precomputed_tss_classic_2.hpp")
 #include "precomputed/precomputed_tss_classic_2.hpp"

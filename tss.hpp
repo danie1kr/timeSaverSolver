@@ -1032,7 +1032,6 @@ namespace TimeSaver
 		{
 #ifdef TSS_WITH_PACKED
 			/*
-				#define TSS_FLEXIBLE
 				#define define
 				#include "../tss.hpp"
 				static const unsigned int tss_steps_classic_2_size = 505;
