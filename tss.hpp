@@ -10,10 +10,7 @@
 #include <iostream>
 #include <sstream>
 
-//#define WITH_OPENMP
-#ifdef WITH_OPENMP
-#include <omp.h>
-#endif
+// consider using fixed arrays for nodes and cars, if possible. brings speed x2
 
 #define TSS_OPT_LOCOPOS	1	// loco + 3 cars on timesaver: ~8 minutes on github
 #define TSS_OPT_MAP		2	// loco + 3 cars on timesaver: ~7 seconds on github
@@ -946,89 +943,6 @@ namespace TimeSaver
 			}
 		}
 
-#ifdef WITH_OPENMP
-		const unsigned int omp_thread_count() const 
-		{
-			unsigned int n = 0;
-#pragma omp parallel reduction(+:n)
-			n += 1;
-			return n;
-		}
-
-		void createGraphOMP()
-		{
-			unsigned int index = 0;
-			unsigned int idle = 0;
-
-			for (unsigned int t = 0; t < omp_thread_count(); ++t)
-				idle |= 1 << t;
-
-			const unsigned int maxIdle = idle;
-
-			#pragma omp parallel shared(index, idle)
-			{
-				const unsigned int me = 1 << omp_get_thread_num();
-				const unsigned int mask = ~me;
-
-				unsigned int idlers = 0;
-
-				while (idlers != maxIdle)
-				{
-					unsigned int myI = -1;
-#pragma omp critical
-					{
-						if (index < this->steps.size())
-						{
-							myI = index;
-							++index;
-						}
-					}
-
-					if (myI == -1)
-					{
-#pragma omp atomic
-						idle |= me;
-					}
-					else
-					{
-#pragma omp atomic
-						idle &= mask;
-
-//#pragma omp critical
-	//					printf("\nthread %d picking up step %i\n", omp_get_thread_num(), myI);
-
-						unsigned int i = myI;
-						auto& step = this->steps[i];
-						auto loco = this->findLoco(step.state);
-						if (loco != -1)
-						{
-							auto node = nodes[loco];
-
-							for (auto& connection : node.connections)
-							{
-								// loco can only follow set turnouts
-								if (this->nodes[loco].isTurnout() && connection.isTurnoutConnection())
-								{
-									if (connection.turnoutState != this->steps[i].state.turnouts[loco])
-										continue;
-								}
-								// check if loco can move
-								this->move(i, loco, connection);
-							}
-
-#pragma omp critical
-							creation((unsigned int)i, (unsigned int)this->steps.size(), 0);
-						}
-					}
-#pragma omp atomic read
-					idlers = idle;
-				}
-			}
-
-			pack();
-		}
-#endif
-
 		const unsigned int quickSolve()
 		{
 			if (this->stepsCount() == 0)
@@ -1535,9 +1449,6 @@ namespace TimeSaver
 		template<typename... Args>
 		const unsigned int addStep(Args&&... args)
 		{
-#ifdef WITH_OPENMP
-			stepsLock.write_start();
-#endif
 			unsigned int id = (unsigned int)this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 
@@ -1547,10 +1458,6 @@ namespace TimeSaver
 			auto key = PackedState::fromState<false>(this->steps[id].state, numTurnouts, numCars);
 			this->stateMap.emplace(key, id);
 #endif
-#ifdef WITH_OPENMP
-			stepsLock.write_end();
-#endif
-
 			return id;
 		}
 
@@ -1563,10 +1470,6 @@ namespace TimeSaver
 
 		int hasStepWithState(const State& state) const
 		{
-#ifdef WITH_OPENMP
-			stepsLock.read_start();
-#endif
-
 #if(TSS_OPT == TSS_OPT_LOCOPOS)
 			const int loco = state.findLoco();
 			for (unsigned int j = 0; j < locoPosSteps[loco].size(); ++j)
@@ -1586,15 +1489,9 @@ namespace TimeSaver
 				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
 				{
 #endif
-#ifdef WITH_OPENMP
-					stepsLock.read_end();
-#endif
 					return i;
 				}
 			}
-#ifdef WITH_OPENMP
-			stepsLock.read_end();
-#endif
 			return -1;
 		}
 
