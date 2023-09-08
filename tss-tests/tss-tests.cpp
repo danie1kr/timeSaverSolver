@@ -26,9 +26,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 #endif
 namespace tsstests
 {
-    using TSS = TimeSaver::Solver<5, 1>;
-    using TSS_1car = TimeSaver::Solver<5, 2>;
-    using TSS_2car = TimeSaver::Solver<5, 3>;
+    using TSS = TimeSaver::Solver;
 
     auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {
 
@@ -41,7 +39,7 @@ namespace tsstests
 
 	TEST_CLASS(straight)
 	{
-        TimeSaver::Nodes<5> oneWay{ {
+        TimeSaver::Nodes oneWay{ {
                 {0, {FWD(1)}},
                 {1, {BWD(0), FWD(2)}},
                 {2, {BWD(1), FWD(3)}},
@@ -81,7 +79,6 @@ namespace tsstests
 
         TEST_METHOD(LocoPush)
         {
-            using TSS = TSS_1car;
             TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 2 } };
@@ -92,7 +89,6 @@ namespace tsstests
 
         TEST_METHOD(LocoPushAndBack)
         {
-            using TSS = TSS_1car;
             TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 1, 3 } };
             TSS::CarPlacement target{ { 2, 4 } };
@@ -103,7 +99,6 @@ namespace tsstests
 
         TEST_METHOD(LocoPull)
         {
-            using TSS = TSS_1car;
             TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 1, 2 } };
@@ -114,7 +109,6 @@ namespace tsstests
 
         TEST_METHOD(LocoPullPush)
         {
-            using TSS = TSS_2car;
             TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 2, 0, 4 } };
             TSS::CarPlacement target{ { 2, 1, 3 } };
@@ -126,16 +120,14 @@ namespace tsstests
 
     TEST_CLASS(oneTurnout)
     {
-        using TSS_oneTurnout = TimeSaver::Solver<6, 1>;
-        using TSS_oneTurnout_1car = TimeSaver::Solver<6, 2>;
-        using TSS_oneTurnout_2car = TimeSaver::Solver<6, 3>;
+        using TSS_oneTurnout = TimeSaver::Solver;
 
         /*
         0 = 1 = T2 = 3 = 4
                  \\
                    5
         */
-        TimeSaver::Nodes<6> turnout{ {
+        TimeSaver::Nodes turnout{ {
                 {0, {FWD(1)}},
                 {1, {BWD(0), FWD(2)}},
                 {2, {BWD(1), FWD(3, A_B), FWD(5, A_C)}},
@@ -200,7 +192,7 @@ namespace tsstests
        
         TEST_METHOD(LocoPushAB)
         {
-            using TSS = TSS_oneTurnout_1car;
+            using TSS = TSS_oneTurnout;
             TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 2, 3 } };
@@ -211,7 +203,7 @@ namespace tsstests
 
         TEST_METHOD(LocoPushAC)
         {
-            using TSS = TSS_oneTurnout_1car;
+            using TSS = TSS_oneTurnout;
             TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 5 } };
@@ -222,7 +214,7 @@ namespace tsstests
 
         TEST_METHOD(LocoPullAB)
         {
-            using TSS = TSS_oneTurnout_1car;
+            using TSS = TSS_oneTurnout;
             TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 0, 1 } };
@@ -233,7 +225,7 @@ namespace tsstests
 
         TEST_METHOD(LocoPullAC)
         {
-            using TSS = TSS_oneTurnout_1car;
+            using TSS = TSS_oneTurnout;
             TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 3, 5 } };
             TSS::CarPlacement target{ { 0, 1 } };
@@ -244,7 +236,7 @@ namespace tsstests
 
         TEST_METHOD(CarReorder)
         {
-            using TSS = TSS_oneTurnout_2car;
+            using TSS = TSS_oneTurnout;
             TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 1, 2, 3 } };
             TSS::CarPlacement target{ { 1, 3, 2 } };
@@ -257,13 +249,13 @@ namespace tsstests
     
     TEST_CLASS(oneTurnoutLongTracks)
     {
-        using TSS_LongTracks_2car = TimeSaver::Solver<9, 3>;
+        using TSS_LongTracks_2car = TimeSaver::Solver;
         /*
         0 = 1 = 2 = T3 = 4 = 5 = 6
                      \\
                       7 = 8
         */
-        TimeSaver::Nodes<9> turnout{ {
+        TimeSaver::Nodes turnout{ {
                 {0, {FWD(1)}},
                 {1, {BWD(0), FWD(2)}},
                 {2, {BWD(1), FWD(3)}},
@@ -310,7 +302,7 @@ namespace tsstests
 
     TEST_CLASS(twoTurnoutsDrive)
     {
-        using TSS_TwoTurnoutsTracks_1car = TimeSaver::Solver<13, 2>;
+        using TSS_TwoTurnoutsTracks_1car = TimeSaver::Solver;
         /*
         
           0 = 1 = T2 = 3 = 4
@@ -319,7 +311,7 @@ namespace tsstests
                     //
               11 = 12
         */
-        TimeSaver::Nodes<13> turnout{ {
+        TimeSaver::Nodes turnout{ {
                 {0, {FWD(1)}},
                 {1, {BWD(0), FWD(2)}},
                 {2, {BWD(1, A_B), BWD(7, A_C), FWD(3)}},

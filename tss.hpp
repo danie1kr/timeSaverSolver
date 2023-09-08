@@ -28,55 +28,6 @@
 
 namespace TimeSaver
 {
-
-#ifdef WITH_OPENMP
-	struct Lock
-	{
-		void read_start()
-		{
-			bool writeOngoing;
-			do
-			{
-#pragma omp atomic read
-				writeOngoing = writing;
-			} while (writeOngoing);
-
-#pragma omp atomic
-			++readers;
-		}
-
-		void read_end()
-		{
-#pragma omp atomic
-			--readers;
-		}
-
-		void write_start()
-		{
-			unsigned int readOngoing;
-			do
-			{
-#pragma omp atomic read
-				readOngoing = readers;
-			} while (readOngoing > 0);
-
-#pragma omp atomic write
-			writing = true;
-		}
-
-		void write_end()
-		{
-#pragma omp atomic write
-			writing = false;
-		}
-
-		unsigned int readers = 0;
-		bool writing = false;
-	};
-
-	Lock stepsLock;
-#endif
-
 	using Id = unsigned char;
 
 	class Connection
@@ -296,28 +247,18 @@ namespace TimeSaver
 		}
 	};
 
-#ifdef TSS_FLEXIBLE
 	using Nodes = std::vector<Node>;
-#else
-	template<unsigned int _Count> using Nodes = std::array<Node, _Count>;
-#endif
-
 	inline Node::Node(const Id id, const Connections connections)
 		: id(id & Node::idMask), connections(connections), options(id & Node::optionMask)
 	{
 
 	}
 
-#ifdef TSS_FLEXIBLE
-#else
-	template<unsigned int _Nodes, unsigned int _Cars>
-#endif
 	class Solver
 	{
 	public:
 		struct State
 		{
-#ifdef TSS_FLEXIBLE
 			std::vector<unsigned int> slots;
 			std::vector<Connection::TurnoutState> turnouts;
 
@@ -333,21 +274,11 @@ namespace TimeSaver
 			{
 
 			}
-#else
-			std::array<unsigned int, _Nodes> slots;
-			std::array<Connection::TurnoutState, _Nodes> turnouts;
-#endif
 
 			int findLoco() const
 			{
 				for (unsigned int i = 0; i < this->slots.size(); ++i)
-					if (this->slots[i] ==
-#ifdef TSS_FLEXIBLE
-						Solver
-#else
-						Solver<_Nodes, _Cars>
-#endif
-						::Loco)
+					if (this->slots[i] == Solver::Loco)
 						return i;
 
 				return -1;
@@ -538,11 +469,7 @@ namespace TimeSaver
 			IncompatibleTypes
 		};
 
-#ifdef TSS_FLEXIBLE
 		using CarPlacement = std::vector<unsigned int>;
-#else
-		using CarPlacement = std::array<unsigned int, _Cars>;
-#endif
 
 #ifdef TSS_WITH_PACKED
 		using PrintCallback = std::function<void(const std::string, const PackedState&)>;
@@ -552,15 +479,7 @@ namespace TimeSaver
 		using GraphCreationCallback = std::function<void(const unsigned int step, const unsigned int steps, const unsigned int solutions)>;
 		using StatisticsCallback = std::function<void(const unsigned int steps, const unsigned int solutions)>;
 
-		Solver(
-#ifdef TSS_FLEXIBLE
-			const Nodes nodes,
-#else
-			const Nodes<_Nodes> nodes, 
-#endif
-			PrintCallback print, GraphCreationCallback creation, StatisticsCallback statistics
-
-		)
+		Solver(const Nodes nodes, PrintCallback print, GraphCreationCallback creation, StatisticsCallback statistics)
 			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF)
 		{
 
@@ -600,10 +519,9 @@ namespace TimeSaver
 		Result init(CarPlacement cars, const bool keep = false)
 		{
 			State state;
-#ifdef TSS_FLEXIBLE
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
-#endif
+
 
 #if(TSS_OPT == TSS_OPT_LOCOPOS)
 			locoPosSteps.clear();
@@ -644,15 +562,10 @@ namespace TimeSaver
 			return Result::OK;
 		}
 
-#ifdef TSS_FLEXIBLE
 		const CarPlacement random(unsigned int _Cars) 
 		{
 			CarPlacement result(_Cars);
-#else
-		const CarPlacement random()
-		{
-			CarPlacement result;
-#endif
+
 			for (unsigned int i = 0; i < result.size(); ++i)
 			{
 				bool used = true;
@@ -1163,12 +1076,11 @@ namespace TimeSaver
 		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
 		{
 			State targetState;
-#ifdef TSS_FLEXIBLE
 			targetState.slots.clear();
 			targetState.turnouts.clear();
 			targetState.slots.resize(this->nodes.size());
 			targetState.turnouts.resize(this->nodes.size());
-#endif
+
 			for (auto& s : targetState.slots)
 				s = 0;
 
@@ -1238,7 +1150,6 @@ namespace TimeSaver
 				0x200000007,
 				};
 			*/
-			hpp << "#define TSS_FLEXIBLE\n";
 			hpp << "#define " << define << "\n";
 			hpp << "#include \"../tss.hpp\"\n";
 			hpp << "extern const unsigned int " << name << "_size;\n";
@@ -1274,10 +1185,6 @@ namespace TimeSaver
 			cpp << "};\n";
 #endif
 		}
-#endif
-
-#ifndef TSS_FLEXIBLE
-		using Nodes = Nodes<_Nodes>;
 #endif
 
 	private:
