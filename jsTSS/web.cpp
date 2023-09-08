@@ -229,39 +229,6 @@ const std::vector<Layout> layouts{
 	}
 };
 
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
-std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
-TimeSaver::Solver::DistanceStorage distStorage(
-	[](const size_t elements, const TimeSaver::Solver::DistanceStorage::StorageType defaultValue)
-	{
-		dist.resize(elements, defaultValue);
-	},
-	[](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
-	{
-		dist[i] = value;
-	},
-	[](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
-	{
-		return dist[i];
-	}
-	);
-
-TimeSaver::Solver::PrecStorage precStorage(
-	[](const size_t elements, const TimeSaver::Solver::PrecStorage::StorageType defaultValue)
-	{
-		prec.resize(elements, defaultValue);
-	},
-	[](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
-	{
-		prec[i] = value;
-	},
-		[](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
-	{
-		return prec[i];
-	}
-	);
-#endif
 #ifdef TSS_WITH_PACKED
 TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layout, unsigned int cars)
 {
@@ -506,11 +473,7 @@ emscripten::val timeSaverSolverInit(unsigned int layout, unsigned int numberOfCa
 	};
 	auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
 	
-	solver = new TimeSaver::Solver(layouts[layout].nodes, print, step, statistics
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-		, distStorage, precStorage
-#endif
-	);
+	solver = new TimeSaver::Solver(layouts[layout].nodes, print, step, statistics);
 
 #ifdef TSS_WITH_PACKED
 	solver->init(precomputedStepsGraph(layout, numberOfCars));
