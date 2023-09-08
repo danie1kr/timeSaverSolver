@@ -11,14 +11,6 @@
 #include <sstream>
 
 // consider using fixed arrays for nodes and cars, if possible. brings speed x2
-
-#define TSS_OPT_LOCOPOS	1	// loco + 3 cars on timesaver: ~8 minutes on github
-#define TSS_OPT_MAP		2	// loco + 3 cars on timesaver: ~7 seconds on github
-
-#ifndef TSS_OPT
-#define TSS_OPT	TSS_OPT_MAP
-#endif
-
 #define TSS_WITH_PACKED
 
 #include "dijkstra/dijkstra.hpp"
@@ -519,21 +511,14 @@ namespace TimeSaver
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
 
-
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-			locoPosSteps.clear();
-			locoPosSteps.resize(this->nodes.size());
-#elif(TSS_OPT == TSS_OPT_MAP)
 			stateMap.clear();
 			numTurnouts = 0;
 			numCars = (unsigned int)cars.size();
-#endif
+
 			for (unsigned int i = 0; i < this->nodes.size(); ++i)
 			{
 				state.turnouts[i] = this->nodes[i].isTurnout() ? Connection::TurnoutState::A_B : Connection::TurnoutState::None;
-#if(TSS_OPT == TSS_OPT_MAP)
 				numTurnouts += this->nodes[i].isTurnout() ? 1 : 0;
-#endif
 			}
 
 			for (auto& s : state.slots)
@@ -1452,12 +1437,9 @@ namespace TimeSaver
 			unsigned int id = (unsigned int)this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-			locoPosSteps[this->steps[id].state.findLoco()].push_back(id);
-#elif(TSS_OPT == TSS_OPT_MAP)
 			auto key = PackedState::fromState<false>(this->steps[id].state, numTurnouts, numCars);
 			this->stateMap.emplace(key, id);
-#endif
+
 			return id;
 		}
 
@@ -1470,29 +1452,11 @@ namespace TimeSaver
 
 		int hasStepWithState(const State& state) const
 		{
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-			const int loco = state.findLoco();
-			for (unsigned int j = 0; j < locoPosSteps[loco].size(); ++j)
-			{
-				const unsigned int i = locoPosSteps[loco][j];
-				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
-				{
-#elif(TSS_OPT == TSS_OPT_MAP)
-			{
-				{
-					auto key = PackedState::fromState<false>(state, numTurnouts, numCars);
-					auto it = this->stateMap.find(key);
-					int i = it == this->stateMap.end() ? -1 : (int)it->second;
-#else
-			for(unsigned int i = 0; i < this->steps.size(); ++i)
-			{
-				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
-				{
-#endif
-					return i;
-				}
-			}
-			return -1;
+			auto key = PackedState::fromState<false>(state, numTurnouts, numCars);
+			auto it = this->stateMap.find(key);
+			int i = it == this->stateMap.end() ? -1 : (int)it->second;
+
+			return i;
 		}
 
 		int findLoco(const State& state) const
@@ -1514,12 +1478,8 @@ namespace TimeSaver
 		StatisticsCallback statistics;
 
 		Steps steps;
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-		std::vector<std::vector<unsigned int>> locoPosSteps;
-#elif(TSS_OPT == TSS_OPT_MAP)
 		std::map<uint64_t, size_t> stateMap;
 		unsigned int numCars;
-#endif
 		unsigned int numTurnouts = -1;
 
 #ifdef TSS_WITH_PACKED
