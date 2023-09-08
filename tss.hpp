@@ -526,11 +526,7 @@ namespace TimeSaver
 				this->actions.push_back(action);
 			}
 		};
-#ifdef TSS_DIJKSTRA_INTERNAL_MEMORY
-		using Dijk = DijkstraInternalMemory<unsigned long>;
-#else
 		using Dijk = Dijkstra<unsigned long>;
-#endif
 		using Steps = std::vector<Step>;
 
 	public:
@@ -555,10 +551,7 @@ namespace TimeSaver
 #endif
 		using GraphCreationCallback = std::function<void(const unsigned int step, const unsigned int steps, const unsigned int solutions)>;
 		using StatisticsCallback = std::function<void(const unsigned int steps, const unsigned int solutions)>;
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-		using DistanceStorage = Dijk::DistanceStorage;
-		using PrecStorage = Dijk::PrecStorage;
-#endif
+
 		Solver(
 #ifdef TSS_FLEXIBLE
 			const Nodes nodes,
@@ -566,15 +559,9 @@ namespace TimeSaver
 			const Nodes<_Nodes> nodes, 
 #endif
 			PrintCallback print, GraphCreationCallback creation, StatisticsCallback statistics
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-			, Dijk::DistanceStorage& dist, Dijk::PrecStorage& prec
-#endif
+
 		)
-			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-				, dist, prec
-#endif
-			)
+			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF)
 		{
 
 		}
@@ -913,7 +900,7 @@ namespace TimeSaver
 #endif
 					return neighbors;
 					},
-					[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
+					[&](const size_t a, const size_t b, Dijk::PreviousCallback prec) -> const unsigned long {
 						const auto preA = prec(a);
 						if (preA != (size_t)-1)
 							return this->cost(preA, a, b);

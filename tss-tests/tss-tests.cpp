@@ -39,38 +39,6 @@ namespace tsstests
 
     };
 
-    std::vector<TSS::DistanceStorage::StorageType> dist;
-    TSS::DistanceStorage distStorage(
-        [](const size_t elements, const TSS::DistanceStorage::StorageType defaultValue)
-        {
-            dist.resize(elements, defaultValue);
-        },
-        [](const size_t i, const TSS::DistanceStorage::StorageType value)
-        {
-            dist[i] = value;
-        },
-            [](const size_t i) -> const TSS::DistanceStorage::StorageType
-        {
-            return dist[i];
-        }
-        );
-
-    std::vector<TSS::PrecStorage::StorageType> prec;
-    TSS::PrecStorage precStorage(
-        [](const size_t elements, const TSS::PrecStorage::StorageType defaultValue)
-        {
-            prec.resize(elements, defaultValue);
-        },
-        [](const size_t i, const TSS::PrecStorage::StorageType value)
-        {
-            prec[i] = value;
-        },
-            [](const size_t i) -> const TSS::PrecStorage::StorageType
-        {
-            return prec[i];
-        }
-        );
-
 	TEST_CLASS(straight)
 	{
         TimeSaver::Nodes<5> oneWay{ {
@@ -93,7 +61,7 @@ namespace tsstests
     public:
         TEST_METHOD(LocoOnlyForward)
         {
-            TSS tss(oneWay, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
@@ -103,7 +71,7 @@ namespace tsstests
 
         TEST_METHOD(LocoBackwardForward)
         {
-            TSS tss(oneWay, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 4 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
@@ -114,7 +82,7 @@ namespace tsstests
         TEST_METHOD(LocoPush)
         {
             using TSS = TSS_1car;
-            TSS tss(oneWay, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 2 } };
             tss.init(cars);
@@ -125,7 +93,7 @@ namespace tsstests
         TEST_METHOD(LocoPushAndBack)
         {
             using TSS = TSS_1car;
-            TSS tss(oneWay, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 1, 3 } };
             TSS::CarPlacement target{ { 2, 4 } };
             tss.init(cars);
@@ -136,7 +104,7 @@ namespace tsstests
         TEST_METHOD(LocoPull)
         {
             using TSS = TSS_1car;
-            TSS tss(oneWay, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 1, 2 } };
             tss.init(cars);
@@ -147,7 +115,7 @@ namespace tsstests
         TEST_METHOD(LocoPullPush)
         {
             using TSS = TSS_2car;
-            TSS tss(oneWay, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(oneWay, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 2, 0, 4 } };
             TSS::CarPlacement target{ { 2, 1, 3 } };
             tss.init(cars);
@@ -189,7 +157,7 @@ namespace tsstests
         TEST_METHOD(LocoOnlyForwardAB)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 3 } };
             tss.init(cars);
@@ -200,7 +168,7 @@ namespace tsstests
         TEST_METHOD(LocoOnlyBackwardAB)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 3 } };
             TSS::CarPlacement target{ { 1 } };
             tss.init(cars);
@@ -211,7 +179,7 @@ namespace tsstests
         TEST_METHOD(LocoOnlyForwardAC)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0 } };
             TSS::CarPlacement target{ { 4 } };
             tss.init(cars);
@@ -222,7 +190,7 @@ namespace tsstests
         TEST_METHOD(LocoBackwardForward)
         {
             using TSS = TSS_oneTurnout;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 3 } };
             TSS::CarPlacement target{ { 5 } };
             tss.init(cars);
@@ -233,7 +201,7 @@ namespace tsstests
         TEST_METHOD(LocoPushAB)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 2, 3 } };
             tss.init(cars);
@@ -244,7 +212,7 @@ namespace tsstests
         TEST_METHOD(LocoPushAC)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 1 } };
             TSS::CarPlacement target{ { 1, 5 } };
             tss.init(cars);
@@ -255,7 +223,7 @@ namespace tsstests
         TEST_METHOD(LocoPullAB)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 0, 3 } };
             TSS::CarPlacement target{ { 0, 1 } };
             tss.init(cars);
@@ -266,7 +234,7 @@ namespace tsstests
         TEST_METHOD(LocoPullAC)
         {
             using TSS = TSS_oneTurnout_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 3, 5 } };
             TSS::CarPlacement target{ { 0, 1 } };
             tss.init(cars);
@@ -277,7 +245,7 @@ namespace tsstests
         TEST_METHOD(CarReorder)
         {
             using TSS = TSS_oneTurnout_2car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 1, 2, 3 } };
             TSS::CarPlacement target{ { 1, 3, 2 } };
             tss.init(cars);
@@ -320,7 +288,7 @@ namespace tsstests
         TEST_METHOD(LocoPull)
         {
             using TSS = TSS_LongTracks_2car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 1, 4, 5 } };
             TSS::CarPlacement target{ { 1, 2, 3 } };
             tss.init(cars);
@@ -331,7 +299,7 @@ namespace tsstests
         TEST_METHOD(LocoReorder)
         {
             using TSS = TSS_LongTracks_2car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 1, 3, 4 } };
             TSS::CarPlacement target{ { 0, 5, 4 } };
             tss.init(cars);
@@ -383,7 +351,7 @@ namespace tsstests
         TEST_METHOD(LocoPushOverTwoTurnouts)
         {
             using TSS = TSS_TwoTurnoutsTracks_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 12, 11, } };
             TSS::CarPlacement target{ { 6, 5 } };
             tss.init(cars);
@@ -393,7 +361,7 @@ namespace tsstests
         TEST_METHOD(LocoPullOverTwoTurnouts2)
         {
             using TSS = TSS_TwoTurnoutsTracks_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 6, 5, } };
             TSS::CarPlacement target{ { 4, 3 } };
             tss.init(cars);
@@ -403,7 +371,7 @@ namespace tsstests
         TEST_METHOD(LocoPushOverTwoTurnouts2)
         {
             using TSS = TSS_TwoTurnoutsTracks_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 12, 11, } };
             TSS::CarPlacement target{ { 4, 3 } };
             tss.init(cars);
@@ -413,7 +381,7 @@ namespace tsstests
         TEST_METHOD(LocoPushPullOverMultipleTurnouts)
         {
             using TSS = TSS_TwoTurnoutsTracks_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 12, 11, } };
             TSS::CarPlacement target{ { 1, 0 } };
             tss.init(cars);
@@ -423,7 +391,7 @@ namespace tsstests
         TEST_METHOD(SearchLocoPushPullOverMultipleTurnouts)
         {
             using TSS = TSS_TwoTurnoutsTracks_1car;
-            TSS tss(turnout, print<TSS_STATE>, step, statistics, distStorage, precStorage);
+            TSS tss(turnout, print<TSS_STATE>, step, statistics);
             TSS::CarPlacement cars{ { 3, 11, } };
             TSS::CarPlacement target{ { 1, 0 } };
             tss.init(cars);

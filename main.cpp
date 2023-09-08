@@ -246,45 +246,11 @@ int main(int argc, const char* const argv[])
         std::cout << "\n" << "Step " << steps << " / " << steps << solutions << std::flush;
     };
 
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-    std::vector<TSS::DistanceStorage::StorageType> dist;
-    TSS::DistanceStorage distStorage(
-        [&dist](const size_t elements, const TSS::DistanceStorage::StorageType sizePerElement)
-        {
-            dist.resize(elements, sizePerElement);
-        },
-        [&dist](const size_t i, const TSS::DistanceStorage::StorageType value)
-        {
-            dist[i] = value;
-        },
-            [&dist](const size_t i) -> const TSS::DistanceStorage::StorageType
-        {
-            return dist[i];
-        }
-        );
-
-    std::vector<TSS::PrecStorage::StorageType> prec;
-    TSS::PrecStorage precStorage(
-        [&prec](const size_t elements, const TSS::PrecStorage::StorageType defaultValue)
-        {
-            prec.resize(elements, defaultValue);
-        },
-        [&prec](const size_t i, const TSS::PrecStorage::StorageType value)
-        {
-            prec[i] = value;
-        },
-            [&prec](const size_t i) -> const TSS::PrecStorage::StorageType
-        {
-            return prec[i];
-        }
-        );
-#endif
-
 #define STRINGIFY(x) #x
 #define FILENAME(prefix, cars, layout)  prefix + "_" + STRINGIFY(layout) + "_" + std::to_string(cars)
 #define GENERATE(cars, startPosition, layout, cpp, hpp, hppName) { \
         std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n" << std::flush; \
-        TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
+        TSS tss(layout, printNone, step, statisticsNone); \
         tss.init(startPosition, false); \
         tss.createGraph(); \
         tss.exportSteps(cpp, hpp, hppName, varName(STRINGIFY(layout), cars), TSS_HAS_DEFINE(cars, layout));  \
@@ -307,7 +273,7 @@ int main(int argc, const char* const argv[])
     const auto cars = 3;
 
     TimeSaver::Solver* solver = nullptr;
-    solver = new TimeSaver::Solver(classic , print, step, statistics, distStorage, precStorage);
+    solver = new TimeSaver::Solver(classic , print, step, statistics);
     solver->init(precomputedStepsGraph(layout, cars));
     auto randomStartStep = std::rand() % solver->stepsCount();
     auto carPlacementStart = solver->fromPackedStepsGraph(randomStartStep);
@@ -401,11 +367,7 @@ int main(int argc, const char* const argv[])
 
         {
             auto s = Stopwatch("Solver Constructor");
-            solver = new TimeSaver::Solver(classic, print, step, statistics
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-                , distStorage, precStorage
-#endif
-            );
+            solver = new TimeSaver::Solver(classic, print, step, statistics);
         }
         {
             auto s = Stopwatch("Solver Init");
@@ -455,7 +417,7 @@ int main(int argc, const char* const argv[])
     /*
     for (unsigned int i = 0; i < 5; ++i)
     {
-        TSS tss(classic, print, step, statistics, distStorage, precStorage);
+        TSS tss(classic, print, step, statistics);
         auto cars = tss.random(2);
         auto target = tss.random(2);
         tss.init(cars, false);
