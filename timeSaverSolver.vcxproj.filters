@@ -55,5 +55,6 @@
     <None Include=".github\workflows\pages.yml">
       <Filter>github-workflows</Filter>
     </None>
+    <None Include="precompute-dev.ps1" />
   </ItemGroup>
 </Project>

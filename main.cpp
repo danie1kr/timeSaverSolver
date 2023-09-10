@@ -209,8 +209,8 @@ int main(int argc, const char* const argv[])
 
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
 #define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
-    auto printNone = [](const std::string info, const TSS::PackedState& state) {};
-    auto print = [](const std::string info, const TSS::PackedState& state) {
+    auto printNone = [](const std::string info, const TSS::PackedStep::State& state) {};
+    auto print = [](const std::string info, const TSS::PackedStep::State& state) {
 
         std::cout << std::setfill(' ') << info <<
             S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3, 0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
@@ -348,7 +348,7 @@ int main(int argc, const char* const argv[])
         const auto selectedStartStep = 0;
         const auto selectedEndStep = 96;
 
-        auto print = [](const std::string info, const TimeSaver::Solver::PackedState& state) {};
+        auto print = [](const std::string info, const TimeSaver::Solver::PackedStep::State& state) {};
 
         auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
         auto statistics = [](const unsigned int steps, const unsigned int solutions) {};

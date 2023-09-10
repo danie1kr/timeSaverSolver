@@ -173,6 +173,8 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="precomputed\precomputed_tss_classic_3.cpp">
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|x64'">false</WholeProgramOptimization>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -188,6 +190,7 @@
     <None Include="make-web-dev.ps1" />
     <None Include="make-web-prod.ps1" />
     <None Include="Makefile" />
+    <None Include="precompute-dev.ps1" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

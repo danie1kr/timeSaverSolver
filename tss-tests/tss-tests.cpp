@@ -15,15 +15,10 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 #define A_B  TimeSaver::Connection::TurnoutState::A_B
 #define A_C  TimeSaver::Connection::TurnoutState::A_C  
 
-#ifdef TSS_WITH_PACKED
-#define TSS_STATE TSS::PackedState
+#define TSS_STATE TSS::PackedStep::State
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
 #define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnoutState(t) == A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
-#else
-#define TSS_STATE TSS::State
-#define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i,t) "T" #i "[" << (state.turnouts[t] == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnouts[t] == A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
-#endif
+
 namespace tsstests
 {
     using TSS = TimeSaver::Solver;
