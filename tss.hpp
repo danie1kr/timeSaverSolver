@@ -89,7 +89,12 @@ namespace TimeSaver
 		static const unsigned char idMask = (unsigned char)~optionMask;
 
 		Node() = delete;
-		Node(const Id id, const Connections connections);
+		Node(const Id id, const Connections connections)
+			: id(id& Node::idMask), connections(connections), options(id& Node::optionMask)
+		{
+
+		};
+
 		const Id id;
 		const Connections connections;
 		const unsigned char options;
@@ -235,18 +240,11 @@ namespace TimeSaver
 			return false;
 		}
 	};
-
 	using Nodes = std::vector<Node>;
-	inline Node::Node(const Id id, const Connections connections)
-		: id(id & Node::idMask), connections(connections), options(id & Node::optionMask)
-	{
-
-	}
 
 	class Solver
 	{
 	public:
-
 		struct Step
 		{
 			struct State
@@ -285,10 +283,6 @@ namespace TimeSaver
 					: target(target), locoDirection(locoDirection) { };
 			};
 
-			const unsigned int id;
-			const State state;
-			std::vector<Action> actions;
-
 			Step(const unsigned int id) : id(id), state(), actions() { };
 			Step(const unsigned int id, const State state) : id(id), state(state), actions() { };
 			Step(const unsigned int id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions) { };
@@ -314,6 +308,10 @@ namespace TimeSaver
 			{
 				this->actions.push_back(action);
 			}
+
+			const unsigned int id;
+			const State state;
+			std::vector<Action> actions;
 		};
 		using Steps = std::vector<Step>;
 
@@ -448,9 +446,7 @@ namespace TimeSaver
 			PackedStep::Action * actions;
 			const unsigned int actionsCount;
 		};
-
 		using Dijk = Dijkstra<unsigned long>;
-
 
 	public:
 		enum class Result : unsigned int
@@ -483,8 +479,6 @@ namespace TimeSaver
 			this->packedSteps = storage.steps;
 			this->countTurnouts();
 
-			//unsigned int turnouts = countTurnouts(), cars = countCars();
-			
 			size_t lastActionStepId = (size_t)-1;
 			for (unsigned int a = 0; a < storage.actionsCount; ++a)
 			{
@@ -709,7 +703,6 @@ namespace TimeSaver
 		{
 			unsigned int cost = 0;
 			Connection::Direction locoDirection = Connection::Direction::Forward;
-			//for (auto neighbor : this->packedSteps[from].actions)
 			for (size_t a = 0; a < this->packedSteps[from].actionsCount; ++a)
 			{
 				const auto neighbor = this->packedSteps[from].actions[a];
@@ -731,14 +724,6 @@ namespace TimeSaver
 						if (previousToHere != -1)
 							cost += (this->packedSteps[previous].actions[previousToHere].locoDirection() != neighbor.locoDirection() ? 1 : 0);
 
-						/*
-						const auto it = std::find_if(this->packedSteps[previous].actions.begin(), this->packedSteps[previous].actions.end(),
-							[&from](const PackedStep::PackedAction& action) -> bool {
-								return action.target() == from;
-							});
-						if (it != this->packedSteps[previous].actions.end())
-							cost += ((*it).locoDirection() != neighbor.locoDirection() ? 1 : 0);
-							*/
 						// + #turnouts changed
 						for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
 							cost += this->packedSteps[from].state.turnoutState(t) != this->packedSteps[to].state.turnoutState(t) ? 1 : 0;
@@ -770,7 +755,6 @@ namespace TimeSaver
 				++it;
 				if (!dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 					std::vector<size_t> neighbors;
-					//for (auto neighbor : this->packedSteps[i].actions)
 					for (size_t a = 0; a < this->packedSteps[i].actionsCount; ++a)
 					{
 						auto neighbor = this->packedSteps[i].actions[a];
@@ -787,70 +771,7 @@ namespace TimeSaver
 					}))
 					return false;
 			}
-			return true;/*/
-		}
-		
-			return dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
-				std::vector<size_t> neighbors;
-#ifdef TSS_WITH_PACKED
-				for (auto neighbor : this->packedSteps[i].actions)
-					neighbors.push_back(neighbor.target());
-#else
-				for (auto neighbor : this->steps[i].actions)
-					neighbors.push_back(neighbor.target);
-#endif
-				return neighbors;
-				},
-				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
-					const auto preA = prec(a);
-					if (preA != Dijk::unset)
-						return this->cost(preA, a, b);
-					return 0;
-					/*
-					// look through prec of a to decide how man turnouts changed
-#ifdef TSS_WITH_PACKED
-					for (auto neighbor : this->packedSteps[a].actions)
-						if (neighbor.target() == b)
-#else
-					for (auto neighbor : this->steps[a].actions)
-						if (neighbor.target == b)
-#endif							
-						{
-							const auto preA = prec(a);
-							if (preA != Dijk::unset)
-								return this->cost(preA, a, b);
-							
-							{
-#ifdef TSS_WITH_PACKED
-								// + direction changed ? 1 : 0
-								const auto it = std::find_if(this->packedSteps[preA].actions.begin(), this->packedSteps[preA].actions.end(),
-									[&a](const PackedStep::PackedAction& action) -> bool {
-										return action.target() == a;
-									});
-								if (it != this->packedSteps[preA].actions.end())
-									cost += ((*it).locoDirection() != neighbor.locoDirection() ? 1 : 0);
-								// + #turnouts changed
-								for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
-									cost += this->packedSteps[a].state.turnoutState(t) != this->packedSteps[b].state.turnoutState(t) ? 1 : 0;
-#else
-								// + direction changed ? 1 : 0
-								const auto it = std::find_if(this->steps[preA].actions.begin(), this->steps[preA].actions.end(),
-									[&a](const Step::Action& action) -> bool {
-										return action.target == a;
-									});
-								if (it != this->steps[preA].actions.end())
-									cost += ((*it).locoDirection != neighbor.locoDirection ? 1 : 0);
-								// + #turnouts changed
-								for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
-									cost += this->steps[a].state.turnouts[t] != this->steps[b].state.turnouts[t] ? 1 : 0;
-#endif	
-							}
-							 
-							return cost;
-						}
-
-					return 0;
-				});*/
+			return true;
 		}
 
 		typename Dijk::Path solve_dijkstra_shortestPath()
@@ -860,7 +781,6 @@ namespace TimeSaver
 			unsigned int shortestPathSteps = dijkstra.infinity;
 			for (const unsigned int i : this->endStates)
 			{
-				//auto& step = this->packedSteps[i];
 				++currentSolutionCheck;
 				auto path = dijkstra.shortestPath(i);
 				if (path.size() < shortestPathSteps)
@@ -896,7 +816,6 @@ namespace TimeSaver
 		{
 			if (this->nextStepIndex == 0)
 			{
-				// build graph
 				while (solve_step());
 				pack();
 			}
@@ -998,13 +917,13 @@ namespace TimeSaver
 				#include "../tss.hpp"
 				static const unsigned int tss_steps_classic_2_cars = 2;
 				static const unsigned int tss_steps_classic_2_size = 505;
-				static TimeSaver::Solver::Precomputed::Step tss_steps_classic_2[] = { 
+				static TimeSaver::Solver::Packed::Step tss_steps_classic_2[] = { 
 				 0x2855,
 				 0x2aa2815,
 				 };
 				
 				static const unsigned int tss_steps_classic_2_actions_size = 1061;
-				static TimeSaver::Solver::Precomputed::Action tss_steps_classic_2_actions[] = { 
+				static TimeSaver::Solver::Packed::Action tss_steps_classic_2_actions[] = { 
 				0x3,
 				0x4,
 				0x100000006,
@@ -1082,7 +1001,6 @@ namespace TimeSaver
 		{
 			auto to = connectionTo.target;
 			const Connection::Direction locoDirection = connectionTo.direction;
-			//auto conditions = connectionTo.conditions;
 			int lastNodePushedOn = from;
 
 			Step::State state = this->steps[i].state;
@@ -1268,12 +1186,10 @@ namespace TimeSaver
 				updateDontCare(putState);
 
 				int nextIndex;
-//#pragma omp critical
-				{
 				nextIndex = this->hasStepWithState(putState);
 				if (nextIndex == -1)
 					nextIndex = (int)this->addStep(putState);
-				}
+
 				this->steps[attach].addAction(typename Step::Action(nextIndex, locoDirection));
 				
 			}
