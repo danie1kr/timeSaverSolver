@@ -46,7 +46,7 @@ std::string varName(const std::string name, const size_t cars)
 }
 
 #ifdef TSS_BENCHMARK
-#include "precomputed/precomputed_tss_classic_3.hpp"
+#include "precomputed/precomputed_tss_classic_4.hpp"
 #endif
 
 #ifdef TSS_WITH_IMPORT
@@ -75,7 +75,7 @@ const unsigned int tss_steps_classic_5_actions_size = 0;
 const TimeSaver::Solver::Precomputed::Action tss_steps_classic_5_actions[] = { {0} };
 #endif
 
-TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layout, unsigned int cars)
+TimeSaver::Solver::PrecomputedStorage precomputedStepsGraph(unsigned int layout, unsigned int cars)
 {
     if (layout == 0 && cars == 2)
         return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
@@ -344,7 +344,7 @@ int main(int argc, const char* const argv[])
 #elif defined(TSS_BENCHMARK)
     {
         const auto cars = 3;
-        const auto  dijkstra_step_size = 10000;
+        const auto  dijkstra_step_size = 100000;
         const auto selectedStartStep = 0;
         const auto selectedEndStep = 96;
 
@@ -362,7 +362,7 @@ int main(int argc, const char* const argv[])
         }
         {
             auto s = Stopwatch("Solver Init");
-            solver->init({ tss_classic_3_cars, tss_classic_3_steps, tss_classic_3_steps_size, tss_classic_3_actions, tss_classic_3_actions_size });
+            solver->init({ tss_classic_4_cars, tss_classic_4_steps, tss_classic_4_steps_size, tss_classic_4_actions, tss_classic_4_actions_size });
         }
         {
             auto s = Stopwatch("Solver Dijkstra Init");

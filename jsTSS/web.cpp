@@ -215,7 +215,7 @@ const std::vector<Layout> layouts{
 };
 
 #ifdef TSS_WITH_PACKED
-TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layout, unsigned int cars)
+TimeSaver::Solver::PrecomputedStorage precomputedStepsGraph(unsigned int layout, unsigned int cars)
 {
 	if (layout == 0)
 	{

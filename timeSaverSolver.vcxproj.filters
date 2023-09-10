@@ -24,7 +24,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="precomputed\precomputed_tss_classic_3.cpp">
+    <ClCompile Include="precomputed\precomputed_tss_classic_4.cpp">
       <Filter>precomputed</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,7 +38,7 @@
     <ClInclude Include="external\argparse.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="precomputed\precomputed_tss_classic_3.hpp">
+    <ClInclude Include="precomputed\precomputed_tss_classic_4.hpp">
       <Filter>precomputed</Filter>
     </ClInclude>
   </ItemGroup>
