@@ -42,7 +42,7 @@ const size_t stepsIndex(const Layout layout, const size_t cars)
 
 std::string varName(const std::string name, const size_t cars)
 {
-    return "tss_steps_" + name + "_" + std::to_string(cars);
+    return "tss_" + name + "_" + std::to_string(cars);
 }
 
 #ifdef TSS_BENCHMARK
@@ -207,17 +207,11 @@ int main(int argc, const char* const argv[])
 
     using TSS = TimeSaver::Solver;
 
-#ifdef TSS_WITH_PACKED
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
 #define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
     auto printNone = [](const std::string info, const TSS::PackedState& state) {};
     auto print = [](const std::string info, const TSS::PackedState& state) {
-#else
-#define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i,t) "T" #i "[" << (state.turnouts[t] == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnouts[t] == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
-    auto printNone = [](const std::string info, const TSS::State& state) {};
-    auto print = [](const std::string info, const TSS::State& state) {
-#endif
+
         std::cout << std::setfill(' ') << info <<
             S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3, 0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
             "                          //" << "\n" <<
@@ -348,7 +342,6 @@ int main(int argc, const char* const argv[])
     }
 
 #elif defined(TSS_BENCHMARK)
-#ifdef TSS_WITH_PACKED
     {
         const auto cars = 3;
         const auto  dijkstra_step_size = 10000;
@@ -369,7 +362,7 @@ int main(int argc, const char* const argv[])
         }
         {
             auto s = Stopwatch("Solver Init");
-            solver->init({ tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size });
+            solver->init({ tss_classic_3_cars, tss_classic_3_steps, tss_classic_3_steps_size, tss_classic_3_actions, tss_classic_3_actions_size });
         }
         {
             auto s = Stopwatch("Solver Dijkstra Init");
@@ -408,7 +401,6 @@ int main(int argc, const char* const argv[])
             shortestPath = solver->solve_dijkstra_shortestPath();
         }
     }
-#endif
 #endif
 
 
