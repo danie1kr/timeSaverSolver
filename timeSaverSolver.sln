@@ -46,7 +46,6 @@ Global
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Debug Benchmark|Emscripten.ActiveCfg = Debug Benchmark|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Debug Benchmark|Emscripten.Build.0 = Debug Benchmark|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Debug Benchmark|x64.ActiveCfg = Debug Benchmark|x64
-		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Debug Benchmark|x64.Build.0 = Debug Benchmark|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Debug Import|Emscripten.ActiveCfg = Debug|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Debug Import|Emscripten.Build.0 = Debug|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Debug Import|x64.ActiveCfg = Debug|x64
@@ -58,7 +57,6 @@ Global
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Release Benchmark|Emscripten.ActiveCfg = Release Benchmark|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Release Benchmark|Emscripten.Build.0 = Release Benchmark|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Release Benchmark|x64.ActiveCfg = Release Benchmark|x64
-		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Release Benchmark|x64.Build.0 = Release Benchmark|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Release|Emscripten.ActiveCfg = Release|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Release|Emscripten.Build.0 = Release|x64
 		{8A432639-99B0-46CC-A214-6E8D12EF1B92}.Release|x64.ActiveCfg = Release|x64
@@ -66,7 +64,6 @@ Global
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Debug Benchmark|Emscripten.ActiveCfg = Debug Benchmark|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Debug Benchmark|Emscripten.Build.0 = Debug Benchmark|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Debug Benchmark|x64.ActiveCfg = Debug Benchmark|Emscripten
-		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Debug Benchmark|x64.Build.0 = Debug Benchmark|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Debug Import|Emscripten.ActiveCfg = Debug|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Debug Import|Emscripten.Build.0 = Debug|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Debug Import|x64.ActiveCfg = Debug|Emscripten
@@ -78,7 +75,6 @@ Global
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Release Benchmark|Emscripten.ActiveCfg = Release Benchmark|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Release Benchmark|Emscripten.Build.0 = Release Benchmark|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Release Benchmark|x64.ActiveCfg = Release Benchmark|Emscripten
-		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Release Benchmark|x64.Build.0 = Release Benchmark|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Release|Emscripten.ActiveCfg = Release|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Release|Emscripten.Build.0 = Release|Emscripten
 		{783EAA0C-761D-4871-A287-54FE3AF90EFF}.Release|x64.ActiveCfg = Release|Emscripten

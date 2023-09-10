@@ -102,7 +102,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);TSS_BENCHMARK;TSS_DIJKSTRA_INTERNAL_MEMORY</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);TSS_BENCHMARK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
@@ -154,7 +154,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);TSS_BENCHMARK;TSS_DIJKSTRA_INTERNAL_MEMORY</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);TSS_BENCHMARK</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <LanguageStandard>stdcpplatest</LanguageStandard>
@@ -171,14 +171,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="precomputed\precomputed_tss_classic_3.cpp">
+    <ClCompile Include="precomputed\precomputed_tss_classic_4.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|x64'">false</WholeProgramOptimization>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dijkstra\dijkstra.hpp" />
     <ClInclude Include="external\argparse.hpp" />
-    <ClInclude Include="precomputed\precomputed_tss_classic_3.hpp" />
+    <ClInclude Include="precomputed\precomputed_tss_classic_4.hpp" />
     <ClInclude Include="tss.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -188,6 +190,7 @@
     <None Include="make-web-dev.ps1" />
     <None Include="make-web-prod.ps1" />
     <None Include="Makefile" />
+    <None Include="precompute-dev.ps1" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

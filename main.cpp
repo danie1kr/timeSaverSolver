@@ -8,7 +8,6 @@
 
 #include "external/argparse.hpp"
 
-#define TSS_FLEXIBLE
 #define TSS_HAS_DEFINE(cars, layout)    std::string("HAS_TSS_") + STRINGIFY(layout) + "_" + std::to_string(cars)
 #include "tss.hpp"
 
@@ -43,15 +42,14 @@ const size_t stepsIndex(const Layout layout, const size_t cars)
 
 std::string varName(const std::string name, const size_t cars)
 {
-    return "tss_steps_" + name + "_" + std::to_string(cars);
+    return "tss_" + name + "_" + std::to_string(cars);
 }
 
 #ifdef TSS_BENCHMARK
-#include "precomputed/precomputed_tss_classic_3.hpp"
+#include "precomputed/precomputed_tss_classic_4.hpp"
 #endif
 
 #ifdef TSS_WITH_IMPORT
-#define TSS_FLEXIBLE
 #include "tss.hpp"
 #if __has_include("precomputed/precomputed_tss_classic_2.hpp")
 #include "precomputed/precomputed_tss_classic_2.hpp"
@@ -77,7 +75,7 @@ const unsigned int tss_steps_classic_5_actions_size = 0;
 const TimeSaver::Solver::Precomputed::Action tss_steps_classic_5_actions[] = { {0} };
 #endif
 
-TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layout, unsigned int cars)
+TimeSaver::Solver::PrecomputedStorage precomputedStepsGraph(unsigned int layout, unsigned int cars)
 {
     if (layout == 0 && cars == 2)
         return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
@@ -209,17 +207,11 @@ int main(int argc, const char* const argv[])
 
     using TSS = TimeSaver::Solver;
 
-#ifdef TSS_WITH_PACKED
 #define S(i) " " #i ":" << std::setw(2) << state.node(i) << std::setw(0)
 #define T(i,t) "T" #i "[" << (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnoutState(t) == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.node(i) << std::setw(0)
-    auto printNone = [](const std::string info, const TSS::PackedState& state) {};
-    auto print = [](const std::string info, const TSS::PackedState& state) {
-#else
-#define S(i) " " #i ":" << std::setw(2) << state.slots[i] << std::setw(0)
-#define T(i,t) "T" #i "[" << (state.turnouts[t] == TimeSaver::Connection::TurnoutState::DontCare ? "_?_" : (state.turnouts[t] == TimeSaver::Connection::TurnoutState::A_B ? "A_B" : "A_C")) <<"]:" << std::setw(2) << state.slots[i] << std::setw(0)
-    auto printNone = [](const std::string info, const TSS::State& state) {};
-    auto print = [](const std::string info, const TSS::State& state) {
-#endif
+    auto printNone = [](const std::string info, const TSS::PackedStep::State& state) {};
+    auto print = [](const std::string info, const TSS::PackedStep::State& state) {
+
         std::cout << std::setfill(' ') << info <<
             S(0) << " == " << S(1) << " == " << S(2) << " == " << T(3, 0) << " == " << S(4) << " == " << S(5) << " == " << S(6) << "\n" <<
             "                          //" << "\n" <<
@@ -246,45 +238,11 @@ int main(int argc, const char* const argv[])
         std::cout << "\n" << "Step " << steps << " / " << steps << solutions << std::flush;
     };
 
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-    std::vector<TSS::DistanceStorage::StorageType> dist;
-    TSS::DistanceStorage distStorage(
-        [&dist](const size_t elements, const TSS::DistanceStorage::StorageType sizePerElement)
-        {
-            dist.resize(elements, sizePerElement);
-        },
-        [&dist](const size_t i, const TSS::DistanceStorage::StorageType value)
-        {
-            dist[i] = value;
-        },
-            [&dist](const size_t i) -> const TSS::DistanceStorage::StorageType
-        {
-            return dist[i];
-        }
-        );
-
-    std::vector<TSS::PrecStorage::StorageType> prec;
-    TSS::PrecStorage precStorage(
-        [&prec](const size_t elements, const TSS::PrecStorage::StorageType defaultValue)
-        {
-            prec.resize(elements, defaultValue);
-        },
-        [&prec](const size_t i, const TSS::PrecStorage::StorageType value)
-        {
-            prec[i] = value;
-        },
-            [&prec](const size_t i) -> const TSS::PrecStorage::StorageType
-        {
-            return prec[i];
-        }
-        );
-#endif
-
 #define STRINGIFY(x) #x
 #define FILENAME(prefix, cars, layout)  prefix + "_" + STRINGIFY(layout) + "_" + std::to_string(cars)
 #define GENERATE(cars, startPosition, layout, cpp, hpp, hppName) { \
         std::cout << "\n" << "Generating: " << STRINGIFY(layout) << " with " << cars << "\n" << std::flush; \
-        TSS tss(layout, printNone, step, statisticsNone, distStorage, precStorage); \
+        TSS tss(layout, printNone, step, statisticsNone); \
         tss.init(startPosition, false); \
         tss.createGraph(); \
         tss.exportSteps(cpp, hpp, hppName, varName(STRINGIFY(layout), cars), TSS_HAS_DEFINE(cars, layout));  \
@@ -307,7 +265,7 @@ int main(int argc, const char* const argv[])
     const auto cars = 3;
 
     TimeSaver::Solver* solver = nullptr;
-    solver = new TimeSaver::Solver(classic , print, step, statistics, distStorage, precStorage);
+    solver = new TimeSaver::Solver(classic , print, step, statistics);
     solver->init(precomputedStepsGraph(layout, cars));
     auto randomStartStep = std::rand() % solver->stepsCount();
     auto carPlacementStart = solver->fromPackedStepsGraph(randomStartStep);
@@ -384,14 +342,13 @@ int main(int argc, const char* const argv[])
     }
 
 #elif defined(TSS_BENCHMARK)
-#ifdef TSS_WITH_PACKED
     {
         const auto cars = 3;
-        const auto  dijkstra_step_size = 10000;
+        const auto  dijkstra_step_size = 100000;
         const auto selectedStartStep = 0;
         const auto selectedEndStep = 96;
 
-        auto print = [](const std::string info, const TimeSaver::Solver::PackedState& state) {};
+        auto print = [](const std::string info, const TimeSaver::Solver::PackedStep::State& state) {};
 
         auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
         auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
@@ -401,15 +358,11 @@ int main(int argc, const char* const argv[])
 
         {
             auto s = Stopwatch("Solver Constructor");
-            solver = new TimeSaver::Solver(classic, print, step, statistics
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-                , distStorage, precStorage
-#endif
-            );
+            solver = new TimeSaver::Solver(classic, print, step, statistics);
         }
         {
             auto s = Stopwatch("Solver Init");
-            solver->init({ tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size });
+            solver->init({ tss_classic_4_cars, tss_classic_4_steps, tss_classic_4_steps_size, tss_classic_4_actions, tss_classic_4_actions_size });
         }
         {
             auto s = Stopwatch("Solver Dijkstra Init");
@@ -449,13 +402,12 @@ int main(int argc, const char* const argv[])
         }
     }
 #endif
-#endif
 
 
     /*
     for (unsigned int i = 0; i < 5; ++i)
     {
-        TSS tss(classic, print, step, statistics, distStorage, precStorage);
+        TSS tss(classic, print, step, statistics);
         auto cars = tss.random(2);
         auto target = tss.random(2);
         tss.init(cars, false);

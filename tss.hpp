@@ -10,73 +10,13 @@
 #include <iostream>
 #include <sstream>
 
-//#define WITH_OPENMP
-#ifdef WITH_OPENMP
-#include <omp.h>
-#endif
-
-#define TSS_OPT_LOCOPOS	1	// loco + 3 cars on timesaver: ~8 minutes on github
-#define TSS_OPT_MAP		2	// loco + 3 cars on timesaver: ~7 seconds on github
-
-#ifndef TSS_OPT
-#define TSS_OPT	TSS_OPT_MAP
-#endif
-
+// consider using fixed arrays for nodes and cars, if possible. brings speed x2
 #define TSS_WITH_PACKED
 
 #include "dijkstra/dijkstra.hpp"
 
 namespace TimeSaver
 {
-
-#ifdef WITH_OPENMP
-	struct Lock
-	{
-		void read_start()
-		{
-			bool writeOngoing;
-			do
-			{
-#pragma omp atomic read
-				writeOngoing = writing;
-			} while (writeOngoing);
-
-#pragma omp atomic
-			++readers;
-		}
-
-		void read_end()
-		{
-#pragma omp atomic
-			--readers;
-		}
-
-		void write_start()
-		{
-			unsigned int readOngoing;
-			do
-			{
-#pragma omp atomic read
-				readOngoing = readers;
-			} while (readOngoing > 0);
-
-#pragma omp atomic write
-			writing = true;
-		}
-
-		void write_end()
-		{
-#pragma omp atomic write
-			writing = false;
-		}
-
-		unsigned int readers = 0;
-		bool writing = false;
-	};
-
-	Lock stepsLock;
-#endif
-
 	using Id = unsigned char;
 
 	class Connection
@@ -149,7 +89,12 @@ namespace TimeSaver
 		static const unsigned char idMask = (unsigned char)~optionMask;
 
 		Node() = delete;
-		Node(const Id id, const Connections connections);
+		Node(const Id id, const Connections connections)
+			: id(id& Node::idMask), connections(connections), options(id& Node::optionMask)
+		{
+
+		};
+
 		const Id id;
 		const Connections connections;
 		const unsigned char options;
@@ -295,199 +240,41 @@ namespace TimeSaver
 			return false;
 		}
 	};
-
-#ifdef TSS_FLEXIBLE
 	using Nodes = std::vector<Node>;
-#else
-	template<unsigned int _Count> using Nodes = std::array<Node, _Count>;
-#endif
 
-	inline Node::Node(const Id id, const Connections connections)
-		: id(id & Node::idMask), connections(connections), options(id & Node::optionMask)
-	{
-
-	}
-
-#ifdef TSS_FLEXIBLE
-#else
-	template<unsigned int _Nodes, unsigned int _Cars>
-#endif
 	class Solver
 	{
 	public:
-		struct State
-		{
-#ifdef TSS_FLEXIBLE
-			std::vector<unsigned int> slots;
-			std::vector<Connection::TurnoutState> turnouts;
-
-			State() : slots(), turnouts() { };
-			State(const State& s) :
-				slots(s.slots), turnouts(s.turnouts)
-			{
-
-			}
-
-			State(std::vector<unsigned int> slots, std::vector<Connection::TurnoutState> turnouts) :
-				slots(slots), turnouts(turnouts)
-			{
-
-			}
-#else
-			std::array<unsigned int, _Nodes> slots;
-			std::array<Connection::TurnoutState, _Nodes> turnouts;
-#endif
-
-			int findLoco() const
-			{
-				for (unsigned int i = 0; i < this->slots.size(); ++i)
-					if (this->slots[i] ==
-#ifdef TSS_FLEXIBLE
-						Solver
-#else
-						Solver<_Nodes, _Cars>
-#endif
-						::Loco)
-						return i;
-
-				return -1;
-			}
-		};
-
-		struct PackedState
-		{
-			PackedState(const State state, const unsigned int turnouts, const unsigned int cars) : turnouts(turnouts), cars(cars), data(PackedState::fromState<true>(state, turnouts, cars)) {};
-			PackedState(const int64_t data) : turnouts(extractTurnouts(data)), cars(extractCars(data)), data(data) {};
-
-			const Connection::TurnoutState turnoutState(const unsigned int turnout) const
-			{
-				unsigned char t = (this->data >> (6 + cars * 5 + turnout * 2)) & 0b11;
-				if (t == 0b00)
-					return Connection::TurnoutState::A_B;
-				else if (t == 0b01)
-					return Connection::TurnoutState::A_C;
-				else if(t == 0b10)
-					return Connection::TurnoutState::DontCare;
-				else
-					return Connection::TurnoutState::None;
-			}
-
-			const unsigned int node(const unsigned int node) const
-			{
-				for (unsigned int c = 1; c <= cars; ++c)
-					if (((this->data >> ((6 + (c - 1) * 5))) & 0b11111) == (node & 0b11111))
-						return c;
-
-				return 0;
-			}
-
-			const int64_t data;
-
-			static const unsigned int extractCars(const int64_t data)
-			{
-				return (data >> 3) & 0b111;
-			}
-
-			template<const bool _WithMeta>
-			static int64_t fromState(const State state, const unsigned int turnouts, const unsigned int cars)
-			{
-				int64_t data = 0;
-
-#define REQ_BITS(n) ceil(log(n) / log(2.0));
-
-				const int64_t metaShift = _WithMeta ? 6 : 0;
-				if (_WithMeta)
-				{
-					data |= (turnouts & 0b111) << 0;
-					data |= (cars & 0b111) << 3;
-				}
-				for (unsigned int c = 1; c <= cars; ++c)
-					for (unsigned int i = 0; i < state.slots.size(); ++i)
-						if (state.slots[i] == c)
-							data |= ((int64_t)(i & 0b11111)) << (int64_t)(metaShift + (c - 1) * 5);
-
-				unsigned int turnout = 0;
-				for (unsigned int t = 0; t < state.turnouts.size(); ++t)
-					if (state.turnouts[t] != Connection::TurnoutState::None)
-					{
-						if (state.turnouts[t] == Connection::TurnoutState::A_B)
-							data |= ((int64_t)0b00) << (int64_t)(metaShift + cars * 5 + turnout * 2);
-						else if (state.turnouts[t] == Connection::TurnoutState::A_C)
-							data |= ((int64_t)0b01) << (int64_t)(metaShift + cars * 5 + turnout * 2);
-						else if (state.turnouts[t] == Connection::TurnoutState::DontCare)
-							data |= ((int64_t)0b10) << (int64_t)(metaShift + cars * 5 + turnout * 2);
-
-						++turnout;
-					}
-
-				return data;
-			}
-
-		private:
-			static const unsigned int extractTurnouts(const int64_t data)
-			{
-				return data & 0b111;
-			}
-			const unsigned int turnouts;
-			const unsigned int cars;
-		};
-
-#ifdef TSS_WITH_PACKED
-		struct PackedStep
-		{
-			struct PackedAction
-			{
-				const unsigned int target() const { return data >> 1; }
-				const Connection::Direction locoDirection() const { return (data & 0b1) == 0 ? Connection::Direction::Forward : Connection::Direction::Backward; }
-				PackedAction(const unsigned int data) : data(data) { };
-				PackedAction(const unsigned int target, const Connection::Direction locoDirection)
-					: data(target << 1 | ((locoDirection == Connection::Direction::Forward) ? 0 : 1)) { };
-
-				const unsigned int data;
-			};
-			PackedStep(const PackedStep & step) : state{ step.state }, actions{ step.actions } {};
-
-			PackedStep(const PackedState state, const std::vector<PackedAction> actions) : state{ state }, actions{ actions } {};
-
-			PackedStep operator=(const PackedStep &other)
-			{
-				PackedStep s(other);
-				return s;
-			}
-
-			const PackedState state;
-			const std::vector<PackedAction> actions;
-		};
-
-		class Precomputed
-		{
-		public:
-			struct Action
-			{
-				Action(const int64_t data) : data{ data } { };
-				Action(const unsigned int id, const unsigned int data) : data{ (((int64_t)id) << 32) | data } {};
-				const unsigned int id() const { return (unsigned int)(data >> 32); };
-				const unsigned int content() const { return (unsigned int)(data & 0xFFFFFFFF); };
-				const int64_t data;
-			};
-
-			struct Step
-			{
-				const int64_t state;
-			};
-
-			struct Storage
-			{
-				const Precomputed::Step * const steps;
-				const unsigned int stepsCount;
-				const Precomputed::Action * const actions;
-				const unsigned int actionsCount;
-			};
-		};
-		using PackedSteps = std::vector<PackedStep>;
-#endif
 		struct Step
 		{
+			struct State
+			{
+				std::vector<unsigned int> slots;
+				std::vector<Connection::TurnoutState> turnouts;
+
+				State() : slots(), turnouts() { };
+				State(const State& s) :
+					slots(s.slots), turnouts(s.turnouts)
+				{
+
+				}
+
+				State(std::vector<unsigned int> slots, std::vector<Connection::TurnoutState> turnouts) :
+					slots(slots), turnouts(turnouts)
+				{
+
+				}
+
+				int findLoco() const
+				{
+					for (unsigned int i = 0; i < this->slots.size(); ++i)
+						if (this->slots[i] == Solver::Loco)
+							return i;
+
+					return -1;
+				}
+			};
+
 			struct Action
 			{
 				const unsigned int target;
@@ -496,10 +283,6 @@ namespace TimeSaver
 					: target(target), locoDirection(locoDirection) { };
 			};
 
-			const unsigned int id;
-			const State state;
-			std::vector<Action> actions;
-			
 			Step(const unsigned int id) : id(id), state(), actions() { };
 			Step(const unsigned int id, const State state) : id(id), state(state), actions() { };
 			Step(const unsigned int id, const State state, std::vector<Action> actions) : id(id), state(state), actions(actions) { };
@@ -512,7 +295,7 @@ namespace TimeSaver
 
 			Step(const Step& s) : id(s.id), state(s.state), actions(s.actions) { }
 
-			bool hasActionToOther(const Action & otherAction)
+			bool hasActionToOther(const Action& otherAction)
 			{
 				for (auto& action : this->actions)
 					if (action.target == otherAction.target)
@@ -525,13 +308,145 @@ namespace TimeSaver
 			{
 				this->actions.push_back(action);
 			}
+
+			const unsigned int id;
+			const State state;
+			std::vector<Action> actions;
 		};
-#ifdef TSS_DIJKSTRA_INTERNAL_MEMORY
-		using Dijk = DijkstraInternalMemory<unsigned long>;
-#else
-		using Dijk = Dijkstra<unsigned long>;
-#endif
 		using Steps = std::vector<Step>;
+
+		struct PackedStep
+		{
+			struct State
+			{
+				using Data = int64_t;
+				State(const Solver::Step::State state, const unsigned int turnouts, const unsigned int cars) : turnouts(turnouts), cars(cars), data(State::fromState<true>(state, turnouts, cars)) {};
+				State(const Data data) : turnouts(extractTurnouts(data)), cars(extractCars(data)), data(data) {};
+
+				const Connection::TurnoutState turnoutState(const unsigned int turnout) const
+				{
+					unsigned char t = (this->data >> (6 + cars * 5 + turnout * 2)) & 0b11;
+					if (t == 0b00)
+						return Connection::TurnoutState::A_B;
+					else if (t == 0b01)
+						return Connection::TurnoutState::A_C;
+					else if (t == 0b10)
+						return Connection::TurnoutState::DontCare;
+					else
+						return Connection::TurnoutState::None;
+				}
+
+				const unsigned int node(const unsigned int node) const
+				{
+					for (unsigned int c = 1; c <= cars; ++c)
+						if (((this->data >> ((6 + (c - 1) * 5))) & 0b11111) == (node & 0b11111))
+							return c;
+
+					return 0;
+				}
+
+				const int64_t data;
+
+				static const unsigned int extractCars(const int64_t data)
+				{
+					return (data >> 3) & 0b111;
+				}
+
+				template<const bool _WithMeta>
+				static int64_t fromState(const Solver::Step::State state, const unsigned int turnouts, const unsigned int cars)
+				{
+					int64_t data = 0;
+
+#define REQ_BITS(n) ceil(log(n) / log(2.0));
+
+					const int64_t metaShift = _WithMeta ? 6 : 0;
+					if (_WithMeta)
+					{
+						data |= (turnouts & 0b111) << 0;
+						data |= (cars & 0b111) << 3;
+					}
+					for (unsigned int c = 1; c <= cars; ++c)
+						for (unsigned int i = 0; i < state.slots.size(); ++i)
+							if (state.slots[i] == c)
+								data |= ((int64_t)(i & 0b11111)) << (int64_t)(metaShift + (c - 1) * 5);
+
+					unsigned int turnout = 0;
+					for (unsigned int t = 0; t < state.turnouts.size(); ++t)
+						if (state.turnouts[t] != Connection::TurnoutState::None)
+						{
+							if (state.turnouts[t] == Connection::TurnoutState::A_B)
+								data |= ((int64_t)0b00) << (int64_t)(metaShift + cars * 5 + turnout * 2);
+							else if (state.turnouts[t] == Connection::TurnoutState::A_C)
+								data |= ((int64_t)0b01) << (int64_t)(metaShift + cars * 5 + turnout * 2);
+							else if (state.turnouts[t] == Connection::TurnoutState::DontCare)
+								data |= ((int64_t)0b10) << (int64_t)(metaShift + cars * 5 + turnout * 2);
+
+							++turnout;
+						}
+
+					return data;
+				}
+
+			private:
+				static const unsigned int extractTurnouts(const int64_t data)
+				{
+					return data & 0b111;
+				}
+				const unsigned int turnouts;
+				const unsigned int cars;
+			};
+
+			struct Action
+			{
+				const unsigned int parent() const { return _parent; }
+				const unsigned int target() const { return data >> 1; }
+				const Connection::Direction locoDirection() const { return (data & 0b1) == 0 ? Connection::Direction::Forward : Connection::Direction::Backward; }
+				Action(const int64_t data) : _parent(data >> 32), data(data & 0xFFFFFFFF) { };
+				Action(const unsigned int target, const Connection::Direction locoDirection)
+					: _parent(0)
+					, data(target << 1 | ((locoDirection == Connection::Direction::Forward) ? 0 : 1)) { };
+
+				const unsigned int _parent;
+				const unsigned int data;
+			};
+
+			PackedStep(const PackedStep::State state, std::vector<Action> actions) 
+				: state{ state }
+				, actions{ nullptr }, actionsCount{actions.size()} 
+			{
+				this->actions = (Action*)malloc(actions.size() * sizeof(Action));
+				memcpy(this->actions, actions.data(), actions.size() * sizeof(Action));
+			};
+
+			PackedStep(const State::Data state) : state{ state }, actions(), actionsCount(0) { };
+
+			void setActions(Action * actions)
+			{
+				this->actions = actions;
+			}
+
+			void incActionsCount()
+			{
+				this->actionsCount++;
+				//actions.emplace_back(std::forward<const unsigned int>(data));
+			}
+
+			const State state;
+			// results in vc internal compiler error: std::vector<PackedAction> actions;
+			Action * actions;
+			size_t actionsCount;
+		};
+		using PackedSteps = std::vector<PackedStep>;
+
+		struct PrecomputedStorage
+		{
+			const unsigned int carsCount;
+			PackedStep * const steps;
+			const unsigned int stepsCount;
+			PackedStep::Action * actions;
+			const unsigned int actionsCount;
+		};
+		using Dijk = Dijkstra<unsigned long>;
 
 	public:
 		enum class Result : unsigned int
@@ -542,97 +457,53 @@ namespace TimeSaver
 			IncompatibleTypes
 		};
 
-#ifdef TSS_FLEXIBLE
 		using CarPlacement = std::vector<unsigned int>;
-#else
-		using CarPlacement = std::array<unsigned int, _Cars>;
-#endif
 
-#ifdef TSS_WITH_PACKED
-		using PrintCallback = std::function<void(const std::string, const PackedState&)>;
-#else
-		using PrintCallback = std::function<void(const std::string, const State&)>;
-#endif
+		using PrintCallback = std::function<void(const std::string, const PackedStep::State&)>;
 		using GraphCreationCallback = std::function<void(const unsigned int step, const unsigned int steps, const unsigned int solutions)>;
 		using StatisticsCallback = std::function<void(const unsigned int steps, const unsigned int solutions)>;
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-		using DistanceStorage = Dijk::DistanceStorage;
-		using PrecStorage = Dijk::PrecStorage;
-#endif
-		Solver(
-#ifdef TSS_FLEXIBLE
-			const Nodes nodes,
-#else
-			const Nodes<_Nodes> nodes, 
-#endif
-			PrintCallback print, GraphCreationCallback creation, StatisticsCallback statistics
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-			, Dijk::DistanceStorage& dist, Dijk::PrecStorage& prec
-#endif
-		)
-			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-				, dist, prec
-#endif
-			)
+
+		Solver(const Nodes nodes, PrintCallback print, GraphCreationCallback creation, StatisticsCallback statistics)
+			: nodes(nodes), print(print), creation(creation), statistics(statistics), dijkstra(0xFFFFFFFF)
+			, numTurnouts(countTurnouts())
 		{
 
 		}
 
-#ifdef TSS_WITH_PACKED
-		Result init(Solver::Precomputed::Storage storage)
+		Result init(Solver::PrecomputedStorage storage)
 		{
 			if (this->packedSteps != nullptr)
 				delete this->packedSteps;
 
 			this->packedStepsSize = storage.stepsCount;
-			this->packedSteps = (PackedStep*)malloc(sizeof(PackedStep) * this->packedStepsSize);
+			this->packedSteps = storage.steps;
+			this->countTurnouts();
 
-			unsigned int turnouts = countTurnouts(), cars = countCars();
-			unsigned int a = 0;
-			for (unsigned int i = 0; i < this->packedStepsSize; ++i)
+			size_t lastActionStepId = (size_t)-1;
+			for (unsigned int a = 0; a < storage.actionsCount; ++a)
 			{
-				const auto& step = storage.steps[i];
-				const PackedState state(step.state);
-
-				std::vector<PackedStep::PackedAction> actions;
-				// we stored them in order
-				while (storage.actions[a].id() == i)
+				if (storage.actions[a].parent() != lastActionStepId)
 				{
-					actions.emplace_back(storage.actions[a].content());
-					++a;
+					lastActionStepId = storage.actions[a].parent();
+					this->packedSteps[storage.actions[a].parent()].setActions(&storage.actions[a]);
 				}
-
-				new (packedSteps + i) PackedStep(state, actions);
+				this->packedSteps[storage.actions[a].parent()].incActionsCount();
 			}
 
 			return Result::OK;
 		}
-#endif
 
 		Result init(CarPlacement cars, const bool keep = false)
 		{
-			State state;
-#ifdef TSS_FLEXIBLE
+			Step::State state;
 			state.slots.resize(this->nodes.size());
 			state.turnouts.resize(this->nodes.size());
-#endif
 
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-			locoPosSteps.clear();
-			locoPosSteps.resize(this->nodes.size());
-#elif(TSS_OPT == TSS_OPT_MAP)
 			stateMap.clear();
-			numTurnouts = 0;
 			numCars = (unsigned int)cars.size();
-#endif
+
 			for (unsigned int i = 0; i < this->nodes.size(); ++i)
-			{
 				state.turnouts[i] = this->nodes[i].isTurnout() ? Connection::TurnoutState::A_B : Connection::TurnoutState::None;
-#if(TSS_OPT == TSS_OPT_MAP)
-				numTurnouts += this->nodes[i].isTurnout() ? 1 : 0;
-#endif
-			}
 
 			for (auto& s : state.slots)
 				s = 0;
@@ -657,15 +528,10 @@ namespace TimeSaver
 			return Result::OK;
 		}
 
-#ifdef TSS_FLEXIBLE
 		const CarPlacement random(unsigned int _Cars) 
 		{
 			CarPlacement result(_Cars);
-#else
-		const CarPlacement random()
-		{
-			CarPlacement result;
-#endif
+
 			for (unsigned int i = 0; i < result.size(); ++i)
 			{
 				bool used = true;
@@ -704,7 +570,6 @@ namespace TimeSaver
 			return result;
 		}
 
-#ifdef TSS_WITH_PACKED
 		const CarPlacement fromPackedStepsGraph(const unsigned int i) const
 		{
 			CarPlacement result;
@@ -725,23 +590,15 @@ namespace TimeSaver
 
 		const Connection::TurnoutState turnoutState(const unsigned int step, const unsigned int turnout) const
 		{
-#ifdef TSS_WITH_PACKED
 			if (step > this->packedStepsSize || turnout > this->getNumTurnouts())
 				return Connection::TurnoutState::None;
 
 			return this->packedSteps[step].state.turnoutState(turnout);
-#else
-			not implemented
-#endif
 		}
-#endif
+
 		const unsigned int stepsCount() const
 		{
-#ifdef TSS_WITH_PACKED
 			return this->packedStepsSize;
-#else
-			return (const unsigned int)this->steps.size();
-#endif
 		}
 
 		const unsigned int randomEndState(unsigned int start, unsigned int difficulty = -1) const
@@ -808,11 +665,8 @@ namespace TimeSaver
 			{
 				unsigned int matching = 0;
 				for (unsigned int n = 0; n < this->nodes.size(); ++n)
-#ifdef TSS_WITH_PACKED
 					matching += (this->packedSteps[i].state.node(n) == this->packedSteps[selectedEndStep].state.node(n)) ? 1 : 0;
-#else
-					matching += (this->steps[i].state.slots[n] == this->steps[selectedEndStep].state.slots[n]) ? 1 : 0;
-#endif
+
 				if (matching == this->nodes.size())
 					this->endStates.push_back(i);
 			}
@@ -849,39 +703,36 @@ namespace TimeSaver
 		{
 			unsigned int cost = 0;
 			Connection::Direction locoDirection = Connection::Direction::Forward;
-			for (auto neighbor : this->packedSteps[from].actions)
+			for (size_t a = 0; a < this->packedSteps[from].actionsCount; ++a)
+			{
+				const auto neighbor = this->packedSteps[from].actions[a];
 				if (neighbor.target() == to)
 				{
 					if (previous != (size_t)-1)
 					{
-#ifdef TSS_WITH_PACKED
 						locoDirection = neighbor.locoDirection();
 						// + direction changed ? 1 : 0
-						const auto it = std::find_if(this->packedSteps[previous].actions.begin(), this->packedSteps[previous].actions.end(),
-							[&from](const PackedStep::PackedAction& action) -> bool {
-								return action.target() == from;
-							});
-						if (it != this->packedSteps[previous].actions.end())
-							cost += ((*it).locoDirection() != neighbor.locoDirection() ? 1 : 0);
+						size_t previousToHere = -1;
+						for (size_t p = 0; p < this->packedSteps[previous].actionsCount; ++p)
+						{
+							if (this->packedSteps[previous].actions[p].target() == from)
+							{
+								previousToHere = p;
+								break;
+							}
+						}
+						if (previousToHere != -1)
+							cost += (this->packedSteps[previous].actions[previousToHere].locoDirection() != neighbor.locoDirection() ? 1 : 0);
+
 						// + #turnouts changed
 						for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
 							cost += this->packedSteps[from].state.turnoutState(t) != this->packedSteps[to].state.turnoutState(t) ? 1 : 0;
-#else
-						locoDirection = neighbor.locoDirection;
-						// + direction changed ? 1 : 0
-						const auto it = std::find_if(this->steps[previous].actions.begin(), this->steps[previous].actions.end(),
-							[&a](const Step::Action& action) -> bool {
-								return action.target == from;
-							});
-						if (it != this->steps[previous].actions.end())
-							cost += ((*it).locoDirection != neighbor.locoDirection ? 1 : 0);
-						// + #turnouts changed
-						for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
-							cost += this->steps[from].state.turnouts[t] != this->steps[to].state.turnouts[t] ? 1 : 0;
-#endif	
+
+						// moved cars in contrast to prev
 					}
 					return Cost(cost, locoDirection);
 				}
+			}
 			return Cost(cost, locoDirection);
 		}
 
@@ -904,16 +755,15 @@ namespace TimeSaver
 				++it;
 				if (!dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
 					std::vector<size_t> neighbors;
-#ifdef TSS_WITH_PACKED
-					for (auto neighbor : this->packedSteps[i].actions)
+					for (size_t a = 0; a < this->packedSteps[i].actionsCount; ++a)
+					{
+						auto neighbor = this->packedSteps[i].actions[a];
 						neighbors.push_back(neighbor.target());
-#else
-					for (auto neighbor : this->steps[i].actions)
-						neighbors.push_back(neighbor.target);
-#endif
+					}
+
 					return neighbors;
 					},
-					[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
+					[&](const size_t a, const size_t b, Dijk::PreviousCallback prec) -> const unsigned long {
 						const auto preA = prec(a);
 						if (preA != (size_t)-1)
 							return this->cost(preA, a, b);
@@ -921,70 +771,7 @@ namespace TimeSaver
 					}))
 					return false;
 			}
-			return true;/*/
-		}
-		
-			return dijkstra.dijkstra_step([&](const size_t i) -> const std::vector<size_t> {
-				std::vector<size_t> neighbors;
-#ifdef TSS_WITH_PACKED
-				for (auto neighbor : this->packedSteps[i].actions)
-					neighbors.push_back(neighbor.target());
-#else
-				for (auto neighbor : this->steps[i].actions)
-					neighbors.push_back(neighbor.target);
-#endif
-				return neighbors;
-				},
-				[&](const size_t a, const size_t b, Dijk::PrecStorage::GetCallback prec) -> const unsigned long {
-					const auto preA = prec(a);
-					if (preA != Dijk::unset)
-						return this->cost(preA, a, b);
-					return 0;
-					/*
-					// look through prec of a to decide how man turnouts changed
-#ifdef TSS_WITH_PACKED
-					for (auto neighbor : this->packedSteps[a].actions)
-						if (neighbor.target() == b)
-#else
-					for (auto neighbor : this->steps[a].actions)
-						if (neighbor.target == b)
-#endif							
-						{
-							const auto preA = prec(a);
-							if (preA != Dijk::unset)
-								return this->cost(preA, a, b);
-							
-							{
-#ifdef TSS_WITH_PACKED
-								// + direction changed ? 1 : 0
-								const auto it = std::find_if(this->packedSteps[preA].actions.begin(), this->packedSteps[preA].actions.end(),
-									[&a](const PackedStep::PackedAction& action) -> bool {
-										return action.target() == a;
-									});
-								if (it != this->packedSteps[preA].actions.end())
-									cost += ((*it).locoDirection() != neighbor.locoDirection() ? 1 : 0);
-								// + #turnouts changed
-								for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
-									cost += this->packedSteps[a].state.turnoutState(t) != this->packedSteps[b].state.turnoutState(t) ? 1 : 0;
-#else
-								// + direction changed ? 1 : 0
-								const auto it = std::find_if(this->steps[preA].actions.begin(), this->steps[preA].actions.end(),
-									[&a](const Step::Action& action) -> bool {
-										return action.target == a;
-									});
-								if (it != this->steps[preA].actions.end())
-									cost += ((*it).locoDirection != neighbor.locoDirection ? 1 : 0);
-								// + #turnouts changed
-								for (unsigned int t = 0; t < this->getNumTurnouts(); ++t)
-									cost += this->steps[a].state.turnouts[t] != this->steps[b].state.turnouts[t] ? 1 : 0;
-#endif	
-							}
-							 
-							return cost;
-						}
-
-					return 0;
-				});*/
+			return true;
 		}
 
 		typename Dijk::Path solve_dijkstra_shortestPath()
@@ -994,7 +781,6 @@ namespace TimeSaver
 			unsigned int shortestPathSteps = dijkstra.infinity;
 			for (const unsigned int i : this->endStates)
 			{
-				//auto& step = this->packedSteps[i];
 				++currentSolutionCheck;
 				auto path = dijkstra.shortestPath(i);
 				if (path.size() < shortestPathSteps)
@@ -1007,22 +793,14 @@ namespace TimeSaver
 			if (this->endStates.size() == 0)
 				return {};
 
-#ifdef TSS_WITH_PACKED
 			print("Start\n", this->packedSteps[0].state);
-			PackedState packedTargetState(targetState, this->getNumTurnouts(), countCars());
+			PackedStep::State packedTargetState(targetState, this->getNumTurnouts(), countCars());
 			print("End\n", packedTargetState);
-#else
-			print("Start\n", this->steps[0].state);
-			print("End\n", targetState);
-#endif
 
 #ifdef _DEBUG
 			for (auto it = shortestPath.rbegin(); it != shortestPath.rend(); ++it)
-#ifdef TSS_WITH_PACKED
 				print(std::string("Step").append(std::to_string((unsigned int)(*it))), this->packedSteps[(*it)].state);
-#else
-				print(std::string("Step").append(std::to_string((unsigned int)(*it))), this->steps[(*it)].state);
-#endif
+
 #endif
 			return shortestPath;
 		}
@@ -1038,96 +816,10 @@ namespace TimeSaver
 		{
 			if (this->nextStepIndex == 0)
 			{
-				// build graph
 				while (solve_step());
-#ifdef TSS_WITH_PACKED
 				pack();
-#endif
 			}
 		}
-
-#ifdef WITH_OPENMP
-		const unsigned int omp_thread_count() const 
-		{
-			unsigned int n = 0;
-#pragma omp parallel reduction(+:n)
-			n += 1;
-			return n;
-		}
-
-		void createGraphOMP()
-		{
-			unsigned int index = 0;
-			unsigned int idle = 0;
-
-			for (unsigned int t = 0; t < omp_thread_count(); ++t)
-				idle |= 1 << t;
-
-			const unsigned int maxIdle = idle;
-
-			#pragma omp parallel shared(index, idle)
-			{
-				const unsigned int me = 1 << omp_get_thread_num();
-				const unsigned int mask = ~me;
-
-				unsigned int idlers = 0;
-
-				while (idlers != maxIdle)
-				{
-					unsigned int myI = -1;
-#pragma omp critical
-					{
-						if (index < this->steps.size())
-						{
-							myI = index;
-							++index;
-						}
-					}
-
-					if (myI == -1)
-					{
-#pragma omp atomic
-						idle |= me;
-					}
-					else
-					{
-#pragma omp atomic
-						idle &= mask;
-
-//#pragma omp critical
-	//					printf("\nthread %d picking up step %i\n", omp_get_thread_num(), myI);
-
-						unsigned int i = myI;
-						auto& step = this->steps[i];
-						auto loco = this->findLoco(step.state);
-						if (loco != -1)
-						{
-							auto node = nodes[loco];
-
-							for (auto& connection : node.connections)
-							{
-								// loco can only follow set turnouts
-								if (this->nodes[loco].isTurnout() && connection.isTurnoutConnection())
-								{
-									if (connection.turnoutState != this->steps[i].state.turnouts[loco])
-										continue;
-								}
-								// check if loco can move
-								this->move(i, loco, connection);
-							}
-
-#pragma omp critical
-							creation((unsigned int)i, (unsigned int)this->steps.size(), 0);
-						}
-					}
-#pragma omp atomic read
-					idlers = idle;
-				}
-			}
-
-			pack();
-		}
-#endif
 
 		const unsigned int quickSolve()
 		{
@@ -1143,10 +835,7 @@ namespace TimeSaver
 
 		const unsigned int countTurnouts()
 		{
-			if (numTurnouts != -1)
-				return numTurnouts;
-
-			numTurnouts = 0;
+			unsigned int numTurnouts = 0;
 			for (const auto& node : this->nodes)
 				if (node.isTurnout())
 					++numTurnouts;
@@ -1164,24 +853,21 @@ namespace TimeSaver
 						++cars;
 
 			}
-#ifdef TSS_WITH_PACKED
 			else if (this->packedStepsSize > 0)
 			{
-				cars = PackedState::extractCars(this->packedSteps[0].state.data);
+				cars = PackedStep::State::extractCars(this->packedSteps[0].state.data);
 			}
-#endif
 			return cars;
 		}
 
 		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
 		{
-			State targetState;
-#ifdef TSS_FLEXIBLE
+			Step::State targetState;
 			targetState.slots.clear();
 			targetState.turnouts.clear();
 			targetState.slots.resize(this->nodes.size());
 			targetState.turnouts.resize(this->nodes.size());
-#endif
+
 			for (auto& s : targetState.slots)
 				s = 0;
 
@@ -1194,18 +880,13 @@ namespace TimeSaver
 			{
 				unsigned int matching = 0;
 				for (unsigned int n = 0; n < this->nodes.size(); ++n)
-#ifdef TSS_WITH_PACKED
 					matching += (this->packedSteps[i].state.node(n) == targetState.slots[n]) ? 1 : 0;
-#else
-					matching += (this->steps[i].state.slots[n] == targetState.slots[n]) ? 1 : 0;
-#endif
 
 				if(matching == this->nodes.size())
 					this->endStates.push_back(i);
 			}
 		}
 
-#ifdef TSS_WITH_PACKED
 		void pack()
 		{
 			if (this->packedSteps != nullptr)
@@ -1218,50 +899,49 @@ namespace TimeSaver
 			for (unsigned int i = 0; i < this->steps.size(); ++i)
 			{
 				const auto& step = this->steps[i];
-				const PackedState state(step.state, turnouts, cars);
+				const PackedStep::State state(step.state, turnouts, cars);
 
-				std::vector<PackedStep::PackedAction> actions;
+				std::vector<PackedStep::PackedStep::Action> actions;
 				for (const auto& action : step.actions)
 					actions.emplace_back((unsigned int)action.target, action.locoDirection);
 
 				new (packedSteps + i) PackedStep(state, actions);
 			}
 		}
-#endif
 
 #ifdef TSS_WITH_EXPORT
 		void exportSteps(std::ostream& cpp, std::ostream& hpp, std::string hppName, std::string name, std::string define)
 		{
-#ifdef TSS_WITH_PACKED
 			/*
-				#define TSS_FLEXIBLE
 				#define define
 				#include "../tss.hpp"
+				static const unsigned int tss_steps_classic_2_cars = 2;
 				static const unsigned int tss_steps_classic_2_size = 505;
-				static const TimeSaver::Solver::Precomputed::Step tss_steps_classic_2[] = { 
+				static TimeSaver::Solver::Packed::Step tss_steps_classic_2[] = { 
 				 0x2855,
 				 0x2aa2815,
 				 };
 				
 				static const unsigned int tss_steps_classic_2_actions_size = 1061;
-				static const TimeSaver::Solver::Precomputed::Action tss_steps_classic_2_actions[] = { 
+				static TimeSaver::Solver::Packed::Action tss_steps_classic_2_actions[] = { 
 				0x3,
 				0x4,
 				0x100000006,
 				0x200000007,
 				};
 			*/
-			hpp << "#define TSS_FLEXIBLE\n";
 			hpp << "#define " << define << "\n";
 			hpp << "#include \"../tss.hpp\"\n";
-			hpp << "extern const unsigned int " << name << "_size;\n";
-			hpp << "extern const TimeSaver::Solver::Precomputed::Step " << name << "[];\n";
+			hpp << "extern const unsigned int " << name << "_cars;\n";
+			hpp << "extern const unsigned int " << name << "_steps_size;\n";
+			hpp << "extern TimeSaver::Solver::PackedStep " << name << "_steps[];\n";
 			hpp << "extern const unsigned int " << name << "_actions_size;\n";
-			hpp << "extern const TimeSaver::Solver::Precomputed::Action " << name << "_actions[];\n";
+			hpp << "extern TimeSaver::Solver::PackedStep::Action " << name << "_actions[];\n";
 
 			cpp << "#include \"" << hppName << "\"\n";
-			cpp << "const unsigned int " << name << "_size = " << std::dec << this->stepsCount() << ";\n";
-			cpp << "const TimeSaver::Solver::Precomputed::Step " << name << "[] = { \n";
+			cpp << "const unsigned int " << name << "_cars = " << std::dec << this->countCars() << ";\n";
+			cpp << "const unsigned int " << name << "_steps_size = " << std::dec << this->stepsCount() << ";\n";
+			cpp << "TimeSaver::Solver::PackedStep " << name << "_steps[] = { \n";
 
 			unsigned int actionsCount = 0;
 			for (unsigned int i = 0; i < this->stepsCount(); ++i)
@@ -1269,33 +949,28 @@ namespace TimeSaver
 				const auto& step = this->packedSteps[i];
 				// State
 				cpp << "0x" << std::hex << (int64_t)step.state.data << ",\n";
-				actionsCount += (unsigned int)step.actions.size();
+				actionsCount += (unsigned int)step.actionsCount;
 			}
 			cpp << "};\n";
 			cpp << "const unsigned int " << name << "_actions_size = " << std::dec << actionsCount << ";\n";
-			cpp << "const TimeSaver::Solver::Precomputed::Action " << name << "_actions[] = { \n";
+			cpp << "TimeSaver::Solver::PackedStep::Action " << name << "_actions[] = { \n";
 			// put actions into one array, re-alignmend done on loading
 			for (unsigned int i = 0; i < this->stepsCount(); ++i)
 			{
 				const auto& step = this->packedSteps[i];
-				for (unsigned int a = 0; a < step.actions.size(); ++a)
+				for (unsigned int a = 0; a < step.actionsCount; ++a)
 				{
 					const auto& action = step.actions[a];
 					cpp << "0x" << std::hex << (int64_t)(((int64_t)i << 32) | (int64_t)action.data) << ",\n";
 				}
 			}
 			cpp << "};\n";
-#endif
 		}
-#endif
-
-#ifndef TSS_FLEXIBLE
-		using Nodes = Nodes<_Nodes>;
 #endif
 
 	private:
 
-		const Connection outwardConnection(const State& state, const Id id, const Connection::Direction direction, bool& success) const
+		const Connection outwardConnection(const Step::State& state, const Id id, const Connection::Direction direction, bool& success) const
 		{
 			if (nodes[id].isTurnout())
 			{
@@ -1326,10 +1001,9 @@ namespace TimeSaver
 		{
 			auto to = connectionTo.target;
 			const Connection::Direction locoDirection = connectionTo.direction;
-			//auto conditions = connectionTo.conditions;
 			int lastNodePushedOn = from;
 
-			State state = this->steps[i].state;
+			Step::State state = this->steps[i].state;
 			bool pushedSomethingFromTo = state.slots[to] != Empty;
 
 			PushedStates pushedStates;
@@ -1398,11 +1072,11 @@ namespace TimeSaver
 		}
 
 		template<bool _setTurnoutTo>
-		void pull(const State &state, const unsigned int i, const Id from, const Connection connectionTo, const int lastNodePushedOn, Connection::TurnoutState turnoutDirection = Connection::TurnoutState::None)
+		void pull(const Step::State &state, const unsigned int i, const Id from, const Connection connectionTo, const int lastNodePushedOn, Connection::TurnoutState turnoutDirection = Connection::TurnoutState::None)
 		{
 			auto to = connectionTo.target;
 			const Connection::Direction locoDirection = connectionTo.direction;
-			State nextState = state;
+			Step::State nextState = state;
 				if(_setTurnoutTo)
 					nextState.turnouts[to] = turnoutDirection;
 				auto updatedStepState = nextStep(nextState, from, to, i, locoDirection);
@@ -1412,7 +1086,7 @@ namespace TimeSaver
 				// we pushed the last car onto a turnout, so add the toggled pushedOnTurnout as well
 				if (lastNodePushedOn != -1 && lastNodePushedOn != from && nodes[lastNodePushedOn].isTurnout())
 				{
-					State nextState = state;
+					Step::State nextState = state;
 					if (_setTurnoutTo)
 						nextState.turnouts[to] = turnoutDirection;
 					nextState.turnouts[lastNodePushedOn] = Connection::other(nextState.turnouts[lastNodePushedOn]);
@@ -1423,7 +1097,7 @@ namespace TimeSaver
 		}
 
 		// pull cars onto from
-		void pull(State fromState, const Id from, const Connections connections, const unsigned int attach, const Connection::Direction locoDirection)
+		void pull(Step::State fromState, const Id from, const Connections connections, const unsigned int attach, const Connection::Direction locoDirection)
 		{
 			for (const auto& connection : connections)
 			{
@@ -1431,7 +1105,7 @@ namespace TimeSaver
 				// targetConnection.target = from
 				// connection.target = other direction of to
 
-				State state = fromState;
+				Step::State state = fromState;
 				if (state.slots[connection.target] == Empty)
 					continue;
 
@@ -1453,7 +1127,7 @@ namespace TimeSaver
 			}
 		}
 
-		bool checkValidState(const State& state)
+		bool checkValidState(const Step::State& state)
 		{
 			// you must not leave your cars unattended!
 			for (unsigned int i = 0; i < state.slots.size(); ++i)
@@ -1501,7 +1175,7 @@ namespace TimeSaver
 			return true;
 		}
 
-		State nextStep(State state, const Id from, const Id to, const unsigned int attach, const Connection::Direction locoDirection)
+		Step::State nextStep(Step::State state, const Id from, const Id to, const unsigned int attach, const Connection::Direction locoDirection)
 		{
 			state.slots[to] = state.slots[from];
 			state.slots[from] = Empty;
@@ -1512,12 +1186,10 @@ namespace TimeSaver
 				updateDontCare(putState);
 
 				int nextIndex;
-//#pragma omp critical
-				{
 				nextIndex = this->hasStepWithState(putState);
 				if (nextIndex == -1)
 					nextIndex = (int)this->addStep(putState);
-				}
+
 				this->steps[attach].addAction(typename Step::Action(nextIndex, locoDirection));
 				
 			}
@@ -1528,10 +1200,10 @@ namespace TimeSaver
 		struct PushedState
 		{
 			const int lastNodePushedOn;
-			const State state;
+			const Step::State state;
 			PushedState(const PushedState& other)
 				: lastNodePushedOn(other.lastNodePushedOn), state(other.state) {};
-			PushedState(const int lastNodePushedOn, const State state)
+			PushedState(const int lastNodePushedOn, const Step::State state)
 				: lastNodePushedOn(lastNodePushedOn), state(state) { };
 			PushedState operator=(const PushedState& other)
 			{
@@ -1541,7 +1213,7 @@ namespace TimeSaver
 		};
 		using PushedStates = std::vector<PushedState>;
 
-		const PushedStates push(State state, const Id from, const Connection connectionTo)
+		const PushedStates push(Step::State state, const Id from, const Connection connectionTo)
 		{
 			int lastNodePushedOn = -1;
 			auto to = connectionTo.target;
@@ -1641,70 +1313,32 @@ namespace TimeSaver
 		template<typename... Args>
 		const unsigned int addStep(Args&&... args)
 		{
-#ifdef WITH_OPENMP
-			stepsLock.write_start();
-#endif
 			unsigned int id = (unsigned int)this->steps.size();
 			this->steps.emplace_back(id, std::forward<Args>(args)...);
 
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-			locoPosSteps[this->steps[id].state.findLoco()].push_back(id);
-#elif(TSS_OPT == TSS_OPT_MAP)
-			auto key = PackedState::fromState<false>(this->steps[id].state, numTurnouts, numCars);
+			auto key = PackedStep::State::fromState<false>(this->steps[id].state, numTurnouts, numCars);
 			this->stateMap.emplace(key, id);
-#endif
-#ifdef WITH_OPENMP
-			stepsLock.write_end();
-#endif
 
 			return id;
 		}
 
-		void updateDontCare(State& state) const
+		void updateDontCare(Step::State& state) const
 		{
 			for (unsigned int i = 0; i < state.turnouts.size(); ++i)
 				if (this->nodes[i].isTurnout() && state.slots[i] == Empty)
 					state.turnouts[i] = Connection::TurnoutState::DontCare;
 		}
 
-		int hasStepWithState(const State& state) const
+		int hasStepWithState(const Step::State& state) const
 		{
-#ifdef WITH_OPENMP
-			stepsLock.read_start();
-#endif
+			auto key = PackedStep::State::fromState<false>(state, numTurnouts, numCars);
+			auto it = this->stateMap.find(key);
+			int i = it == this->stateMap.end() ? -1 : (int)it->second;
 
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-			const int loco = state.findLoco();
-			for (unsigned int j = 0; j < locoPosSteps[loco].size(); ++j)
-			{
-				const unsigned int i = locoPosSteps[loco][j];
-				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
-				{
-#elif(TSS_OPT == TSS_OPT_MAP)
-			{
-				{
-					auto key = PackedState::fromState<false>(state, numTurnouts, numCars);
-					auto it = this->stateMap.find(key);
-					int i = it == this->stateMap.end() ? -1 : (int)it->second;
-#else
-			for(unsigned int i = 0; i < this->steps.size(); ++i)
-			{
-				if (steps[i].state.slots == state.slots && steps[i].state.turnouts == state.turnouts)
-				{
-#endif
-#ifdef WITH_OPENMP
-					stepsLock.read_end();
-#endif
-					return i;
-				}
-			}
-#ifdef WITH_OPENMP
-			stepsLock.read_end();
-#endif
-			return -1;
+			return i;
 		}
 
-		int findLoco(const State& state) const
+		int findLoco(const Step::State& state) const
 		{
 			return state.findLoco();
 		}
@@ -1714,7 +1348,7 @@ namespace TimeSaver
 		unsigned int loco = 0;
 
 		unsigned int nextStepIndex = 0;
-		State targetState;
+		Step::State targetState;
 		Dijk dijkstra;
 
 		const Nodes nodes;
@@ -1723,18 +1357,13 @@ namespace TimeSaver
 		StatisticsCallback statistics;
 
 		Steps steps;
-#if(TSS_OPT == TSS_OPT_LOCOPOS)
-		std::vector<std::vector<unsigned int>> locoPosSteps;
-#elif(TSS_OPT == TSS_OPT_MAP)
 		std::map<uint64_t, size_t> stateMap;
 		unsigned int numCars;
-#endif
-		unsigned int numTurnouts = -1;
+		const unsigned int numTurnouts;
 
-#ifdef TSS_WITH_PACKED
 		PackedStep *packedSteps = nullptr;
 		unsigned int packedStepsSize = 0;
-#endif
+
 		std::vector<unsigned int> endStates;
 	};
 }

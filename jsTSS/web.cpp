@@ -18,10 +18,8 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 
 */
 
-#define TSS_FLEXIBLE
 #include "../tss.hpp"
 
-#ifdef TSS_WITH_PACKED
 #if __has_include("../precomputed/precomputed_tss_classic_2.hpp")
 #include "../precomputed/precomputed_tss_classic_2.hpp"
 #endif
@@ -46,19 +44,6 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 #endif
 #if __has_include("../precomputed/precomputed_tss_inglenook_5.hpp")
 #include "../precomputed/precomputed_tss_inglenook_5.hpp"
-#endif
-
-#ifdef _DEBUG
-const unsigned int tss_steps_classic_5_size = 0;
-const TimeSaver::Solver::Precomputed::Step tss_steps_classic_5[] = { {0} };
-const unsigned int tss_steps_classic_5_actions_size = 0;
-const TimeSaver::Solver::Precomputed::Action tss_steps_classic_5_actions[] = { {0} };
-const unsigned int tss_steps_inglenook_5_size = 0;
-const TimeSaver::Solver::Precomputed::Step tss_steps_inglenook[] = { {0} };
-const unsigned int tss_steps_inglenook_5_actions_size = 0;
-const TimeSaver::Solver::Precomputed::Action tss_steps_inglenook_actions[] = { {0} };
-#else
-#endif
 #endif
 
 void (*errorJS)(const char* err) = nullptr;
@@ -229,79 +214,46 @@ const std::vector<Layout> layouts{
 	}
 };
 
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-std::vector<TimeSaver::Solver::DistanceStorage::StorageType> dist;
-std::vector<TimeSaver::Solver::PrecStorage::StorageType> prec;
-TimeSaver::Solver::DistanceStorage distStorage(
-	[](const size_t elements, const TimeSaver::Solver::DistanceStorage::StorageType defaultValue)
-	{
-		dist.resize(elements, defaultValue);
-	},
-	[](const size_t i, const TimeSaver::Solver::DistanceStorage::StorageType value)
-	{
-		dist[i] = value;
-	},
-	[](const size_t i) -> const TimeSaver::Solver::DistanceStorage::StorageType
-	{
-		return dist[i];
-	}
-	);
-
-TimeSaver::Solver::PrecStorage precStorage(
-	[](const size_t elements, const TimeSaver::Solver::PrecStorage::StorageType defaultValue)
-	{
-		prec.resize(elements, defaultValue);
-	},
-	[](const size_t i, const TimeSaver::Solver::PrecStorage::StorageType value)
-	{
-		prec[i] = value;
-	},
-		[](const size_t i) -> const TimeSaver::Solver::PrecStorage::StorageType
-	{
-		return prec[i];
-	}
-	);
-#endif
 #ifdef TSS_WITH_PACKED
-TimeSaver::Solver::Precomputed::Storage precomputedStepsGraph(unsigned int layout, unsigned int cars)
+TimeSaver::Solver::PrecomputedStorage precomputedStepsGraph(unsigned int layout, unsigned int cars)
 {
 	if (layout == 0)
 	{
 		if (cars == 2)
-			return { tss_steps_classic_2, tss_steps_classic_2_size, tss_steps_classic_2_actions, tss_steps_classic_2_actions_size };
+			return { tss_classic_2_cars, tss_classic_2_steps, tss_classic_2_steps_size, tss_classic_2_actions, tss_classic_2_actions_size };
 		else if (cars == 3)
-			return { tss_steps_classic_3, tss_steps_classic_3_size, tss_steps_classic_3_actions, tss_steps_classic_3_actions_size };
+			return { tss_classic_3_cars, tss_classic_3_steps, tss_classic_3_steps_size, tss_classic_3_actions, tss_classic_3_actions_size };
 
 #ifdef HAS_TSS_classic_4
 	else if (cars == 4)
-		return { tss_steps_classic_4, tss_steps_classic_4_size, tss_steps_classic_4_actions, tss_steps_classic_4_actions_size };
+		return { tss_classic_4_cars, tss_classic_4_steps, tss_classic_4_steps_size, tss_classic_4_actions, tss_classic_4_actions_size };
 #endif
 #ifndef _DEBUG
 #ifdef HAS_TSS_classic_5
 	else if (cars == 5)
-		return { tss_steps_classic_5, tss_steps_classic_5_size, tss_steps_classic_5_actions, tss_steps_classic_5_actions_size };
+		return { tss_classic_5_cars, tss_classic_5_steps, tss_classic_5_steps_size, tss_classic_5_actions, tss_classic_5_actions_size };
 #endif
 #endif
 	}
 	else if (layout == 1)
 	{
 		if (cars == 2)
-			return { tss_steps_inglenook_2, tss_steps_inglenook_2_size, tss_steps_inglenook_2_actions, tss_steps_inglenook_2_actions_size };
+			return { tss_inglenook_2_cars, tss_inglenook_2_steps, tss_inglenook_2_steps_size, tss_inglenook_2_actions, tss_inglenook_2_actions_size };
 		else if (cars == 3)
-			return { tss_steps_inglenook_3, tss_steps_inglenook_3_size, tss_steps_inglenook_3_actions, tss_steps_inglenook_3_actions_size };
+			return { tss_inglenook_3_cars, tss_inglenook_3_steps, tss_inglenook_3_steps_size, tss_inglenook_3_actions, tss_inglenook_3_actions_size };
 
 #ifdef HAS_TSS_inglenook_4
 		else if (cars == 4)
-			return { tss_steps_inglenook_4, tss_steps_inglenook_4_size, tss_steps_inglenook_4_actions, tss_steps_inglenook_4_actions_size };
+			return { tss_inglenook_4_cars, tss_inglenook_4_steps, tss_inglenook_4_steps_size, tss_inglenook_4_actions, tss_inglenook_4_actions_size };
 #endif
 #ifndef _DEBUG
 #ifdef HAS_TSS_inglenook_5
 		else if (cars == 5)
-			return { tss_steps_inglenook_5, tss_steps_inglenook_5_size, tss_steps_inglenook_5_actions, tss_steps_inglenook_5_actions_size };
+			return { tss_inglenook_5_cars, tss_inglenook_5, tss_inglenook_5_size, tss_inglenook_5_actions, tss_inglenook_5_actions_size };
 #endif
 #endif
 	}
-	return { nullptr, 0, nullptr, 0 };
+	return { 0, nullptr, 0, nullptr, 0 };
 }
 #endif
 
@@ -493,7 +445,7 @@ emscripten::val timeSaverSolverInit(unsigned int layout, unsigned int numberOfCa
 	}
 
 #ifdef TSS_WITH_PACKED
-	auto print = [](const std::string info, const TimeSaver::Solver::PackedState& state) {};
+	auto print = [](const std::string info, const TimeSaver::Solver::PackedStep::State& state) {};
 #else
 	auto print = [](const std::string info, const TimeSaver::Solver::State& state) {
 		if (printJS)
@@ -506,11 +458,7 @@ emscripten::val timeSaverSolverInit(unsigned int layout, unsigned int numberOfCa
 	};
 	auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
 	
-	solver = new TimeSaver::Solver(layouts[layout].nodes, print, step, statistics
-#ifndef TSS_DIJKSTRA_INTERNAL_MEMORY
-		, distStorage, precStorage
-#endif
-	);
+	solver = new TimeSaver::Solver(layouts[layout].nodes, print, step, statistics);
 
 #ifdef TSS_WITH_PACKED
 	solver->init(precomputedStepsGraph(layout, numberOfCars));
@@ -654,6 +602,7 @@ emscripten::val timeSaverSolver()
 	case TSSState::ShortestPathDikjstra:
 	{	
 		shortestPath = solver->solve_dijkstra_shortestPath();
+		std::reverse(shortestPath.begin(), shortestPath.end());
 		state = TSSState::Finalize;
 		break;
 	}
