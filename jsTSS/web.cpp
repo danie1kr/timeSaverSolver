@@ -248,7 +248,7 @@ TimeSaver::Solver::PrecomputedStorage precomputedStepsGraph(unsigned int layout,
 #ifndef _DEBUG
 #ifdef HAS_TSS_inglenook_5
 		else if (cars == 5)
-			return { tss_inglenook_5_cars, tss_inglenook_5, tss_inglenook_5_size, tss_inglenook_5_actions, tss_inglenook_5_actions_size };
+			return { tss_inglenook_5_cars, tss_inglenook_5_steps, tss_inglenook_5_steps_size, tss_inglenook_5_actions, tss_inglenook_5_actions_size };
 #endif
 #endif
 	}
