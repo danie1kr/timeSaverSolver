@@ -9,6 +9,7 @@
 #include <ios>
 #include <iostream>
 #include <sstream>
+#include <cstring>
 
 // consider using fixed arrays for nodes and cars, if possible. brings speed x2
 #define TSS_WITH_PACKED
