@@ -163,6 +163,16 @@ int main(int argc, const char* const argv[])
 #define FWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, TimeSaver::Connection::TurnoutState::A_C)
 #define BWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_C)
 
+    /*
+    classic 2: 5689
+    classic 3: 79543
+    classic 4: 1038289
+    inglenook 2: 1843
+    inglenook 3: 16789
+    inglenook 4: 145369
+    inglenook 5: 1195921
+    */
+
     TimeSaver::Nodes/*<20>*/ classic{ {
         {0, {FWD(1)}},
         {1, {BWD(0), FWD(2)}},

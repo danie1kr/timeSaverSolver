@@ -20,6 +20,9 @@
     <ClCompile Include="..\precomputed\precomputed_tss_inglenook_4.cpp">
       <Filter>precomputed</Filter>
     </ClCompile>
+    <ClCompile Include="..\precomputed\precomputed_tss_inglenook_5.cpp">
+      <Filter>precomputed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="main.js" />
@@ -47,6 +50,9 @@
       <Filter>precomputed</Filter>
     </ClInclude>
     <ClInclude Include="..\precomputed\precomputed_tss_inglenook_4.hpp">
+      <Filter>precomputed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\precomputed\precomputed_tss_inglenook_5.hpp">
       <Filter>precomputed</Filter>
     </ClInclude>
   </ItemGroup>
