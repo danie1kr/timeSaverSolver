@@ -29,8 +29,10 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 #if __has_include("../precomputed/precomputed_tss_classic_4.hpp")
 #include "../precomputed/precomputed_tss_classic_4.hpp"
 #endif
+#ifndef _DEBUG
 #if __has_include("../precomputed/precomputed_tss_classic_5.hpp")
 #include "../precomputed/precomputed_tss_classic_5.hpp"
+#endif
 #endif
 
 #if __has_include("../precomputed/precomputed_tss_inglenook_2.hpp")
@@ -42,8 +44,10 @@ em++ Emscripten/Release/web.o --bind -s EXPORTED_RUNTIME_METHODS=addFunction,cca
 #if __has_include("../precomputed/precomputed_tss_inglenook_4.hpp")
 #include "../precomputed/precomputed_tss_inglenook_4.hpp"
 #endif
+#ifndef _DEBUG
 #if __has_include("../precomputed/precomputed_tss_inglenook_5.hpp")
 #include "../precomputed/precomputed_tss_inglenook_5.hpp"
+#endif
 #endif
 
 void (*errorJS)(const char* err) = nullptr;
@@ -105,7 +109,6 @@ TimeSaver::Solver::CarPlacement fromString(const std::string string)
 
 	return carPlacement;
 }
-
 
 #define FWD(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward)
 #define BWD(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward)
@@ -460,7 +463,7 @@ emscripten::val getCarLayout(unsigned int step)
 		return emscripten::val(TSSState::Error);
 	}
 
-	auto cars = solver->fromPackedStepsGraph(step);
+	auto cars = solver->carPlacementFromPackedStepsGraph(step);
 
 	return emscripten::val(join(cars, ","));
 }

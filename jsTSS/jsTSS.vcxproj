@@ -118,36 +118,55 @@
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_3.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_classic_4.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_inglenook_2.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_inglenook_3.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">O3</OptimizationLevel>
     </ClCompile>
     <ClCompile Include="..\precomputed\precomputed_tss_inglenook_4.cpp">
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
       <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">None</GenerateDebugInformation>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
       <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">O3</OptimizationLevel>
+    </ClCompile>
+    <ClCompile Include="..\precomputed\precomputed_tss_inglenook_5.cpp">
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Debug Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|Emscripten'">O3</OptimizationLevel>
+      <OptimizationLevel Condition="'$(Configuration)|$(Platform)'=='Release|Emscripten'">O3</OptimizationLevel>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|Emscripten'">None</GenerateDebugInformation>
     </ClCompile>
     <ClCompile Include="web.cpp" />
   </ItemGroup>
@@ -162,6 +181,7 @@
     <ClInclude Include="..\precomputed\precomputed_tss_inglenook_2.hpp" />
     <ClInclude Include="..\precomputed\precomputed_tss_inglenook_3.hpp" />
     <ClInclude Include="..\precomputed\precomputed_tss_inglenook_4.hpp" />
+    <ClInclude Include="..\precomputed\precomputed_tss_inglenook_5.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

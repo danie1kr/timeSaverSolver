@@ -163,6 +163,16 @@ int main(int argc, const char* const argv[])
 #define FWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Forward, TimeSaver::Connection::TurnoutState::A_C)
 #define BWD_A_C(id)   TimeSaver::Connection(id, TimeSaver::Connection::Direction::Backward, TimeSaver::Connection::TurnoutState::A_C)
 
+    /*
+    classic 2: 5689
+    classic 3: 79543
+    classic 4: 1038289
+    inglenook 2: 1843
+    inglenook 3: 16789
+    inglenook 4: 145369
+    inglenook 5: 1195921
+    */
+
     TimeSaver::Nodes/*<20>*/ classic{ {
         {0, {FWD(1)}},
         {1, {BWD(0), FWD(2)}},
@@ -293,6 +303,7 @@ int main(int argc, const char* const argv[])
         {
             auto carPlacement = [](const unsigned int cars) -> TSS::CarPlacement
             {
+                    /*
                 std::random_device rd;
                 std::mt19937 g(rd());
                 std::vector<unsigned int> legalLocoPlaces = { 4, 5, 6, 8, 9, 10, 13, 15, 16, 17, 18 };
@@ -310,6 +321,17 @@ int main(int argc, const char* const argv[])
                     legalLocoPlaces.end());
                 std::shuffle(legalLocoPlaces.begin(), legalLocoPlaces.end(), g);
                 carPlacement.insert(carPlacement.begin(), legalLocoPlaces.begin(), legalLocoPlaces.begin() + 1);
+                */
+
+                // deterministic starting positions
+                TSS::CarPlacement carPlacement = { };
+                carPlacement.push_back(12);
+                if (cars >= 1) carPlacement.push_back(1);
+                if (cars >= 2) carPlacement.push_back(5);
+                if (cars >= 3) carPlacement.push_back(10);
+                if (cars >= 4) carPlacement.push_back(15);
+                if (cars >= 5) carPlacement.push_back(18);
+
                 return carPlacement;
             }(cars);
 
@@ -323,6 +345,7 @@ int main(int argc, const char* const argv[])
         {
             auto carPlacement = [](const unsigned int cars) -> TSS::CarPlacement
             {
+                /*
                 std::random_device rd;
                 std::mt19937 g(rd());
                 std::vector<unsigned int> legalPlaces = { 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16 };
@@ -330,6 +353,15 @@ int main(int argc, const char* const argv[])
 
                 TSS::CarPlacement carPlacement = { 1 };
                 carPlacement.insert(carPlacement.end(), legalPlaces.begin(), legalPlaces.begin() + cars);
+                return carPlacement;*/
+                // deterministic starting positions
+                TSS::CarPlacement carPlacement = { };
+                carPlacement.push_back(1);
+                if (cars >= 1) carPlacement.push_back(6);
+                if (cars >= 2) carPlacement.push_back(8);
+                if (cars >= 3) carPlacement.push_back(12);
+                if (cars >= 4) carPlacement.push_back(15);
+                if (cars >= 5) carPlacement.push_back(16);
                 return carPlacement;
             }(cars);
 

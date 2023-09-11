@@ -56,5 +56,6 @@
       <Filter>github-workflows</Filter>
     </None>
     <None Include="precompute-dev.ps1" />
+    <None Include="README.md" />
   </ItemGroup>
 </Project>
