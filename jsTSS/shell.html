@@ -127,23 +127,23 @@
                 <label for="loco">Locomotive</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="1" id="wagon0" type="text">
+                <input class="settings wagon" placeholder="1" id="wagon0" type="text">
                 <label for="wagon0">1st Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="2" id="wagon1" type="text">
+                <input class="settings wagon" placeholder="2" id="wagon1" type="text">
                 <label for="wagon1">2nd Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="3" id="wagon2" type="text">
+                <input class="settings wagon" placeholder="3" id="wagon2" type="text">
                 <label for="wagon2">3rd Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="4" id="wagon3" type="text">
+                <input class="settings wagon" placeholder="4" id="wagon3" type="text">
                 <label for="wagon3">4th Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="5" id="wagon4" type="text">
+                <input class="settings wagon" placeholder="5" id="wagon4" type="text">
                 <label for="wagon4">5th Wagon</label>
             </div>
         </div>
@@ -223,7 +223,7 @@
     <script>
 
         let cy = null;
-        let carPlacement = "";
+        let carPlacement = [-1, -1, -1, -1, -1, -1];
         let selectedStartStep = -1;
         let dijkstraSteps = 0;
         let dijkstraDone = 0;
@@ -326,6 +326,29 @@
                 }]);
         }
 
+        function cyContextMenuEntries() {
+            let entries = [];
+
+            _.each(_.range(0, parseInt($("#rangeCars").val())+1), i => {
+                entries.push({
+                    content: idToCarName(i),
+                    select: function (ele) {
+                        carPlacement[i] = ele.data('id');
+                        cyDisplayCarPlacement(carPlacement);
+                    }
+                });
+            });
+
+            return entries;
+        }
+
+        function cyAddMenus() {
+            cy.cxtmenu({
+                selector: '.node',
+                commands: cyContextMenuEntries
+            });
+        }
+
         function cytoscapePopulate() {
 
             let nodes = [];
@@ -362,6 +385,8 @@
             cy.add(nodes);
             cy.add(edges);
             cy.fit();
+
+            cyAddMenus();
         }
 
         function idToCarName(i) {
@@ -371,9 +396,14 @@
         }
 
         function cyDisplayCarPlacement(carPlacement) {
+            for (let i = 1; i <= 6; ++i)
+                if (carPlacement.length < i)
+                    carPlacement.push(-1);
+
             cy.$('node').data("carName", "");
             _.each(carPlacement, (value, index) => {
-                cy.$('node[id="' + value + '"]').data("carName", idToCarName(index));
+                if(value != -1)
+                    cy.$('node[id="' + value + '"]').data("carName", idToCarName(index));
             });
         }
 
@@ -403,8 +433,9 @@
         }
 
         function displayLayoutState(step) {
-            let carPlacement = Module.getCarLayout(step);
-            cyDisplayCarPlacement(_.split(carPlacement, ","));
+            let carPlacementString = Module.getCarLayout(step);
+            carPlacement = _.split(carPlacementString, ",");
+            cyDisplayCarPlacement(carPlacement);
             let turnouts = Module.getTurnouts(step);
             cyDisplayTurnoutState(JSON.parse(turnouts));
         }
@@ -633,5 +664,7 @@
     <script type="text/javascript" src="materialize.min.js"></script>
     <script type="text/javascript" src="cytoscape.min.js"></script>
     <script type="text/javascript" src="cytoscape-node-html-label.min.js"></script>
+    <script type="text/javascript" src="cytoscape-cxtmenu.js"></script>
+    
 </body>
 </html>

@@ -844,31 +844,38 @@ namespace TimeSaver
 			return numTurnouts;
 		}
 
-		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
+		const std::vector<size_t> findStepsWith(const CarPlacement &cars)
 		{
+			std::vector<size_t> retVal;
+
 			Step::State targetState;
 			targetState.slots.clear();
 			targetState.turnouts.clear();
-			targetState.slots.resize(this->nodes.size());
+			targetState.slots.resize(this->nodes.size(), 0);
 			targetState.turnouts.resize(this->nodes.size());
-
-			for (auto& s : targetState.slots)
-				s = 0;
 
 			unsigned int carIndex = 0;
 			for (auto& c : cars)
 				targetState.slots[c] = ++carIndex;
 
-			this->endStates.clear();
-			for (unsigned int i = 0; i < this->stepsCount(); ++i)
+			for (size_t i = 0; i < this->stepsCount(); ++i)
 			{
-				unsigned int matching = 0;
-				for (unsigned int n = 0; n < this->nodes.size(); ++n)
-					matching += (this->packedSteps[i].state.node(n) == targetState.slots[n]) ? 1 : 0;
+				bool match = true;
+				for (size_t n = 0; n < this->nodes.size() && match; ++n)
+					match &= (this->packedSteps[i].state.node((unsigned int)n) == targetState.slots[n]);
 
-				if(matching == this->nodes.size())
-					this->endStates.push_back(i);
+				if (match)
+					retVal.push_back(i);
 			}
+
+			return retVal;
+		}
+
+		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
+		{
+			this->endStates.clear();
+			for (auto s : this->findStepsWith(cars))
+				this->endStates.push_back(s);
 		}
 
 		void createGraph()
