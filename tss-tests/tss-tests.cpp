@@ -4,7 +4,6 @@
 #include <iomanip>
 #include <string>
 
-//#define TSS_WITH_PACKED
 #include "../tss.hpp"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;

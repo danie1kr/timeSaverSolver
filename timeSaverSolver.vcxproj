@@ -191,6 +191,7 @@
     <None Include="make-web-prod.ps1" />
     <None Include="Makefile" />
     <None Include="precompute-dev.ps1" />
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

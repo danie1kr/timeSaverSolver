@@ -12,13 +12,41 @@
 #include <cstring>
 
 // consider using fixed arrays for nodes and cars, if possible. brings speed x2
-#define TSS_WITH_PACKED
 
 #include "dijkstra/dijkstra.hpp"
 
 namespace TimeSaver
 {
 	using Id = unsigned char;
+
+	/*
+	Railway graph: Node and Connection (Edges)
+		If a Node has one Connection, it is a bumper
+		If a Node has two Connections, it is a standard rail
+		If a Node has three Connections, it is a turnout
+
+		Connection is a directed edge from a Node to the Connection.target.
+		Connection.Direction gives the locomotive direction
+		If Connection is a turnout, TurnoutState gives its state:
+			None - not a turnout
+			A_B - straight
+			A_C - turn here
+			DontCare - if the turnout is not used in the current state
+
+	Solver:
+		Pushes/Pulls the Loco over all Connections of a Node, until it cannot create new states
+		This creates the Steps graph
+
+		Steps contain a 
+			State: the turnout configuration and car position
+			Action: the edge to other Steps (drive this/that way) and a target Step
+
+		PackedSteps are used in precomputed files as they transport the state and action in single int64
+
+	Dijkstra:
+		Searches the PackedSteps graph for the shortest distance between start and end
+		Distance is: switched turnouts, switched loco directions and changed coupling of cars
+	*/
 
 	class Connection
 	{
