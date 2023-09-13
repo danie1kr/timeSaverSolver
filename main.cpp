@@ -432,6 +432,24 @@ int main(int argc, const char* const argv[])
             auto s = Stopwatch("Solver Dijkstra Shortest Path");
             shortestPath = solver->solve_dijkstra_shortestPath();
         }
+
+        {
+            auto s = Stopwatch("Find Packed Step");
+            unsigned int packedCarPlacement = 8 + 1 * 20 + 2 * 20 * 20 + 16 * 20 * 20 * 20 + 9 * 20 * 20 * 20 * 20;
+            
+#define TSS_CP_UNPACK(from)	if(from > 0) { carPlacement.push_back(from % 20); from /= 20; }
+            TimeSaver::Solver::CarPlacement carPlacement;
+            TSS_CP_UNPACK(packedCarPlacement);
+            TSS_CP_UNPACK(packedCarPlacement);
+            TSS_CP_UNPACK(packedCarPlacement);
+            TSS_CP_UNPACK(packedCarPlacement);
+            TSS_CP_UNPACK(packedCarPlacement);
+            TSS_CP_UNPACK(packedCarPlacement);
+
+            auto steps = solver->findStepsWith(carPlacement);
+            auto step = solver->stepWithMaximumDontCares(steps);
+            solver->solve_dijkstra_markEndStepsLike(selectedEndStep);
+        }
     }
 #endif
 

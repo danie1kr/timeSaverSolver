@@ -173,18 +173,28 @@
 
         <div class="row">
             <div class="col s4">
-                Start
-                <a class="waves-effect waves-light btn" id="btnRandomizeStart">randomize</a>
-                <a class="waves-effect waves-light btn" id="btnViewStart">
-                    <span class="material-icons">search</span>
-                </a>
+                Start <span id="idStartStep"></span>
+                <a class="waves-effect waves-light btn" id="btnRandomizeStart"><span class="material-icons">shuffle</span></a>
+                <div class="switch">
+                    <label>
+                        <input id="chbEditStart" type="checkbox">
+                        <span class="lever"></span>
+                        <span class="material-icons">edit</span>
+                    </label>
+                </div>
+                <a class="waves-effect waves-light btn" id="btnViewStart"><span class="material-icons">search</span></a>
             </div>
             <div class="col s4">
-                Finish
-                <a class="waves-effect waves-light btn" id="btnRandomizeEnd">randomize</a>
-                <a class="waves-effect waves-light btn" id="btnViewEnd">
-                    <span class="material-icons">search</span>
-                </a>
+                Finish <span id="idEndStep"></span>
+                <a class="waves-effect waves-light btn" id="btnRandomizeEnd"><span class="material-icons">shuffle</span></a>
+                <div class="switch">
+                    <label>
+                        <input id="chbEditEnd" type="checkbox">
+                        <span class="lever"></span>
+                        <span class="material-icons">edit</span>
+                    </label>
+                </div>
+                <a class="waves-effect waves-light btn" id="btnViewEnd"><span class="material-icons">search</span></a>
             </div>
             <div class="col s4">
                 <a class="waves-effect waves-light btn" id="btnSolve">solve</a>
@@ -222,9 +232,9 @@
     <script src="zepto.min.js"></script>
     <script>
 
-        let cy = null;
+        let cy = null, cyMenu = null;
         let carPlacement = [-1, -1, -1, -1, -1, -1];
-        let selectedStartStep = -1;
+        let selectedStartStep = -1, selectedEndStep = -1;
         let dijkstraSteps = 0;
         let dijkstraDone = 0;
         let shortestPath = [];
@@ -234,15 +244,34 @@
             LayoutSet: 1,
             StartPosSet: 2,
             EndPosSet: 3,
-            Solved: 4
+            Solved: 4,
+            EditStart: 5,
+            EditEnd: 6
         };
         let state = State.Initial;
 
         function enable(inputs) {
-            _.each(inputs, i => $("#" + i).removeClass("disabled"));
+            _.each(inputs, i => {
+                let $e = $("#" + i);
+                if ($e[0].tagName === "INPUT")
+                    $e.prop("disabled", "");
+                else
+                    $e.removeClass("disabled");
+            });
         }
         function disable(inputs) {
-            _.each(inputs, i => $("#" + i).addClass("disabled"));
+            _.each(inputs, i => {
+                let $e = $("#" + i);
+                if ($e[0].tagName === "INPUT")
+                    $e.prop("disabled", "disabled");
+                else
+                    $e.addClass("disabled");
+            });
+        }
+
+        function updateSteps() {
+            $("#idStartStep").text("(#" + selectedStartStep + ")");
+            $("#idEndStep").text("(#" + selectedEndStep + ")");
         }
 
         function updateUI() {
@@ -250,34 +279,47 @@
                 case State.Initial:
                     {
                         enable(["layouts", "rangeCars", "rangeDifficulty"]);
-                        disable(["btnRandomizeStart", "btnViewStart", "btnRandomizeEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        disable(["btnRandomizeStart", "chbEditStart", "btnViewStart", "btnRandomizeEnd", "chbEditEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
                         break;
                     }
                 case State.LayoutSet:
                     {
-                        enable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart"]);
-                        disable(["btnViewStart", "btnRandomizeEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        enable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "chbEditStart"]);
+                        disable(["btnViewStart", "btnRandomizeEnd", "chbEditEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
                         break;
                     }
                 case State.StartPosSet:
                     {
-                        enable(["rangeDifficulty", "btnRandomizeEnd", "btnViewStart"]);
-                        disable(["btnViewEnd", "layouts", "rangeCars", "btnRandomizeStart", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        enable(["rangeDifficulty", "btnRandomizeEnd", "chbEditEnd", "btnViewStart"]);
+                        disable(["btnViewEnd", "layouts", "rangeCars", "btnRandomizeStart", "chbEditStart", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
                         break;
                     }
                 case State.EndPosSet:
                     {
                         enable(["btnSolve", "btnViewStart", "btnViewEnd"]);
-                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "chbEditStart", "btnRandomizeEnd", "chbEditEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
                         break;
                     }
                 case State.Solved:
                     {
                         enable(["btnViewStart", "btnViewEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnSolve"]);
+                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "chbEditStart", "btnRandomizeEnd", "chbEditEnd", "btnSolve"]);
+                        break;
+                    }
+                case State.EditStart:
+                    {
+                        enable(["chbEditStart"]);
+                        disable(["btnViewStart", "btnViewEnd", "btnStepPrev", "btnStepNext", "rangeStep", "layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "chbEditEnd", "btnSolve"]);
+                        break;
+                    }
+                case State.EditEnd:
+                    {
+                        enable(["chbEditEnd"]);
+                        disable(["btnViewStart", "btnViewEnd", "btnStepPrev", "btnStepNext", "rangeStep", "layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "chbEditStart", "btnSolve"]);
                         break;
                     }
             }
+            updateSteps();
         }
 
         function cytoscapeCreate() {
@@ -343,10 +385,16 @@
         }
 
         function cyAddMenus() {
-            cy.cxtmenu({
+            cyDestroyMenus();
+            cyMenu = cy.cxtmenu({
                 selector: '.node',
                 commands: cyContextMenuEntries
             });
+        }
+
+        function cyDestroyMenus() {
+            if (cyMenu)
+                cyMenu.destroy();
         }
 
         function cytoscapePopulate() {
@@ -385,8 +433,6 @@
             cy.add(nodes);
             cy.add(edges);
             cy.fit();
-
-            cyAddMenus();
         }
 
         function idToCarName(i) {
@@ -438,6 +484,15 @@
             cyDisplayCarPlacement(carPlacement);
             let turnouts = Module.getTurnouts(step);
             cyDisplayTurnoutState(JSON.parse(turnouts));
+        }
+
+        function packCarPlacement(carPlacement) {
+            let val = 0;
+
+            for (let i = 0; i < 6; ++i)
+                val += Math.max(parseInt(carPlacement[i]), 0) * Math.pow(20, i);
+
+            return val;
         }
 
         function wasmLoaded() {
@@ -543,6 +598,39 @@
             });
             $("#btnViewEnd").on('click', e => {
                 displayLayoutState(selectedEndStep);
+            });
+
+            $("#chbEditStart").on('change', e => {
+                const val = $(e.target).prop("checked");
+                if (val) {
+                    cyAddMenus();
+                    state = State.EditStart;
+                    updateUI();
+                }
+                else {
+                    cyDestroyMenus();
+                    let packedCP = packCarPlacement(carPlacement);
+                    selectedStartStep = Module.getLayoutForCarPlacement(packedCP);
+                    selectedStartStep = Module.setStartState(selectedStartStep);
+                    state = State.LayoutSet;
+                    updateUI();
+                }
+            });
+            $("#chbEditEnd").on('change', e => {
+                const val = $(e.target).prop("checked");
+                if (val) {
+                    cyAddMenus();
+                    state = State.EditEnd;
+                    updateUI();
+                }
+                else {
+                    cyDestroyMenus();
+                    let packedCP = packCarPlacement(carPlacement);
+                    selectedEndStep = Module.getLayoutForCarPlacement(packedCP);
+                    selectedEndStep = Module.setEndState(selectedEndStep);
+                    state = State.StartPosSet;
+                    updateUI();
+                }
             });
 
             let updateStep = (dir) => {

@@ -356,9 +356,8 @@ TSSState state = TSSState::InitTSS;
 TimeSaver::Solver* solver = nullptr;
 TimeSaver::Solver::Dijk::Path shortestPath = {};
 
-unsigned int selectedStartStep = 0;
-unsigned int selectedEndStep = 0;
-
+unsigned int selectedStartStep = -1;
+unsigned int selectedEndStep = -1;
 
 bool check()
 {
@@ -468,32 +467,63 @@ emscripten::val getCarLayout(unsigned int step)
 	return emscripten::val(join(cars, ","));
 }
 
-emscripten::val getRandomStartState()
+const TimeSaver::Solver::CarPlacement unpackCarPlacement(unsigned int packedCarPlacement)
 {
-	if (check() == false || state == TSSState::Error || state != TSSState::ChooseStartAndEnd)
+#define TSS_CP_UNPACK(from)	if(from > 0) { carPlacement.push_back(from % 20); from /= 20; }
+	TimeSaver::Solver::CarPlacement carPlacement;
+	TSS_CP_UNPACK(packedCarPlacement);
+	TSS_CP_UNPACK(packedCarPlacement);
+	TSS_CP_UNPACK(packedCarPlacement);
+	TSS_CP_UNPACK(packedCarPlacement);
+	TSS_CP_UNPACK(packedCarPlacement);
+	TSS_CP_UNPACK(packedCarPlacement);
+	return carPlacement;
+}
+
+emscripten::val getLayoutForCarPlacement(const unsigned int packedCarPlacement)
+{
+	const auto carPlacement = unpackCarPlacement(packedCarPlacement);
+	auto steps = solver->findStepsWith(carPlacement);
+	unsigned int layout = solver->stepWithMaximumDontCares(steps);
+	return emscripten::val(layout);
+}
+
+emscripten::val setStartState(unsigned int step)
+{
+	if (check() == false || state == TSSState::Error || !(state == TSSState::ChooseStartAndEnd || state == TSSState::InitDijkstra))
 	{
 		error(__LINE__, "timeSaverSolver: Incompatible states. Please reload");
 		return emscripten::val(TSSState::Error);
 	}
 
-	selectedStartStep = std::rand() % solver->stepsCount();
+	selectedStartStep = step;
 
 	return emscripten::val(selectedStartStep);
 }
 
-emscripten::val getRandomEndState(unsigned int selectedStartStep, unsigned int difficulty)
+emscripten::val setEndState(unsigned int step)
 {
-	if (check() == false || state == TSSState::Error || state != TSSState::ChooseStartAndEnd)
+	if (check() == false || state == TSSState::Error || !(state == TSSState::ChooseStartAndEnd || state == TSSState::InitDijkstra))
 	{
 		error(__LINE__, "timeSaverSolver: Incompatible states. Please reload");
 		return emscripten::val(TSSState::Error);
 	}
 
-	selectedEndStep = solver->randomEndState(selectedStartStep, difficulty);
+	selectedEndStep = step;
 	if (selectedStartStep != selectedEndStep)
 		state = TSSState::InitDijkstra;
 
 	return emscripten::val(selectedEndStep);
+}
+
+emscripten::val getRandomStartState()
+{
+	return setStartState(std::rand() % solver->stepsCount());
+}
+
+emscripten::val getRandomEndState(unsigned int selectedStartStep, unsigned int difficulty)
+{
+	return setEndState(solver->randomEndState(selectedStartStep, difficulty));
 }
 
 const auto  dijkstra_step_size = 250;
@@ -517,7 +547,7 @@ emscripten::val getExpectedSteps()
 
 emscripten::val timeSaverSolver()
 {
-	if (check() == false || state == TSSState::Error || state == TSSState::ChooseStartAndEnd)
+	if (check() == false || state == TSSState::Error || state == TSSState::ChooseStartAndEnd || selectedStartStep < 0 || selectedEndStep < 0)
 	{
 		error(__LINE__, "timeSaverSolver: Incompatible states. Please reload");
 		return emscripten::val(TSSState::Error);
@@ -581,8 +611,11 @@ EMSCRIPTEN_BINDINGS(timeSaverSolver) {
 	function("getLayoutNodes", &getLayoutNodes);
 	function("getMaximumCarCount", &getMaximumCarCount);
 	function("getCarLayout", &getCarLayout);
+	function("getLayoutForCarPlacement", &getLayoutForCarPlacement);
 	function("getRandomStartState", &getRandomStartState);
 	function("getRandomEndState", &getRandomEndState);
+	function("setStartState", &setStartState);
+	function("setEndState", &setEndState);
 	function("getExpectedSteps", &getExpectedSteps);
 	function("timeSaverSolverInit", &timeSaverSolverInit);
 	function("timeSaverSolver", &timeSaverSolver);

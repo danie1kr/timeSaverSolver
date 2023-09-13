@@ -280,6 +280,7 @@ namespace TimeSaver
 		{
 			struct State
 			{
+				using Slots = std::vector<unsigned int>;
 				std::vector<unsigned int> slots;
 				std::vector<Connection::TurnoutState> turnouts;
 
@@ -796,7 +797,7 @@ namespace TimeSaver
 			typename Dijk::Path shortestPath;
 			unsigned int currentSolutionCheck = 0;
 			unsigned int shortestPathSteps = dijkstra.infinity;
-			for (const unsigned int i : this->endStates)
+			for (const size_t i : this->endStates)
 			{
 				++currentSolutionCheck;
 				auto path = dijkstra.shortestPath(i);
@@ -844,31 +845,49 @@ namespace TimeSaver
 			return numTurnouts;
 		}
 
-		const std::vector<size_t> findStepsWith(const CarPlacement &cars)
+		const std::vector<size_t> findStepsWith(const CarPlacement &cars) const
 		{
 			std::vector<size_t> retVal;
 
-			Step::State targetState;
-			targetState.slots.clear();
-			targetState.turnouts.clear();
-			targetState.slots.resize(this->nodes.size(), 0);
-			targetState.turnouts.resize(this->nodes.size());
+			Step::State::Slots slots;
+			slots.clear();
+			slots.resize(this->nodes.size(), 0);
 
 			unsigned int carIndex = 0;
 			for (auto& c : cars)
-				targetState.slots[c] = ++carIndex;
+				slots[c] = ++carIndex;
 
 			for (size_t i = 0; i < this->stepsCount(); ++i)
 			{
 				bool match = true;
 				for (size_t n = 0; n < this->nodes.size() && match; ++n)
-					match &= (this->packedSteps[i].state.node((unsigned int)n) == targetState.slots[n]);
+					match &= (this->packedSteps[i].state.node((unsigned int)n) == slots[n]);
 
 				if (match)
 					retVal.push_back(i);
 			}
 
 			return retVal;
+		}
+
+		const size_t stepWithMaximumDontCares(const std::vector<size_t> steps) const
+		{
+			size_t idx = 0;
+			unsigned int dontCareCount = 0;
+			for (const auto& s : steps)
+			{
+				unsigned int dontCares = 0;
+				for (unsigned int t = 0; t < this->numTurnouts; ++t)
+					dontCares += (this->packedSteps[s].state.turnoutState(t) == Connection::TurnoutState::DontCare ? 1 : 0);
+
+				if (dontCares > dontCareCount)
+				{
+					idx = s;
+					dontCareCount = dontCares;
+				}
+			}
+
+			return idx;
 		}
 
 		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
@@ -1372,6 +1391,6 @@ namespace TimeSaver
 		PackedStep *packedSteps = nullptr;
 		unsigned int packedStepsSize = 0;
 
-		std::vector<unsigned int> endStates;
+		std::vector<size_t> endStates;
 	};
 }
