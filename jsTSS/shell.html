@@ -150,54 +150,54 @@
 
         <div class="row">
             <div class="col s3 input-field">
-                <select id="layouts" class="settings"></select>
+                <select id="layouts" class="settings stateEnabled"></select>
                 <label for="layouts">Layout</label>
             </div>
             <div class="col s3 input-field">
                 <form action="#">
                     <p class="range-field">
-                        <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="3" />
+                        <input class="settings stateEnabled" type="range" id="rangeCars" placeholder="3" min="1" max="3" />
                     </p>
                 </form>
                 <label for="rangeCars"># Wagons</label>
-            </div>
-            <div class="col s3 input-field">
-                <form action="#">
-                    <p class="range-field">
-                        <input class="settings" type="range" id="rangeDifficulty" placeholder="3" min="1" max="5" />
-                    </p>
-                </form>
-                <label for="rangeDifficulty">Difficulty</label>
             </div>
         </div>
 
         <div class="row">
             <div class="col s4">
                 Start <span id="idStartStep"></span>
-                <a class="waves-effect waves-light btn" id="btnRandomizeStart"><span class="material-icons">shuffle</span></a>
+                <a class="waves-effect waves-light btn stateEnabled" id="btnRandomizeStart"><span class="material-icons">shuffle</span></a>
                 <div class="switch">
                     <label>
-                        <input id="chbEditStart" type="checkbox">
+                        <input id="chbEditStart" type="checkbox" class="stateEnabled">
                         <span class="lever"></span>
                         <span class="material-icons">edit</span>
                     </label>
                 </div>
-                <a class="waves-effect waves-light btn" id="btnViewStart"><span class="material-icons">search</span></a>
+                <a class="waves-effect waves-light btn stateEnabled" id="btnViewStart"><span class="material-icons">search</span></a>
             </div>
             <div class="col s4">
                 Finish <span id="idEndStep"></span>
-                <a class="waves-effect waves-light btn" id="btnRandomizeEnd"><span class="material-icons">shuffle</span></a>
+                <a class="waves-effect waves-light btn stateEnabled" id="btnRandomizeEnd"><span class="material-icons">shuffle</span></a>
+                <div class="col s3 input-field">
+                    <form action="#">
+                        <p class="range-field">
+                            <input class="settings stateEnabled" type="range" id="rangeDifficulty" placeholder="3" min="1" max="5" />
+                        </p>
+                    </form>
+                    <label for="rangeDifficulty">Difficulty</label>
+                </div>
                 <div class="switch">
                     <label>
-                        <input id="chbEditEnd" type="checkbox">
+                        <input id="chbEditEnd" type="checkbox" class="stateEnabled">
                         <span class="lever"></span>
                         <span class="material-icons">edit</span>
                     </label>
                 </div>
-                <a class="waves-effect waves-light btn" id="btnViewEnd"><span class="material-icons">search</span></a>
+                <a class="waves-effect waves-light btn stateEnabled" id="btnViewEnd"><span class="material-icons">search</span></a>
             </div>
             <div class="col s4">
-                <a class="waves-effect waves-light btn" id="btnSolve">solve</a>
+                <a class="waves-effect waves-light btn stateEnabled" id="btnSolve">solve</a>
             </div>
         </div>
         <div class="progress">
@@ -207,13 +207,13 @@
         <div id="railway"></div>
 
         <div class="row">
-            <div class="col s2"><a class="waves-effect waves-light btn" id="btnStepPrev">Prev</a></div>
+            <div class="col s2"><a class="waves-effect waves-light btn stateEnabled" id="btnStepPrev">Prev</a></div>
             <div class="col s2"><span id="currentStep"></span></div>
-            <div class="col s2"> <a class="waves-effect waves-light btn" id="btnStepNext">Next</a></div>
+            <div class="col s2"> <a class="waves-effect waves-light btn stateEnabled" id="btnStepNext">Next</a></div>
             <div class="col s6">
                 </p><form action="#">
                     <p class="range-field">
-                        <input class="settings" type="range" id="rangeStep" placeholder="3" min="1" max="1" />
+                        <input class="stateEnabled" type="range" id="rangeStep" placeholder="3" min="1" max="1" />
                     </p>
                 </form>
             </div>
@@ -239,33 +239,52 @@
         let dijkstraDone = 0;
         let shortestPath = [];
 
+        /*
+            Initial: page loaded
+                => enable layout selection
+            Layout set: layout selected, graph loaded
+                => enable #cars, randomize start, edit start
+            StartPos set: start position of cars set
+                => enable view start, randomize end, edit end
+            Edit Start: set loco+cars on the layout
+                => enable edit start only
+                => returns to StartPosSet
+            Edit End: set loco+cars on the layout
+                => enable edit end only
+                => returns to EndPosSet
+            EndPos set: end position of cars set 
+                => enable view end, solve
+            Solved: shortest path known
+                => enable shortest path viewer
+        */
         const State = {
             Initial: 0,
             LayoutSet: 1,
-            StartPosSet: 2,
-            EndPosSet: 3,
-            Solved: 4,
-            EditStart: 5,
-            EditEnd: 6
+            EditStart: 2,
+            StartPosSet: 3,
+            EditEnd: 4,
+            EndPosSet: 5,
+            Solved: 6,
+            EditEnd: 7
         };
         let state = State.Initial;
 
         function enable(inputs) {
             _.each(inputs, i => {
-                let $e = $("#" + i);
+                let $e = $(i);
                 if ($e[0].tagName === "INPUT")
                     $e.prop("disabled", "");
                 else
                     $e.removeClass("disabled");
             });
         }
-        function disable(inputs) {
-            _.each(inputs, i => {
-                let $e = $("#" + i);
-                if ($e[0].tagName === "INPUT")
-                    $e.prop("disabled", "disabled");
+        function disable(withClass) {
+            $(withClass).each((idx, $ele) => {
+                console.log($ele.tagName);
+                if ($ele.tagName === "INPUT")
+                    $($ele).prop("disabled", "disabled");
                 else
-                    $e.addClass("disabled");
+                    $($ele).addClass("disabled");
             });
         }
 
@@ -275,47 +294,41 @@
         }
 
         function updateUI() {
+            disable(".stateEnabled");
             switch (state) {
                 case State.Initial:
                     {
-                        enable(["layouts", "rangeCars", "rangeDifficulty"]);
-                        disable(["btnRandomizeStart", "chbEditStart", "btnViewStart", "btnRandomizeEnd", "chbEditEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        enable(["#layouts", "#rangeCars"]);
                         break;
                     }
                 case State.LayoutSet:
                     {
-                        enable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "chbEditStart"]);
-                        disable(["btnViewStart", "btnRandomizeEnd", "chbEditEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        enable(["#layouts", "#rangeCars", "#btnRandomizeStart", "#chbEditStart"]);
                         break;
                     }
                 case State.StartPosSet:
                     {
-                        enable(["rangeDifficulty", "btnRandomizeEnd", "chbEditEnd", "btnViewStart"]);
-                        disable(["btnViewEnd", "layouts", "rangeCars", "btnRandomizeStart", "chbEditStart", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd"]);
                         break;
                     }
                 case State.EndPosSet:
                     {
-                        enable(["btnSolve", "btnViewStart", "btnViewEnd"]);
-                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "chbEditStart", "btnRandomizeEnd", "chbEditEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
+                        enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd", "#btnSolve"]);
                         break;
                     }
                 case State.Solved:
                     {
-                        enable(["btnViewStart", "btnViewEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "chbEditStart", "btnRandomizeEnd", "chbEditEnd", "btnSolve"]);
+                        enable(["#btnViewStart", "#btnViewEnd", "#btnStepPrev", "#btnStepNext", "#rangeStep"]);
                         break;
                     }
                 case State.EditStart:
                     {
-                        enable(["chbEditStart"]);
-                        disable(["btnViewStart", "btnViewEnd", "btnStepPrev", "btnStepNext", "rangeStep", "layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "chbEditEnd", "btnSolve"]);
+                        enable(["#chbEditStart"]);
                         break;
                     }
                 case State.EditEnd:
                     {
-                        enable(["chbEditEnd"]);
-                        disable(["btnViewStart", "btnViewEnd", "btnStepPrev", "btnStepNext", "rangeStep", "layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "chbEditStart", "btnSolve"]);
+                        enable(["#chbEditEnd"]);
                         break;
                     }
             }
@@ -486,6 +499,16 @@
             cyDisplayTurnoutState(JSON.parse(turnouts));
         }
 
+        function verifyCarPlacement(carPlacement) {
+            const carCount = parseInt($("#rangeCars").val()) + 1;
+            for (let i = 0; i < carCount; ++i) {
+                const cp = parseInt(carPlacement[i]);
+                if (cp < 0 || cp > 20)
+                    return false;
+            }
+            return true;
+        }
+
         function packCarPlacement(carPlacement) {
             let val = 0;
 
@@ -609,10 +632,12 @@
                 }
                 else {
                     cyDestroyMenus();
-                    let packedCP = packCarPlacement(carPlacement);
-                    selectedStartStep = Module.getLayoutForCarPlacement(packedCP);
-                    selectedStartStep = Module.setStartState(selectedStartStep);
-                    state = State.LayoutSet;
+                    if (verifyCarPlacement(carPlacement)) {
+                        let packedCP = packCarPlacement(carPlacement);
+                        selectedStartStep = Module.getLayoutForCarPlacement(packedCP);
+                        selectedStartStep = Module.setStartState(selectedStartStep);
+                        state = State.StartPosSet;
+                    }
                     updateUI();
                 }
             });
@@ -625,10 +650,12 @@
                 }
                 else {
                     cyDestroyMenus();
-                    let packedCP = packCarPlacement(carPlacement);
-                    selectedEndStep = Module.getLayoutForCarPlacement(packedCP);
-                    selectedEndStep = Module.setEndState(selectedEndStep);
-                    state = State.StartPosSet;
+                    if (verifyCarPlacement(carPlacement)) {
+                        let packedCP = packCarPlacement(carPlacement);
+                        selectedEndStep = Module.getLayoutForCarPlacement(packedCP);
+                        selectedEndStep = Module.setEndState(selectedEndStep);
+                        state = State.EndPosSet;
+                    }
                     updateUI();
                 }
             });
