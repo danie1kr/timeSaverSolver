@@ -364,7 +364,13 @@ bool check()
 	if (state == TSSState::InitTSS)
 	{
 		if (solver)
+		{
+			selectedStartStep = -1;
+			selectedEndStep = -1;
+			shortestPath = {};
+			state = TSSState::InitTSS;
 			delete solver;
+		}
 	}
 	else
 		if (solver == nullptr)
@@ -383,7 +389,7 @@ emscripten::val getShortestPath()
 	if (shortestPath.size() < 2)
 		return emscripten::val("");
 
-	std::string path = "[{\"i\": 0, \"cost\": 0, \"locoDirection\": null}, ";
+	std::string path = "[{\"i\": 0, \"cost\": " + std::to_string(selectedStartStep) + ", \"locoDirection\": null}, ";
 
 	for (auto i = 1; i < shortestPath.size(); ++i)
 	{
@@ -423,7 +429,7 @@ emscripten::val getTurnouts(unsigned int step)
 #define STRINGIFY(x) #x
 emscripten::val timeSaverSolverInit(unsigned int layout, unsigned int numberOfCars)
 {
-	if (check() == false || state == TSSState::Error && state != TSSState::InitTSS)
+	if ((check() == false || state == TSSState::Error) && state != TSSState::InitTSS)
 	{
 		error(__LINE__, "timeSaverSolver: Incompatible states. Please reload");
 		return emscripten::val(TSSState::Error);
@@ -580,6 +586,7 @@ emscripten::val timeSaverSolver()
 	case TSSState::ShortestPathDikjstra:
 	{	
 		shortestPath = solver->solve_dijkstra_shortestPath();
+		error(__LINE__, "timeSaverSolver: shortestPath #" + std::to_string(shortestPath.size()));
 		std::reverse(shortestPath.begin(), shortestPath.end());
 		state = TSSState::Finalize;
 		break;

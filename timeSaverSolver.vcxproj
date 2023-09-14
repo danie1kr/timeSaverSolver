@@ -171,6 +171,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="precomputed\precomputed_tss_classic_3.cpp">
+      <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release Benchmark|x64'">false</WholeProgramOptimization>
+    </ClCompile>
     <ClCompile Include="precomputed\precomputed_tss_classic_4.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -181,6 +184,7 @@
   <ItemGroup>
     <ClInclude Include="dijkstra\dijkstra.hpp" />
     <ClInclude Include="external\argparse.hpp" />
+    <ClInclude Include="precomputed\precomputed_tss_classic_3.hpp" />
     <ClInclude Include="precomputed\precomputed_tss_classic_4.hpp" />
     <ClInclude Include="tss.hpp" />
   </ItemGroup>

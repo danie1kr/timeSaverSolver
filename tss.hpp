@@ -1,7 +1,5 @@
 #pragma once
-#include <array>
 #include <deque>
-#include <unordered_set>
 #include <vector>
 #include <map>
 #include <functional>
@@ -9,7 +7,6 @@
 #include <ios>
 #include <iostream>
 #include <sstream>
-#include <cstring>
 
 // consider using fixed arrays for nodes and cars, if possible. brings speed x2
 
@@ -439,7 +436,7 @@ namespace TimeSaver
 				const unsigned int _parent;
 				const unsigned int data;
 			};
-
+#ifdef TSS_TEST
 			PackedStep(const PackedStep::State state, std::vector<Action> actions) 
 				: state{ state }
 				, actions{ nullptr }, actionsCount{actions.size()} 
@@ -448,6 +445,23 @@ namespace TimeSaver
 				memcpy(this->actions, actions.data(), actions.size() * sizeof(Action));
 			};
 
+			/*
+			D:\proj\dev\uc\timeSaverSolver\precomputed\precomputed_tss_classic_3.cpp(4) : fatal error C1001: Internal compiler error.
+			(compiler file 'D:\a\_work\1\s\src\vctools\Compiler\Utc\src\p2\main.c', line 234)
+			 To work around this problem, try simplifying or changing the program near the locations listed above.
+			If possible please provide a repro here: https://developercommunity.visualstudio.com
+			Please choose the Technical Support command on the Visual C++
+			 Help menu, or open the Technical Support help file for more information
+			  cl!RaiseException()+0x62
+			  cl!RaiseException()+0x62
+			  cl!InvokeCompilerPass()+0x8307
+			  cl!InvokeCompilerPass()+0x18a
+			*/
+			~PackedStep()
+			{
+				free(this->actions);
+			}
+#endif
 			PackedStep(const State::Data state) : state{ state }, actions(), actionsCount(0) { };
 
 			void setActions(Action * actions)

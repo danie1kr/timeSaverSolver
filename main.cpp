@@ -2,8 +2,6 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
-#include <algorithm>
-#include <random>
 #include <chrono>
 
 #include "external/argparse.hpp"
@@ -46,6 +44,9 @@ std::string varName(const std::string name, const size_t cars)
 }
 
 #ifdef TSS_BENCHMARK
+//#define TSS_BENCHMARK_TIMING
+#define TSS_BENCHMARK_TESTRUN
+#include "precomputed/precomputed_tss_classic_3.hpp"
 #include "precomputed/precomputed_tss_classic_4.hpp"
 #endif
 
@@ -374,6 +375,7 @@ int main(int argc, const char* const argv[])
     }
 
 #elif defined(TSS_BENCHMARK)
+#ifdef TSS_BENCHMARK_TIMING
     {
         const auto cars = 3;
         const auto  dijkstra_step_size = 100000;
@@ -451,6 +453,73 @@ int main(int argc, const char* const argv[])
             solver->solve_dijkstra_markEndStepsLike(selectedEndStep);
         }
     }
+#endif
+#ifdef TSS_BENCHMARK_TESTRUN
+    {
+        const auto cars = 3;
+        const auto  dijkstra_step_size = 100000;
+        const auto selectedStartStep = 19464;
+        const auto selectedEndStep = 19508;
+        // should be more than 16
+
+        auto print = [](const std::string info, const TimeSaver::Solver::PackedStep::State& state) {};
+
+        auto step = [](const unsigned int step, const unsigned int steps, const unsigned int solutions) {};
+        auto statistics = [](const unsigned int steps, const unsigned int solutions) {};
+
+        TimeSaver::Solver* solver = nullptr;
+        TimeSaver::Solver::Dijk::Path shortestPath = {};
+
+        {
+            auto s = Stopwatch("Solver Constructor");
+            solver = new TimeSaver::Solver(classic, print, step, statistics);
+        }
+        {
+            auto s = Stopwatch("Solver Init");
+            solver->init({ tss_classic_3_cars, tss_classic_3_steps, tss_classic_3_steps_size, tss_classic_3_actions, tss_classic_3_actions_size });
+        }
+        {
+            auto s = Stopwatch("Solver Dijkstra Init");
+            solver->solve_dijkstra_init(selectedStartStep);
+        }
+
+
+        {
+            auto s = Stopwatch("Solver Dijkstra Solve");
+
+            unsigned int dijkstra_solve_step = 0;
+            unsigned int dijkstra_solve_steps = solver->solve_dijkstra_expectedIterations();
+
+            auto continueSolve = true;
+            while (continueSolve)
+            {
+                dijkstra_solve_step += dijkstra_step_size;
+                {
+                    auto s = Stopwatch("Solver Dijkstra Step <" + std::to_string(dijkstra_step_size) + ">: " + std::to_string(dijkstra_solve_step) + " / " + std::to_string(dijkstra_solve_steps));
+                    continueSolve = solver->solve_dijkstra_step<dijkstra_step_size>();
+                }
+#ifndef _DEBUG
+                //            if (dijkstra_solve_step % 50000 == 0 || dijkstra_solve_step == dijkstra_solve_steps - 1)
+#endif
+//                std::cout << "\r" << "Solve Step " << dijkstra_solve_step << " / " << dijkstra_solve_steps << std::flush;
+            }
+        }
+
+        {
+            auto s = Stopwatch("Solver Dijkstra Mark Endstep");
+            solver->solve_dijkstra_markEndStepsLike(selectedEndStep);
+        }
+
+        {
+            auto s = Stopwatch("Solver Dijkstra Shortest Path");
+            shortestPath = solver->solve_dijkstra_shortestPath();
+        }
+
+        std::cout << "\n shortest path: " << shortestPath.size() << " \n";
+        for (const auto& p : shortestPath)
+            std::cout << "id: " << p << "\n";
+    }
+#endif
 #endif
 
 

@@ -219,13 +219,46 @@
             </div>
         </div>
 
-        <h4>
-            Rules...
-        </h4>
-
         <hr />
+        <h4>
+            Rules
+        </h4>
+        <ul>
+            <li>
+                The locomotive moves through the layout. Speed does not matter.
+            </li>
+            <li>
+                Each change in direction costs one point.
+            </li>
+            <li>
+                Each changed turnout cost one point.
+            </li>
+        </ul>
+        <hr />
+        <h4>
+            HowTo
+        </h4>
+        <ol>
+            <li>
+                Pick a track layout and number of cars.
+            </li>
+            <li>
+                Set start and end configurations.
+                Set your own model rail way to the same start configuration.
+            </li>
+            <li>
+                Click [Solve] to find the quickest solution to the TimeSaver puzzle.
+            </li>
+            <li>
+                See if you did the same solution or beat the computer!
+            </li>
+        </ol>
+
+        <!--
+    <hr />
         <textarea class="emscripten" id="output" rows="8"></textarea>
-        <hr>
+    <hr>
+    -->
     </div>
 
     <script src="lodash.min.js"></script>
@@ -313,7 +346,7 @@
                     }
                 case State.EndPosSet:
                     {
-                        enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd", "#btnSolve"]);
+                        enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd", "#btnViewEnd", "#btnSolve"]);
                         break;
                     }
                 case State.Solved:
@@ -556,7 +589,7 @@
                     let path = Module.getShortestPath();
                     shortestPath = JSON.parse(path);
                     updateShortestPathUI();
-                    console.log("shortest path: " + shortestPath);
+                    //console.log("shortest path: \n" + _.map(shortestPath, p => { return "i: " + p.i + ", cost: " + p.cist + ", dir: " + p.locoDirection + "\n" }));
                     state = State.Solved;
                     updateUI();
                 }
@@ -568,14 +601,14 @@
             }
 
             $("#btnRandomizeStart").on('click', e => {
-                let layout = parseInt($("#layouts").val());
-                let cars = parseInt($("#rangeCars").val());
-                console.log(Module.timeSaverSolverInit(layout, cars));
                 selectedStartStep = Module.getRandomStartState();
                 carPlacement = Module.getCarLayout(selectedStartStep);
                 console.log(selectedStartStep + ": " + carPlacement);
                 displayLayoutState(selectedStartStep);
-                state = State.StartPosSet;
+                if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                    state = State.EndPosSet;
+                else
+                    state = State.StartPosSet;
                 updateUI();
             });
 
@@ -586,7 +619,8 @@
                 cyDisplayCarPlacement(_.split(carPlacement, ","));
                 console.log(selectedEndStep + ": " + carPlacement);
                 displayLayoutState(selectedEndStep);
-                state = State.EndPosSet;
+                if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                    state = State.EndPosSet;
                 updateUI();
             });
             $("#btnSolve").on('click', e => {
@@ -604,6 +638,15 @@
                 cy = cytoscapeCreate();
                 cytoscapePopulate();
                 $("#rangeCars").prop("max", Module.getMaximumCarCount(layout));
+                let cars = parseInt($("#rangeCars").val());
+                console.log(Module.timeSaverSolverInit(layout, cars));
+                state = State.LayoutSet;
+                updateUI();
+            });
+            $("#rangeCars").on('change', e => {
+                let cars = parseInt($(e.target).val());
+                let layout = parseInt($("#layouts").val());
+                console.log(Module.timeSaverSolverInit(layout, cars));
                 state = State.LayoutSet;
                 updateUI();
             });
@@ -636,7 +679,10 @@
                         let packedCP = packCarPlacement(carPlacement);
                         selectedStartStep = Module.getLayoutForCarPlacement(packedCP);
                         selectedStartStep = Module.setStartState(selectedStartStep);
-                        state = State.StartPosSet;
+                        if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                            state = State.EndPosSet;
+                        else
+                            state = State.StartPosSet;
                     }
                     updateUI();
                 }
@@ -654,7 +700,8 @@
                         let packedCP = packCarPlacement(carPlacement);
                         selectedEndStep = Module.getLayoutForCarPlacement(packedCP);
                         selectedEndStep = Module.setEndState(selectedEndStep);
-                        state = State.EndPosSet;
+                        if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                            state = State.EndPosSet;
                     }
                     updateUI();
                 }

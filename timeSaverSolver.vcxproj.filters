@@ -27,6 +27,9 @@
     <ClCompile Include="precomputed\precomputed_tss_classic_4.cpp">
       <Filter>precomputed</Filter>
     </ClCompile>
+    <ClCompile Include="precomputed\precomputed_tss_classic_3.cpp">
+      <Filter>precomputed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="tss.hpp">
@@ -39,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="precomputed\precomputed_tss_classic_4.hpp">
+      <Filter>precomputed</Filter>
+    </ClInclude>
+    <ClInclude Include="precomputed\precomputed_tss_classic_3.hpp">
       <Filter>precomputed</Filter>
     </ClInclude>
   </ItemGroup>
