@@ -389,7 +389,7 @@ emscripten::val getShortestPath()
 	if (shortestPath.size() < 2)
 		return emscripten::val("");
 
-	std::string path = "[{\"i\": 0, \"cost\": " + std::to_string(selectedStartStep) + ", \"locoDirection\": null}, ";
+	std::string path = "[{\"i\": " + std::to_string(selectedStartStep) + ", \"cost\": 0, \"locoDirection\": null}, ";
 
 	for (auto i = 1; i < shortestPath.size(); ++i)
 	{
@@ -586,7 +586,6 @@ emscripten::val timeSaverSolver()
 	case TSSState::ShortestPathDikjstra:
 	{	
 		shortestPath = solver->solve_dijkstra_shortestPath();
-		error(__LINE__, "timeSaverSolver: shortestPath #" + std::to_string(shortestPath.size()));
 		std::reverse(shortestPath.begin(), shortestPath.end());
 		state = TSSState::Finalize;
 		break;

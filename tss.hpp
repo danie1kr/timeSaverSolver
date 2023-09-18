@@ -761,6 +761,16 @@ namespace TimeSaver
 							cost += this->packedSteps[from].state.turnoutState(t) != this->packedSteps[to].state.turnoutState(t) ? 1 : 0;
 
 						// moved cars in contrast to prev
+						int moversPrevFrom = 0, moversFromTo = 0;
+						for (unsigned int n = 0; n < this->nodes.size(); ++n)
+						{
+							if (previousToHere == -1)
+								moversPrevFrom = 1;
+							else
+								moversPrevFrom += (this->packedSteps[previousToHere].state.node(n) == this->packedSteps[from].state.node(n) ? 0 : 1);
+							moversFromTo += (this->packedSteps[from].state.node(n) == this->packedSteps[to].state.node(n) ? 0 : 1);
+						}
+						cost += std::abs(moversPrevFrom - moversFromTo);
 					}
 					return Cost(cost, locoDirection);
 				}

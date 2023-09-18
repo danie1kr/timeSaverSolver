@@ -313,7 +313,6 @@
         }
         function disable(withClass) {
             $(withClass).each((idx, $ele) => {
-                console.log($ele.tagName);
                 if ($ele.tagName === "INPUT")
                     $($ele).prop("disabled", "disabled");
                 else
@@ -564,7 +563,10 @@
 
             function updateShortestPathUI() {
                 if (shortestPath.length > 0) {
+                    $("#rangeStep").val(0);
+                    $("#rangeStep").prop("min", 0);
                     $("#rangeStep").prop("max", shortestPath.length - 1);
+                    $("#rangeStep").trigger('change');
                 }
             }
 
@@ -589,7 +591,7 @@
                     let path = Module.getShortestPath();
                     shortestPath = JSON.parse(path);
                     updateShortestPathUI();
-                    //console.log("shortest path: \n" + _.map(shortestPath, p => { return "i: " + p.i + ", cost: " + p.cist + ", dir: " + p.locoDirection + "\n" }));
+                    console.log("shortest path: \n" + _.map(shortestPath, p => { return "i: " + p.i + ", cost: " + p.cist + ", dir: " + p.locoDirection + "\n" }));
                     state = State.Solved;
                     updateUI();
                 }
@@ -661,9 +663,17 @@
 
             $("#btnViewStart").on('click', e => {
                 displayLayoutState(selectedStartStep);
+                if (state === State.Solved) {
+                    $("#rangeStep").val(0);
+                    $("#rangeStep").trigger('change');
+                }
             });
             $("#btnViewEnd").on('click', e => {
                 displayLayoutState(selectedEndStep);
+                if (state === State.Solved) {
+                    $("#rangeStep").val(parseInt($("#rangeStep").prop("max")));
+                    $("#rangeStep").trigger('change');
+                }
             });
 
             $("#chbEditStart").on('change', e => {
