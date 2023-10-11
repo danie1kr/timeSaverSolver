@@ -123,27 +123,27 @@
     <div id="content" class="container">
         <div class="row">
             <div class="col s2 input-field">
-                <input class="settings" placeholder="Loco" id="loco" type="text">
+                <input class="settings carName" placeholder="Loco" id="loco" tssNameId=0 type="text">
                 <label for="loco">Locomotive</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings wagon" placeholder="1" id="wagon0" type="text">
+                <input class="settings wagon carName" placeholder="1" id="wagon0" tssNameId=1 type="text">
                 <label for="wagon0">1st Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings wagon" placeholder="2" id="wagon1" type="text">
+                <input class="settings wagon carName" placeholder="2" id="wagon1" tssNameId=2 type="text">
                 <label for="wagon1">2nd Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings wagon" placeholder="3" id="wagon2" type="text">
+                <input class="settings wagon carName" placeholder="3" id="wagon2" tssNameId=3 type="text">
                 <label for="wagon2">3rd Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings wagon" placeholder="4" id="wagon3" type="text">
+                <input class="settings wagon carName" placeholder="4" id="wagon3" tssNameId=4 type="text">
                 <label for="wagon3">4th Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings wagon" placeholder="5" id="wagon4" type="text">
+                <input class="settings wagon carName" placeholder="5" id="wagon4" tssNameId=5 type="text">
                 <label for="wagon4">5th Wagon</label>
             </div>
         </div>
@@ -481,9 +481,7 @@
         }
 
         function idToCarName(i) {
-            if (i === 0)
-                return "Loco";
-            return i;
+            return $(".carName[tssNameId=\"" + i + "\"]").val();
         }
 
         function cyDisplayCarPlacement(carPlacement) {
@@ -563,9 +561,9 @@
 
             function updateShortestPathUI() {
                 if (shortestPath.length > 0) {
-                    $("#rangeStep").val(0);
                     $("#rangeStep").prop("min", 0);
                     $("#rangeStep").prop("max", shortestPath.length - 1);
+                    $("#rangeStep").val(0);
                     $("#rangeStep").trigger('change');
                 }
             }
@@ -724,6 +722,10 @@
             };
             $("#btnStepPrev").on('click', _.bind(updateStep, this, -1));
             $("#btnStepNext").on('click', _.bind(updateStep, this, +1));
+
+            $(".carName").on('change', e => {
+                cyDisplayCarPlacement(carPlacement);
+            });
 
             let layouts = Module.getLayoutCount();
             for (let i = 0; i < layouts; ++i)
