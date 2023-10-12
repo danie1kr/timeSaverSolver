@@ -490,6 +490,8 @@ emscripten::val getLayoutForCarPlacement(const unsigned int packedCarPlacement)
 {
 	const auto carPlacement = unpackCarPlacement(packedCarPlacement);
 	auto steps = solver->findStepsWith(carPlacement);
+	if (steps.size() == 0)
+		return emscripten::val(-1);
 	unsigned int layout = solver->stepWithMaximumDontCares(steps);
 	return emscripten::val(layout);
 }

@@ -169,14 +169,27 @@
             position: absolute;
             left: 1%;
         }
+
+        .settingsRow {
+            display: none;
+        }
+
+        .rules {
+            display: none;
+            position: fixed;
+            top: 160px;
+            right: 30px;
+            width: 26%;
+        }
     </style>
 </head>
 <body>
     <div id="header">
         <h2>TimeSaverSolver</h2>
         <p>
-            [<a id="toggleSettings">settings</a>] | 
-            [<a id="toggleHowto">howto</a>] | 
+            [<a id="toggleRules">rules</a>] |
+            [<a id="toggleHowto">howto</a>] |
+            [<a id="toggleSettings">settings</a>] |
             [<a href="https://github.com/danie1kr/timeSaverSolver">git</a>] |
             © 2023
         </p>
@@ -189,7 +202,7 @@
         </div>
     </div>
     <div id="content" class="container">
-        <div class="row">
+        <div class="row settingsRow">
             <div class="col s2 input-field">
                 <input class="settings carName" placeholder="Loco" id="loco" tssNameId=0 type="text">
                 <label for="loco">Locomotive</label>
@@ -319,27 +332,27 @@
                 </div>
             </div>
         </div>
+        
+        <div class="rules">
+            <h4>
+                Rules
+            </h4>
+            <ul>
+                <li>
+                    The locomotive moves through the layout. Speed does not matter.
+                </li>
+                <li>
+                    Each change in direction costs one point.
+                </li>
+                <li>
+                    Each changed turnout cost one point.
+                </li>
+                <li>
+                    Each coupling/decoupling of wagons cost one point.
+                </li>
+            </ul>
+        </div>
 
-        <hr />
-        <h4>
-            Rules
-        </h4>
-        <ul>
-            <li>
-                The locomotive moves through the layout. Speed does not matter.
-            </li>
-            <li>
-                Each change in direction costs one point.
-            </li>
-            <li>
-                Each changed turnout cost one point.
-            </li>
-        </ul>
-        <!--
-    <hr />
-        <textarea class="emscripten" id="output" rows="8"></textarea>
-    <hr>
-    -->
         <div class="howto">
             <h4>
                 HowTo
@@ -374,7 +387,8 @@
             <script>
 
                 let cy = null, cyMenu = null;
-                let carPlacement = [-1, -1, -1, -1, -1, -1];
+                const emptyCarPlacement = [-1, -1, -1, -1, -1, -1];
+                let carPlacement = emptyCarPlacement.slice();
                 let selectedStartStep = -1, selectedEndStep = -1;
                 let dijkstraSteps = 0;
                 let dijkstraDone = 0;
@@ -477,6 +491,7 @@
 
                 function cytoscapeCreate() {
                     return cy = cytoscape({
+                        autolock: true,
                         container: $("#railway"),
                         layout: { name: 'preset' },
                         zoomingEnabled: true,
@@ -678,7 +693,6 @@
 
                     let progressUpdateInterval = null;
                     function solve() {
-                        //performance.mark("solve-started");
                         const tssState = Module.timeSaverSolver();
                         if (tssState === Module.TSSState.StepDikjstra) {
                             if (!progressUpdateInterval) {
@@ -795,14 +809,34 @@
                         }
                         else {
                             cyDestroyMenus();
+                            let validCarPlacement = false;
                             if (verifyCarPlacement(carPlacement)) {
                                 let packedCP = packCarPlacement(carPlacement);
-                                selectedStartStep = Module.getLayoutForCarPlacement(packedCP);
-                                selectedStartStep = Module.setStartState(selectedStartStep);
+                                let stepId = Module.getLayoutForCarPlacement(packedCP);
+                                if (stepId !== -1) {
+                                    selectedStartStep = Module.setStartState(stepId);
+                                    validCarPlacement = true;
+                                }
+                                
                                 if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
                                     state = State.EndPosSet;
-                                else
+                                else if (selectedStartStep >= 0)
                                     state = State.StartPosSet;
+                                else
+                                    state = State.LayoutSet;
+                            }
+                            if (!validCarPlacement) {
+                                if (selectedStartStep !== -1) {
+                                    const carPlacementString = Module.getCarLayout(selectedStartStep);
+                                    carPlacement = _.split(carPlacementString, ",");
+                                    state = State.StartPosSet;
+                                }
+                                else {
+                                    carPlacement = emptyCarPlacement.slice();
+                                    state = State.LayoutSet;
+                                }
+                                cyDisplayCarPlacement(carPlacement);
+                                M.toast({ html: 'Layout not valid. Reverting to previous state.' });
                             }
                             updateUI();
                         }
@@ -816,12 +850,30 @@
                         }
                         else {
                             cyDestroyMenus();
+                            let validCarPlacement = false;
                             if (verifyCarPlacement(carPlacement)) {
                                 let packedCP = packCarPlacement(carPlacement);
-                                selectedEndStep = Module.getLayoutForCarPlacement(packedCP);
-                                selectedEndStep = Module.setEndState(selectedEndStep);
+                                let stepId = Module.getLayoutForCarPlacement(packedCP);
+                                if (stepId !== -1) {
+                                    selectedEndStep = Module.setEndState(stepId);
+                                    validCarPlacement = true;
+                                }
+
                                 if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
                                     state = State.EndPosSet;
+                            }
+                            if (!validCarPlacement) {
+                                if (selectedEndStep !== -1) {
+                                    const carPlacementString = Module.getCarLayout(selectedEndStep);
+                                    carPlacement = _.split(carPlacementString, ",");
+                                    state = State.EndPosSet;
+                                }
+                                else {
+                                    carPlacement = emptyCarPlacement.slice();
+                                    state = State.StartPosSet;
+                                }
+                                cyDisplayCarPlacement(carPlacement);
+                                M.toast({ html: 'Layout not valid. Reverting to previous state.' });
                             }
                             updateUI();
                         }
@@ -848,6 +900,32 @@
                             $(".panel").removeClass("panelShow");
                             $(".panelName").hide();
                             $("#content").removeClass("containerToLeft");
+                        }
+                    });
+                    $("#toggleRules").on('click', e => {
+                        let $rules = $(".rules");
+                        if ($rules.css('display') === 'none') {
+
+                            let $howto = $(".howto");
+                            $(".panel").removeClass("panelShow");
+                            $(".panelName").hide();
+                            $("#content").removeClass("containerToLeft");
+
+                            $rules.show();
+                            $("#content").addClass("containerToLeft");
+                        }
+                        else {
+                            $rules.hide();
+                            $("#content").removeClass("containerToLeft");
+                        }
+                    });
+                    $("#toggleSettings").on('click', e => {
+                        let $settings = $(".settingsRow");
+                        if ($settings.css('display') === 'none') {
+                            $settings.show();
+                        }
+                        else {
+                            $settings.hide();
                         }
                     });
 
