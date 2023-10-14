@@ -181,6 +181,10 @@
             right: 30px;
             width: 26%;
         }
+
+        .error {
+            color: orange;
+        }
     </style>
 </head>
 <body>
@@ -296,12 +300,18 @@
                 </div>
             </div>
         </div>
+        <div>
+            <p id="msg"></p>
+        </div>
         <div class="progress">
             <div class="determinate" id="solverProgress"></div>
         </div>
 
         <div id="railway"></div>
 
+        <div id="solution">
+
+        </div>
         <div class="row flex">
             <div class="col s2 noPadding">
                 <div class="panel">
@@ -309,7 +319,7 @@
                     <a class="waves-effect waves-light btn stateEnabled" id="btnStepPrev">Prev</a>
                 </div>
             </div>
-            <div class="col s2 noPadding">
+            <div class="col s3 noPadding">
                 <div class="panel">
                     <div class="panelName">Step</div>
                     <span id="currentStep"></span>
@@ -321,7 +331,7 @@
                     <a class="waves-effect waves-light btn stateEnabled" id="btnStepNext">Next</a>
                 </div>
             </div>
-            <div class="col s6 noPadding">
+            <div class="col s5 noPadding">
                 <div class="panel">
                     <div class="panelName">Step Slider</div>
                     </p><form action="#">
@@ -424,6 +434,15 @@
                 };
                 let state = State.Initial;
 
+                function status(text) {
+                    $("#msg").html(text).removeClass("error");
+                }
+
+                function error(text) {
+                    $("#msg").html(text + " - Please reload the page to start again.").addClass("error");
+                    console.log(text);
+                }
+
                 function enable(inputs) {
                     _.each(inputs, i => {
                         let $e = $(i);
@@ -453,36 +472,43 @@
                         case State.Initial:
                             {
                                 enable(["#layouts", "#rangeCars"]);
+                                status("Pick Layout and number of cars");
                                 break;
                             }
                         case State.LayoutSet:
                             {
                                 enable(["#layouts", "#rangeCars", "#btnRandomizeStart", "#chbEditStart"]);
+                                status("Find the starting positions for the locomotive and cars");
                                 break;
                             }
                         case State.StartPosSet:
                             {
                                 enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd"]);
+                                status("Find the end positions for the locomotive and cars");
                                 break;
                             }
                         case State.EndPosSet:
                             {
                                 enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd", "#btnViewEnd", "#btnSolve"]);
+                                status("Ready to solve");
                                 break;
                             }
                         case State.Solved:
                             {
                                 enable(["#btnViewStart", "#btnViewEnd", "#btnStepPrev", "#btnStepNext", "#rangeStep"]);
+                                status("Browse the found solutions");
                                 break;
                             }
                         case State.EditStart:
                             {
                                 enable(["#chbEditStart"]);
+                                status("Edit the locomotive and car positions in the layout");
                                 break;
                             }
                         case State.EditEnd:
                             {
                                 enable(["#chbEditEnd"]);
+                                status("Edit the locomotive and car positions in the layout");
                                 break;
                             }
                     }
@@ -698,6 +724,7 @@
                             if (!progressUpdateInterval) {
                                 progressUpdateInterval = setInterval(() => {
                                     progress(dijkstraDone / dijkstraSteps.expectedIterations);
+                                    status("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
                                 }, 1000);
                             }
                             dijkstraDone += dijkstraSteps.stepIterations;
@@ -710,13 +737,18 @@
                             progress(1);
                             let path = Module.getShortestPath();
                             shortestPath = JSON.parse(path);
+                            let cost = _.reduce(shortestPath, (sum, p) => { return sum + parseInt(p.cost); }, 0);
                             updateShortestPathUI();
-                            console.log("shortest path: \n" + _.map(shortestPath, p => { return "i: " + p.i + ", cost: " + p.cist + ", dir: " + p.locoDirection + "\n" }));
+                            console.log("shortest path: \n" + _.map(shortestPath, p => { return "i: " + p.i + ", cost: " + p.cost + ", dir: " + p.locoDirection + "\n" }));
+                            console.log("total cost: " + cost);
+                            $("#solution").html("Steps: " + shortestPath.length + " Cost: " + cost);
+                            status("Steps: " + shortestPath.length + " Cost: " + cost);
+                            //status("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
                             state = State.Solved;
                             updateUI();
                         }
                         else if (tssState === Module.TSSState.Error) {
-                            console.error("error during timeSaverSolver()");
+                            error("error during timeSaverSolver()");
                         }
                         else
                             _.defer(solve);
@@ -781,7 +813,7 @@
                         if (idx < shortestPath.length) {
                             let step = shortestPath[$(e.target).val()];
                             displayLayoutState(step.i);
-                            $("#currentStep").html("Step: " + $(e.target).val() + " [" + step.i + "]");
+                            $("#currentStep").html("Step: " + $(e.target).val() + " [" + step.i + "] <br> Loco direction: " + (step.locoDirection === "f" ? ">>>" : "<<<"));
                         }
                     });
 
@@ -836,7 +868,7 @@
                                     state = State.LayoutSet;
                                 }
                                 cyDisplayCarPlacement(carPlacement);
-                                M.toast({ html: 'Layout not valid. Reverting to previous state.' });
+                                error("Layout not valid. Reverting to previous state");
                             }
                             updateUI();
                         }
@@ -873,7 +905,7 @@
                                     state = State.StartPosSet;
                                 }
                                 cyDisplayCarPlacement(carPlacement);
-                                M.toast({ html: 'Layout not valid. Reverting to previous state.' });
+                                error("Layout not valid. Reverting to previous state");
                             }
                             updateUI();
                         }
