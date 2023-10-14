@@ -1,7 +1,5 @@
 #pragma once
-#include <array>
 #include <deque>
-#include <unordered_set>
 #include <vector>
 #include <map>
 #include <functional>
@@ -9,7 +7,6 @@
 #include <ios>
 #include <iostream>
 #include <sstream>
-#include <cstring>
 
 // consider using fixed arrays for nodes and cars, if possible. brings speed x2
 
@@ -280,6 +277,7 @@ namespace TimeSaver
 		{
 			struct State
 			{
+				using Slots = std::vector<unsigned int>;
 				std::vector<unsigned int> slots;
 				std::vector<Connection::TurnoutState> turnouts;
 
@@ -438,7 +436,7 @@ namespace TimeSaver
 				const unsigned int _parent;
 				const unsigned int data;
 			};
-
+#ifdef TSS_TEST
 			PackedStep(const PackedStep::State state, std::vector<Action> actions) 
 				: state{ state }
 				, actions{ nullptr }, actionsCount{actions.size()} 
@@ -447,6 +445,23 @@ namespace TimeSaver
 				memcpy(this->actions, actions.data(), actions.size() * sizeof(Action));
 			};
 
+			/*
+			D:\proj\dev\uc\timeSaverSolver\precomputed\precomputed_tss_classic_3.cpp(4) : fatal error C1001: Internal compiler error.
+			(compiler file 'D:\a\_work\1\s\src\vctools\Compiler\Utc\src\p2\main.c', line 234)
+			 To work around this problem, try simplifying or changing the program near the locations listed above.
+			If possible please provide a repro here: https://developercommunity.visualstudio.com
+			Please choose the Technical Support command on the Visual C++
+			 Help menu, or open the Technical Support help file for more information
+			  cl!RaiseException()+0x62
+			  cl!RaiseException()+0x62
+			  cl!InvokeCompilerPass()+0x8307
+			  cl!InvokeCompilerPass()+0x18a
+			*/
+			~PackedStep()
+			{
+				free(this->actions);
+			}
+#endif
 			PackedStep(const State::Data state) : state{ state }, actions(), actionsCount(0) { };
 
 			void setActions(Action * actions)
@@ -746,6 +761,16 @@ namespace TimeSaver
 							cost += this->packedSteps[from].state.turnoutState(t) != this->packedSteps[to].state.turnoutState(t) ? 1 : 0;
 
 						// moved cars in contrast to prev
+						int moversPrevFrom = 0, moversFromTo = 0;
+						for (unsigned int n = 0; n < this->nodes.size(); ++n)
+						{
+							if (previousToHere == -1)
+								moversPrevFrom = 1;
+							else
+								moversPrevFrom += (this->packedSteps[previousToHere].state.node(n) == this->packedSteps[from].state.node(n) ? 0 : 1);
+							moversFromTo += (this->packedSteps[from].state.node(n) == this->packedSteps[to].state.node(n) ? 0 : 1);
+						}
+						cost += std::abs(moversPrevFrom - moversFromTo);
 					}
 					return Cost(cost, locoDirection);
 				}
@@ -796,7 +821,7 @@ namespace TimeSaver
 			typename Dijk::Path shortestPath;
 			unsigned int currentSolutionCheck = 0;
 			unsigned int shortestPathSteps = dijkstra.infinity;
-			for (const unsigned int i : this->endStates)
+			for (const size_t i : this->endStates)
 			{
 				++currentSolutionCheck;
 				auto path = dijkstra.shortestPath(i);
@@ -844,31 +869,56 @@ namespace TimeSaver
 			return numTurnouts;
 		}
 
-		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
+		const std::vector<size_t> findStepsWith(const CarPlacement &cars) const
 		{
-			Step::State targetState;
-			targetState.slots.clear();
-			targetState.turnouts.clear();
-			targetState.slots.resize(this->nodes.size());
-			targetState.turnouts.resize(this->nodes.size());
+			std::vector<size_t> retVal;
 
-			for (auto& s : targetState.slots)
-				s = 0;
+			Step::State::Slots slots;
+			slots.clear();
+			slots.resize(this->nodes.size(), 0);
 
 			unsigned int carIndex = 0;
 			for (auto& c : cars)
-				targetState.slots[c] = ++carIndex;
+				slots[c] = ++carIndex;
 
-			this->endStates.clear();
-			for (unsigned int i = 0; i < this->stepsCount(); ++i)
+			for (size_t i = 0; i < this->stepsCount(); ++i)
 			{
-				unsigned int matching = 0;
-				for (unsigned int n = 0; n < this->nodes.size(); ++n)
-					matching += (this->packedSteps[i].state.node(n) == targetState.slots[n]) ? 1 : 0;
+				bool match = true;
+				for (size_t n = 0; n < this->nodes.size() && match; ++n)
+					match &= (this->packedSteps[i].state.node((unsigned int)n) == slots[n]);
 
-				if(matching == this->nodes.size())
-					this->endStates.push_back(i);
+				if (match)
+					retVal.push_back(i);
 			}
+
+			return retVal;
+		}
+
+		const size_t stepWithMaximumDontCares(const std::vector<size_t> steps) const
+		{
+			size_t idx = 0;
+			unsigned int dontCareCount = 0;
+			for (const auto& s : steps)
+			{
+				unsigned int dontCares = 0;
+				for (unsigned int t = 0; t < this->numTurnouts; ++t)
+					dontCares += (this->packedSteps[s].state.turnoutState(t) == Connection::TurnoutState::DontCare ? 1 : 0);
+
+				if (dontCares > dontCareCount)
+				{
+					idx = s;
+					dontCareCount = dontCares;
+				}
+			}
+
+			return idx;
+		}
+
+		void markEndSteps(const CarPlacement cars, const bool maySelectRandomIfNoneFound)
+		{
+			this->endStates.clear();
+			for (auto s : this->findStepsWith(cars))
+				this->endStates.push_back(s);
 		}
 
 		void createGraph()
@@ -1365,6 +1415,6 @@ namespace TimeSaver
 		PackedStep *packedSteps = nullptr;
 		unsigned int packedStepsSize = 0;
 
-		std::vector<unsigned int> endStates;
+		std::vector<size_t> endStates;
 	};
 }

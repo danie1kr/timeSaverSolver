@@ -106,12 +106,97 @@
         span.material-icons {
             padding-top: 6px;
         }
+
+        .inline {
+            display: inline;
+        }
+
+        .tutorialBadge {
+            border-radius: 5px;
+            position: relative;
+            top: -1em;
+            left: -1em;
+            z-index: 9999;
+            background-color: orange;
+            padding: 3pt;
+            text-align: center;
+            color: white;
+        }
+
+        .panel {
+            margin: 5px;
+            padding: 12px!important;
+            position: relative;
+            height: 100%;
+        }
+
+        .panelShow {
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            background-color: rgba(0, 0, 0, 0.08);
+            border-width: 1px;
+        }
+
+        .panelName {
+            display: none;
+            position: absolute;
+            font-weight: 1000;
+            bottom: 4px;
+            right: 8px;
+            z-index: -1;
+            overflow: hidden;
+            font-size: 24pt;
+            color: rgba(0, 0, 0, 0.24);
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .noPadding {
+            padding: 0 !important;
+        }
+
+        .howto {
+            display: none;
+            position: fixed;
+            top: 160px;
+            right: 30px;
+            width: 26%;
+        }
+
+        .containerToLeft {
+            position: absolute;
+            left: 1%;
+        }
+
+        .settingsRow {
+            display: none;
+        }
+
+        .rules {
+            display: none;
+            position: fixed;
+            top: 160px;
+            right: 30px;
+            width: 26%;
+        }
+
+        .error {
+            color: orange;
+        }
     </style>
 </head>
 <body>
     <div id="header">
         <h2>TimeSaverSolver</h2>
-        <p>[<a href="https://github.com/danie1kr/timeSaverSolver">git</a>] - © 2023</p>
+        <p>
+            [<a id="toggleRules">rules</a>] |
+            [<a id="toggleHowto">howto</a>] |
+            [<a id="toggleSettings">settings</a>] |
+            [<a href="https://github.com/danie1kr/timeSaverSolver">git</a>] |
+            © 2023
+        </p>
     </div>
     <div id="loading">
         <figure style="overflow:visible;" id="spinner"><div class="spinner"></div><center style="margin-top:0.5em"><strong>emscripten</strong></center></figure>
@@ -121,74 +206,102 @@
         </div>
     </div>
     <div id="content" class="container">
-        <div class="row">
+        <div class="row settingsRow">
             <div class="col s2 input-field">
-                <input class="settings" placeholder="Loco" id="loco" type="text">
+                <input class="settings carName" placeholder="Loco" id="loco" tssNameId=0 type="text">
                 <label for="loco">Locomotive</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="1" id="wagon0" type="text">
+                <input class="settings wagon carName" placeholder="1" id="wagon0" tssNameId=1 type="text">
                 <label for="wagon0">1st Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="2" id="wagon1" type="text">
+                <input class="settings wagon carName" placeholder="2" id="wagon1" tssNameId=2 type="text">
                 <label for="wagon1">2nd Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="3" id="wagon2" type="text">
+                <input class="settings wagon carName" placeholder="3" id="wagon2" tssNameId=3 type="text">
                 <label for="wagon2">3rd Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="4" id="wagon3" type="text">
+                <input class="settings wagon carName" placeholder="4" id="wagon3" tssNameId=4 type="text">
                 <label for="wagon3">4th Wagon</label>
             </div>
             <div class="col s2 input-field">
-                <input class="settings" placeholder="5" id="wagon4" type="text">
+                <input class="settings wagon carName" placeholder="5" id="wagon4" tssNameId=5 type="text">
                 <label for="wagon4">5th Wagon</label>
             </div>
         </div>
 
-        <div class="row">
+        <div class="row panel">
+            <div class="panelName">Setup</div>
             <div class="col s3 input-field">
-                <select id="layouts" class="settings"></select>
+                <select id="layouts" class="settings stateEnabled"></select>
                 <label for="layouts">Layout</label>
             </div>
             <div class="col s3 input-field">
                 <form action="#">
                     <p class="range-field">
-                        <input class="settings" type="range" id="rangeCars" placeholder="3" min="1" max="3" />
+                        <input class="settings stateEnabled" type="range" id="rangeCars" placeholder="3" min="1" max="3" />
                     </p>
                 </form>
                 <label for="rangeCars"># Wagons</label>
             </div>
-            <div class="col s3 input-field">
-                <form action="#">
-                    <p class="range-field">
-                        <input class="settings" type="range" id="rangeDifficulty" placeholder="3" min="1" max="5" />
-                    </p>
-                </form>
-                <label for="rangeDifficulty">Difficulty</label>
-            </div>
         </div>
 
-        <div class="row">
-            <div class="col s4">
-                Start
-                <a class="waves-effect waves-light btn" id="btnRandomizeStart">randomize</a>
-                <a class="waves-effect waves-light btn" id="btnViewStart">
-                    <span class="material-icons">search</span>
-                </a>
+        <div class="row flex">
+            <div class="col s4 noPadding">
+                <div class="panel">
+                    <div class="panelName">Start</div>
+                    Position <span id="idStartStep"></span>
+                    <a class="waves-effect waves-light btn stateEnabled" id="btnViewStart"><span class="material-icons">search</span></a>
+
+                    <a class="waves-effect waves-light btn stateEnabled" id="btnRandomizeStart"><span class="material-icons">shuffle</span></a>
+                    <div class="switch inline">
+                        <label>
+                            <input id="chbEditStart" type="checkbox" class="stateEnabled">
+                            <span class="lever"></span>
+                            <span class="material-icons">edit</span>
+                        </label>
+                    </div>
+                </div>
             </div>
-            <div class="col s4">
-                Finish
-                <a class="waves-effect waves-light btn" id="btnRandomizeEnd">randomize</a>
-                <a class="waves-effect waves-light btn" id="btnViewEnd">
-                    <span class="material-icons">search</span>
-                </a>
+            <div class="col s2 noPadding">
+                <div class="panel">
+                    Difficulty (<span id="idDifficulty"></span>)
+                    <div class="input-field">
+                        <form action="#">
+                            <p class="range-field">
+                                <input class="settings stateEnabled" type="range" id="rangeDifficulty" placeholder="3" min="1" max="5" />
+                            </p>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="col s4">
-                <a class="waves-effect waves-light btn" id="btnSolve">solve</a>
+            <div class="col s4 noPadding">
+                <div class="panel">
+                    <div class="panelName">End</div>
+                    Position <span id="idEndStep"></span>
+                    <a class="waves-effect waves-light btn stateEnabled" id="btnViewEnd"><span class="material-icons">search</span></a>
+                    <a class="waves-effect waves-light btn stateEnabled" id="btnRandomizeEnd"><span class="material-icons">shuffle</span></a>
+                    <div class="switch inline">
+                        <label>
+                            <input id="chbEditEnd" type="checkbox" class="stateEnabled">
+                            <span class="lever"></span>
+                            <span class="material-icons">edit</span>
+                        </label>
+                    </div>
+                </div>
             </div>
+            <div class="col s2 noPadding">
+                <div class="panel">
+                    <div class="panelName">Go</div>
+                    <a class="waves-effect waves-light btn stateEnabled" id="btnSolve">solve</a>
+                </div>
+            </div>
+        </div>
+        <div>
+            <p id="msg"></p>
         </div>
         <div class="progress">
             <div class="determinate" id="solverProgress"></div>
@@ -196,442 +309,775 @@
 
         <div id="railway"></div>
 
-        <div class="row">
-            <div class="col s2"><a class="waves-effect waves-light btn" id="btnStepPrev">Prev</a></div>
-            <div class="col s2"><span id="currentStep"></span></div>
-            <div class="col s2"> <a class="waves-effect waves-light btn" id="btnStepNext">Next</a></div>
-            <div class="col s6">
-                </p><form action="#">
-                    <p class="range-field">
-                        <input class="settings" type="range" id="rangeStep" placeholder="3" min="1" max="1" />
-                    </p>
-                </form>
+        <div id="solution">
+
+        </div>
+        <div class="row flex">
+            <div class="col s2 noPadding">
+                <div class="panel">
+                    <div class="panelName">Prev</div>
+                    <a class="waves-effect waves-light btn stateEnabled" id="btnStepPrev">Prev</a>
+                </div>
+            </div>
+            <div class="col s3 noPadding">
+                <div class="panel">
+                    <div class="panelName">Step</div>
+                    <span id="currentStep"></span>
+                </div>
+            </div>
+            <div class="col s2 noPadding">
+                <div class="panel">
+                    <div class="panelName">Next</div>
+                    <a class="waves-effect waves-light btn stateEnabled" id="btnStepNext">Next</a>
+                </div>
+            </div>
+            <div class="col s5 noPadding">
+                <div class="panel">
+                    <div class="panelName">Step Slider</div>
+                    </p><form action="#">
+                        <p class="range-field">
+                            <input class="stateEnabled" type="range" id="rangeStep" placeholder="3" min="1" max="1" />
+                        </p>
+                    </form>
+                </div>
             </div>
         </div>
+        
+        <div class="rules">
+            <h4>
+                Rules
+            </h4>
+            <ul>
+                <li>
+                    The locomotive moves through the layout. Speed does not matter.
+                </li>
+                <li>
+                    Each change in direction costs one point.
+                </li>
+                <li>
+                    Each changed turnout cost one point.
+                </li>
+                <li>
+                    Each coupling/decoupling of wagons cost one point.
+                </li>
+            </ul>
+        </div>
 
-        <h4>
-            Rules...
-        </h4>
-
-        <hr />
-        <textarea class="emscripten" id="output" rows="8"></textarea>
-        <hr>
+        <div class="howto">
+            <h4>
+                HowTo
+            </h4>
+            <ol>
+                <li>
+                    <b>Setup</b>:
+                    Pick a track layout and number of cars.
+                </li>
+                <li>
+                    <b>Start, End</b>:
+                    Set start and end configurations, either randomize (<span class="material-icons">shuffle</span>) or manual editing (<span class="material-icons">edit</span>). Just right-click/long-click on the graph node for the latter.
+                    <b>Difficulty</b> influences only the randomized end states.
+                    <span class="material-icons">search</span> visualizes the steps.
+                    Set your own model rail way to the same start configuration.
+                </li>
+                <li>
+                    Click [Solve] to find the quickest solution to the TimeSaver puzzle.
+                </li>
+                <li>
+                    See if you did the same solution or beat the computer!
+                </li>
+                <li>
+                    You can scroll through the steps with <b>Prev</b> and <b>Next</b> or the <b>Steps slide</b>.
+                </li>
+            </ol>
+        </div>
     </div>
 
-    <script src="lodash.min.js"></script>
-    <script src="zepto.min.js"></script>
-    <script>
+            <script src="lodash.min.js"></script>
+            <script src="zepto.min.js"></script>
+            <script>
 
-        let cy = null;
-        let carPlacement = "";
-        let selectedStartStep = -1;
-        let dijkstraSteps = 0;
-        let dijkstraDone = 0;
-        let shortestPath = [];
+                let cy = null, cyMenu = null;
+                const emptyCarPlacement = [-1, -1, -1, -1, -1, -1];
+                let carPlacement = emptyCarPlacement.slice();
+                let selectedStartStep = -1, selectedEndStep = -1;
+                let dijkstraSteps = 0;
+                let dijkstraDone = 0;
+                let shortestPath = [];
 
-        const State = {
-            Initial: 0,
-            LayoutSet: 1,
-            StartPosSet: 2,
-            EndPosSet: 3,
-            Solved: 4
-        };
-        let state = State.Initial;
+                /*
+                    Initial: page loaded
+                        => enable layout selection
+                    Layout set: layout selected, graph loaded
+                        => enable #cars, randomize start, edit start
+                    StartPos set: start position of cars set
+                        => enable view start, randomize end, edit end
+                    Edit Start: set loco+cars on the layout
+                        => enable edit start only
+                        => returns to StartPosSet
+                    Edit End: set loco+cars on the layout
+                        => enable edit end only
+                        => returns to EndPosSet
+                    EndPos set: end position of cars set
+                        => enable view end, solve
+                    Solved: shortest path known
+                        => enable shortest path viewer
+                */
+                const State = {
+                    Initial: 0,
+                    LayoutSet: 1,
+                    EditStart: 2,
+                    StartPosSet: 3,
+                    EditEnd: 4,
+                    EndPosSet: 5,
+                    Solved: 6,
+                    EditEnd: 7
+                };
+                let state = State.Initial;
 
-        function enable(inputs) {
-            _.each(inputs, i => $("#" + i).removeClass("disabled"));
-        }
-        function disable(inputs) {
-            _.each(inputs, i => $("#" + i).addClass("disabled"));
-        }
-
-        function updateUI() {
-            switch (state) {
-                case State.Initial:
-                    {
-                        enable(["layouts", "rangeCars", "rangeDifficulty"]);
-                        disable(["btnRandomizeStart", "btnViewStart", "btnRandomizeEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                        break;
-                    }
-                case State.LayoutSet:
-                    {
-                        enable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart"]);
-                        disable(["btnViewStart", "btnRandomizeEnd", "btnViewEnd", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                        break;
-                    }
-                case State.StartPosSet:
-                    {
-                        enable(["rangeDifficulty", "btnRandomizeEnd", "btnViewStart"]);
-                        disable(["btnViewEnd", "layouts", "rangeCars", "btnRandomizeStart", "btnSolve", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                        break;
-                    }
-                case State.EndPosSet:
-                    {
-                        enable(["btnSolve", "btnViewStart", "btnViewEnd"]);
-                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                        break;
-                    }
-                case State.Solved:
-                    {
-                        enable(["btnViewStart", "btnViewEnd", "btnStepPrev", "btnStepNext", "rangeStep"]);
-                        disable(["layouts", "rangeCars", "rangeDifficulty", "btnRandomizeStart", "btnRandomizeEnd", "btnSolve"]);
-                        break;
-                    }
-            }
-        }
-
-        function cytoscapeCreate() {
-            return cy = cytoscape({
-                container: $("#railway"),
-                layout: { name: 'preset' },
-                zoomingEnabled: true,
-                userZoomingEnabled: false,
-                panningEnabled: true,
-                userPanningEnabled: false,
-                boxSelectionEnabled: false,
-                style: [
-                    {
-                        selector: ".node",
-                        style: {
-                            "width": 6,
-                            "height": 6
-                        }
-                    },
-                    {
-                        selector: ".track",
-                        style: {
-                            "line-color": 'orange',
-                            "width": 2
-                        }
-                    },
-                    {
-                        selector: ".connector",
-                        style: {
-                            "background-color": 'orange',
-                            "width": 1,
-                            "height": 1
-                        }
-                    }
-                ]
-            }).nodeHtmlLabel([
-                {
-                    query: '.node',
-                    valign: "center",
-                    halign: "center",
-                    valignBox: "center",
-                    halignBox: "center",
-                    tpl: function (data) {
-                        return '<p class="cyNodeLabel">' + (data.carName ? data.carName : "") + '</p>';
-                    }
-                }]);
-        }
-
-        function cytoscapePopulate() {
-
-            let nodes = [];
-            let edges = [];
-
-            let layout = parseInt($("#layouts").val());
-            let layoutNodes = JSON.parse(Module.getLayoutNodes(layout));
-            let turnoutId = 0;
-            _.each(layoutNodes, n => {
-
-                let node = { group: 'nodes', data: { id: n.id }, position: { x: n.x, y: n.y }, classes: "node" };
-                if (n.connections.length > 2) {
-                    node.data.turnoutId = turnoutId;
-                    ++turnoutId;
+                function status(text) {
+                    $("#msg").html(text).removeClass("error");
                 }
-                nodes.push(node);
 
-                _.each(n.connections, c => {
-                    let other = _.find(layoutNodes, node => node.id === c.target);
-
-                    let exists = _.find(nodes, node => node.data.id === n.id + "_" + other.id || node.data.id === other.id + "_" + n.id);
-
-                    if (!exists) {
-                        exists = { group: 'nodes', data: { id: n.id + "_" + other.id }, position: { x: n.x - (n.x - other.x) / 2, y: n.y - (n.y - other.y) / 2 }, classes: "connector" };
-                        nodes.push(exists);
-                    }
-                    let edge = { group: 'edges', data: { source: n.id, target: exists.data.id }, classes: "track" };
-                    if (c.turnout !== "None")
-                        edge.classes += " " + c.turnout;
-                    edges.push(edge);
-                });
-            });
-
-            cy.add(nodes);
-            cy.add(edges);
-            cy.fit();
-        }
-
-        function idToCarName(i) {
-            if (i === 0)
-                return "Loco";
-            return i;
-        }
-
-        function cyDisplayCarPlacement(carPlacement) {
-            cy.$('node').data("carName", "");
-            _.each(carPlacement, (value, index) => {
-                cy.$('node[id="' + value + '"]').data("carName", idToCarName(index));
-            });
-        }
-
-        function cyDisplayTurnoutState(turnouts) {
-            cy.edges(".A_B").removeClass("DontCare").show();
-            cy.edges(".A_C").removeClass("DontCare").show();
-            _.each(turnouts, (value, index) => {
-                let node = cy.$('node[turnoutId=' + index + ']');
-                if (value === "DontCare") {
-                    // always show as normal
-                    // node.connectedEdges(".A_B, .A_C").addClass("DontCare");
-                }
-                else if (value === "A_B") {
-                    node.connectedEdges(".A_C").hide();
-                }
-                else if (value === "A_C") {
-                    node.connectedEdges(".A_B").hide();
-                }
-            });
-        }
-
-        function cyUpdate(state, turnouts) {
-            cy.$('node').data("carName", "");
-            _.each(state, (value, index) => {
-                cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
-            });
-        }
-
-        function displayLayoutState(step) {
-            let carPlacement = Module.getCarLayout(step);
-            cyDisplayCarPlacement(_.split(carPlacement, ","));
-            let turnouts = Module.getTurnouts(step);
-            cyDisplayTurnoutState(JSON.parse(turnouts));
-        }
-
-        function wasmLoaded() {
-            let error = Module.addFunction(e => console.error(Module.UTF8ToString(e)), 'vi');
-            let print = Module.addFunction((info, state, turnouts) => console.log(info, state, turnouts), 'viii');
-            let step = Module.addFunction((step, steps, solutions) => { progress(step / steps); }, 'viii');
-            let statistics = Module.addFunction((steps, solutions) => console.log(steps, solutions), 'vii');
-            Module.ccall('setCallbacks', 'void', ['number', 'number', 'number', 'number'], [error, print, step, statistics]);
-
-            function progress(p) {
-                $("#solverProgress").css("width", (p * 100) + "%");
-            }
-
-            function updateShortestPathUI() {
-                if (shortestPath.length > 0) {
-                    $("#rangeStep").prop("max", shortestPath.length - 1);
-                }
-            }
-
-            let progressUpdateInterval = null;
-            function solve() {
-                //performance.mark("solve-started");
-                const tssState = Module.timeSaverSolver();
-                if (tssState === Module.TSSState.StepDikjstra) {
-                    if (!progressUpdateInterval) {
-                        progressUpdateInterval = setInterval(() => {
-                            progress(dijkstraDone / dijkstraSteps.expectedIterations);
-                        }, 1000);
-                    }
-                    dijkstraDone += dijkstraSteps.stepIterations;
-                    dijkstraDone = Math.min(dijkstraDone, dijkstraSteps.expectedIterations)
-                    _.defer(solve);
-                }
-                else if (tssState === Module.TSSState.Finalize) {
-                    clearInterval(progressUpdateInterval);
-                    progressUpdateInterval = null;
-                    progress(1);
-                    let path = Module.getShortestPath();
-                    shortestPath = JSON.parse(path);
-                    updateShortestPathUI();
-                    console.log("shortest path: " + shortestPath);
-                    state = State.Solved;
-                    updateUI();
-                }
-                else if (tssState === Module.TSSState.Error) {
-                    console.error("error during timeSaverSolver()");
-                }
-                else
-                    _.defer(solve);
-            }
-
-            $("#btnRandomizeStart").on('click', e => {
-                let layout = parseInt($("#layouts").val());
-                let cars = parseInt($("#rangeCars").val());
-                console.log(Module.timeSaverSolverInit(layout, cars));
-                selectedStartStep = Module.getRandomStartState();
-                carPlacement = Module.getCarLayout(selectedStartStep);
-                console.log(selectedStartStep + ": " + carPlacement);
-                displayLayoutState(selectedStartStep);
-                state = State.StartPosSet;
-                updateUI();
-            });
-
-            $("#btnRandomizeEnd").on('click', e => {
-                let diff = parseInt($("#rangeDifficulty").val());
-                selectedEndStep = Module.getRandomEndState(selectedStartStep, diff);
-                carPlacement = Module.getCarLayout(selectedEndStep);
-                cyDisplayCarPlacement(_.split(carPlacement, ","));
-                console.log(selectedEndStep + ": " + carPlacement);
-                displayLayoutState(selectedEndStep);
-                state = State.EndPosSet;
-                updateUI();
-            });
-            $("#btnSolve").on('click', e => {
-                progress(0);
-                let expSteps = Module.getExpectedSteps();
-                console.log(expSteps);
-                dijkstraSteps = JSON.parse(expSteps);
-                dijkstraDone = 0;
-                _.defer(solve);
-            });
-            $("#layouts").on('change', e => {
-                let layout = parseInt($(e.target).val());
-                if (cy)
-                    cy.destroy();
-                cy = cytoscapeCreate();
-                cytoscapePopulate();
-                $("#rangeCars").prop("max", Module.getMaximumCarCount(layout));
-                state = State.LayoutSet;
-                updateUI();
-            });
-            $("#rangeStep").on('change', e => {
-                let idx = $(e.target).val();
-                if (idx < shortestPath.length) {
-                    let step = shortestPath[$(e.target).val()];
-                    displayLayoutState(step.i);
-                    $("#currentStep").html("Step: " + $(e.target).val() + " [" + step.i + "]");
-                }
-            });
-
-            $("#btnViewStart").on('click', e => {
-                displayLayoutState(selectedStartStep);
-            });
-            $("#btnViewEnd").on('click', e => {
-                displayLayoutState(selectedEndStep);
-            });
-
-            let updateStep = (dir) => {
-                const val = parseInt($("#rangeStep").val()) + dir;
-                $("#rangeStep").val(val);
-                $("#rangeStep").trigger('change');
-            };
-            $("#btnStepPrev").on('click', _.bind(updateStep, this, -1));
-            $("#btnStepNext").on('click', _.bind(updateStep, this, +1));
-
-            let layouts = Module.getLayoutCount();
-            for (let i = 0; i < layouts; ++i)
-                $("#layouts").append($("<option>").prop("value", i).prop("selected", i == 0 ? "selected" : "").html(Module.getLayoutName(i)));
-            $("#layouts").trigger('change');
-            M.FormSelect.init($("#layouts")[0]);
-
-            cy = cytoscapeCreate();
-            cytoscapePopulate();
-            updateUI();
-
-            setTimeout(() => {
-                cy.fit();
-            }, 500);
-
-            var loadingElement = document.getElementById('loading');
-            var contentElement = document.getElementById('content');
-            loadingElement.hidden = true;
-            contentElement.style.display = 'block';
-            contentElement.hidden = false;
-        };
-
-    </script>
-    <script type='text/javascript'>
-        var statusElement = document.getElementById('status');
-        var progressElement = document.getElementById('progress');
-        var spinnerElement = document.getElementById('spinner');
-        var loadingElement = document.getElementById('loading');
-        var contentElement = document.getElementById('content');
-
-        var Module = {
-            preRun: [],
-            postRun: [wasmLoaded],
-            print: (function () {
-                var element = document.getElementById('output');
-                if (element) element.value = ''; // clear browser cache
-                return function (text) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    // These replacements are necessary if you render to raw HTML
-                    //text = text.replace(/&/g, "&amp;");
-                    //text = text.replace(/</g, "&lt;");
-                    //text = text.replace(/>/g, "&gt;");
-                    //text = text.replace('\n', '<br>', 'g');
+                function error(text) {
+                    $("#msg").html(text + " - Please reload the page to start again.").addClass("error");
                     console.log(text);
-                    if (element) {
-                        element.value += text + "\n";
-                        element.scrollTop = element.scrollHeight; // focus on bottom
+                }
+
+                function enable(inputs) {
+                    _.each(inputs, i => {
+                        let $e = $(i);
+                        if ($e[0].tagName === "INPUT")
+                            $e.prop("disabled", "");
+                        else
+                            $e.removeClass("disabled");
+                    });
+                }
+                function disable(withClass) {
+                    $(withClass).each((idx, $ele) => {
+                        if ($ele.tagName === "INPUT")
+                            $($ele).prop("disabled", "disabled");
+                        else
+                            $($ele).addClass("disabled");
+                    });
+                }
+
+                function updateSteps() {
+                    $("#idStartStep").text("(#" + selectedStartStep + ")");
+                    $("#idEndStep").text("(#" + selectedEndStep + ")");
+                }
+
+                function updateUI() {
+                    disable(".stateEnabled");
+                    switch (state) {
+                        case State.Initial:
+                            {
+                                enable(["#layouts", "#rangeCars"]);
+                                status("Pick Layout and number of cars");
+                                break;
+                            }
+                        case State.LayoutSet:
+                            {
+                                enable(["#layouts", "#rangeCars", "#btnRandomizeStart", "#chbEditStart"]);
+                                status("Find the starting positions for the locomotive and cars");
+                                break;
+                            }
+                        case State.StartPosSet:
+                            {
+                                enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd"]);
+                                status("Find the end positions for the locomotive and cars");
+                                break;
+                            }
+                        case State.EndPosSet:
+                            {
+                                enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd", "#btnViewEnd", "#btnSolve"]);
+                                status("Ready to solve");
+                                break;
+                            }
+                        case State.Solved:
+                            {
+                                enable(["#btnViewStart", "#btnViewEnd", "#btnStepPrev", "#btnStepNext", "#rangeStep"]);
+                                status("Browse the found solutions");
+                                break;
+                            }
+                        case State.EditStart:
+                            {
+                                enable(["#chbEditStart"]);
+                                status("Edit the locomotive and car positions in the layout");
+                                break;
+                            }
+                        case State.EditEnd:
+                            {
+                                enable(["#chbEditEnd"]);
+                                status("Edit the locomotive and car positions in the layout");
+                                break;
+                            }
+                    }
+                    updateSteps();
+                }
+
+                function cytoscapeCreate() {
+                    return cy = cytoscape({
+                        autolock: true,
+                        container: $("#railway"),
+                        layout: { name: 'preset' },
+                        zoomingEnabled: true,
+                        userZoomingEnabled: false,
+                        panningEnabled: true,
+                        userPanningEnabled: false,
+                        boxSelectionEnabled: false,
+                        style: [
+                            {
+                                selector: ".node",
+                                style: {
+                                    "width": 6,
+                                    "height": 6
+                                }
+                            },
+                            {
+                                selector: ".track",
+                                style: {
+                                    "line-color": 'orange',
+                                    "width": 2
+                                }
+                            },
+                            {
+                                selector: ".connector",
+                                style: {
+                                    "background-color": 'orange',
+                                    "width": 1,
+                                    "height": 1
+                                }
+                            }
+                        ]
+                    }).nodeHtmlLabel([
+                        {
+                            query: '.node',
+                            valign: "center",
+                            halign: "center",
+                            valignBox: "center",
+                            halignBox: "center",
+                            tpl: function (data) {
+                                return '<p class="cyNodeLabel">' + (data.carName ? data.carName : "") + '</p>';
+                            }
+                        }]);
+                }
+
+                function cyContextMenuEntries() {
+                    let entries = [];
+
+                    _.each(_.range(0, parseInt($("#rangeCars").val()) + 1), i => {
+                        entries.push({
+                            content: idToCarName(i),
+                            select: function (ele) {
+                                carPlacement[i] = ele.data('id');
+                                cyDisplayCarPlacement(carPlacement);
+                            }
+                        });
+                    });
+
+                    return entries;
+                }
+
+                function cyAddMenus() {
+                    cyDestroyMenus();
+                    cyMenu = cy.cxtmenu({
+                        selector: '.node',
+                        commands: cyContextMenuEntries
+                    });
+                }
+
+                function cyDestroyMenus() {
+                    if (cyMenu)
+                        cyMenu.destroy();
+                }
+
+                function cytoscapePopulate() {
+
+                    let nodes = [];
+                    let edges = [];
+
+                    let layout = parseInt($("#layouts").val());
+                    let layoutNodes = JSON.parse(Module.getLayoutNodes(layout));
+                    let turnoutId = 0;
+                    _.each(layoutNodes, n => {
+
+                        let node = { group: 'nodes', data: { id: n.id }, position: { x: n.x, y: n.y }, classes: "node" };
+                        if (n.connections.length > 2) {
+                            node.data.turnoutId = turnoutId;
+                            ++turnoutId;
+                        }
+                        nodes.push(node);
+
+                        _.each(n.connections, c => {
+                            let other = _.find(layoutNodes, node => node.id === c.target);
+
+                            let exists = _.find(nodes, node => node.data.id === n.id + "_" + other.id || node.data.id === other.id + "_" + n.id);
+
+                            if (!exists) {
+                                exists = { group: 'nodes', data: { id: n.id + "_" + other.id }, position: { x: n.x - (n.x - other.x) / 2, y: n.y - (n.y - other.y) / 2 }, classes: "connector" };
+                                nodes.push(exists);
+                            }
+                            let edge = { group: 'edges', data: { source: n.id, target: exists.data.id }, classes: "track" };
+                            if (c.turnout !== "None")
+                                edge.classes += " " + c.turnout;
+                            edges.push(edge);
+                        });
+                    });
+
+                    cy.add(nodes);
+                    cy.add(edges);
+                    cy.fit();
+                }
+
+                function idToCarName(i) {
+                    return $(".carName[tssNameId=\"" + i + "\"]").val();
+                }
+
+                function cyDisplayCarPlacement(carPlacement) {
+                    for (let i = 1; i <= 6; ++i)
+                        if (carPlacement.length < i)
+                            carPlacement.push(-1);
+
+                    cy.$('node').data("carName", "");
+                    _.each(carPlacement, (value, index) => {
+                        if (value != -1)
+                            cy.$('node[id="' + value + '"]').data("carName", idToCarName(index));
+                    });
+                }
+
+                function cyDisplayTurnoutState(turnouts) {
+                    cy.edges(".A_B").removeClass("DontCare").show();
+                    cy.edges(".A_C").removeClass("DontCare").show();
+                    _.each(turnouts, (value, index) => {
+                        let node = cy.$('node[turnoutId=' + index + ']');
+                        if (value === "DontCare") {
+                            // always show as normal
+                            // node.connectedEdges(".A_B, .A_C").addClass("DontCare");
+                        }
+                        else if (value === "A_B") {
+                            node.connectedEdges(".A_C").hide();
+                        }
+                        else if (value === "A_C") {
+                            node.connectedEdges(".A_B").hide();
+                        }
+                    });
+                }
+
+                function cyUpdate(state, turnouts) {
+                    cy.$('node').data("carName", "");
+                    _.each(state, (value, index) => {
+                        cy.$('node[id="' + index + '"]').data("carName", value === 0 ? "" : idToCarName(value - 1));
+                    });
+                }
+
+                function displayLayoutState(step) {
+                    let carPlacementString = Module.getCarLayout(step);
+                    carPlacement = _.split(carPlacementString, ",");
+                    cyDisplayCarPlacement(carPlacement);
+                    let turnouts = Module.getTurnouts(step);
+                    cyDisplayTurnoutState(JSON.parse(turnouts));
+                }
+
+                function verifyCarPlacement(carPlacement) {
+                    const carCount = parseInt($("#rangeCars").val()) + 1;
+                    for (let i = 0; i < carCount; ++i) {
+                        const cp = parseInt(carPlacement[i]);
+                        if (cp < 0 || cp > 20)
+                            return false;
+                    }
+                    return true;
+                }
+
+                function packCarPlacement(carPlacement) {
+                    let val = 0;
+
+                    for (let i = 0; i < 6; ++i)
+                        val += Math.max(parseInt(carPlacement[i]), 0) * Math.pow(20, i);
+
+                    return val;
+                }
+
+                function wasmLoaded() {
+                    let error = Module.addFunction(e => console.error(Module.UTF8ToString(e)), 'vi');
+                    let print = Module.addFunction((info, state, turnouts) => console.log(info, state, turnouts), 'viii');
+                    let step = Module.addFunction((step, steps, solutions) => { progress(step / steps); }, 'viii');
+                    let statistics = Module.addFunction((steps, solutions) => console.log(steps, solutions), 'vii');
+                    Module.ccall('setCallbacks', 'void', ['number', 'number', 'number', 'number'], [error, print, step, statistics]);
+
+                    function progress(p) {
+                        $("#solverProgress").css("width", (p * 100) + "%");
+                    }
+
+                    function updateShortestPathUI() {
+                        if (shortestPath.length > 0) {
+                            $("#rangeStep").prop("min", 0);
+                            $("#rangeStep").prop("max", shortestPath.length - 1);
+                            $("#rangeStep").val(0);
+                            $("#rangeStep").trigger('change');
+                        }
+                    }
+
+                    let progressUpdateInterval = null;
+                    function solve() {
+                        const tssState = Module.timeSaverSolver();
+                        if (tssState === Module.TSSState.StepDikjstra) {
+                            if (!progressUpdateInterval) {
+                                progressUpdateInterval = setInterval(() => {
+                                    progress(dijkstraDone / dijkstraSteps.expectedIterations);
+                                    status("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
+                                }, 1000);
+                            }
+                            dijkstraDone += dijkstraSteps.stepIterations;
+                            dijkstraDone = Math.min(dijkstraDone, dijkstraSteps.expectedIterations)
+                            _.defer(solve);
+                        }
+                        else if (tssState === Module.TSSState.Finalize) {
+                            clearInterval(progressUpdateInterval);
+                            progressUpdateInterval = null;
+                            progress(1);
+                            let path = Module.getShortestPath();
+                            shortestPath = JSON.parse(path);
+                            let cost = _.reduce(shortestPath, (sum, p) => { return sum + parseInt(p.cost); }, 0);
+                            updateShortestPathUI();
+                            console.log("shortest path: \n" + _.map(shortestPath, p => { return "i: " + p.i + ", cost: " + p.cost + ", dir: " + p.locoDirection + "\n" }));
+                            console.log("total cost: " + cost);
+                            $("#solution").html("Steps: " + shortestPath.length + " Cost: " + cost);
+                            status("Steps: " + shortestPath.length + " Cost: " + cost);
+                            //status("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
+                            state = State.Solved;
+                            updateUI();
+                        }
+                        else if (tssState === Module.TSSState.Error) {
+                            error("error during timeSaverSolver()");
+                        }
+                        else
+                            _.defer(solve);
+                    }
+
+                    $("#btnRandomizeStart").on('click', e => {
+                        selectedStartStep = Module.getRandomStartState();
+                        carPlacement = Module.getCarLayout(selectedStartStep);
+                        console.log(selectedStartStep + ": " + carPlacement);
+                        displayLayoutState(selectedStartStep);
+                        if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                            state = State.EndPosSet;
+                        else
+                            state = State.StartPosSet;
+                        updateUI();
+                    });
+
+                    $("#btnRandomizeEnd").on('click', e => {
+                        let diff = parseInt($("#rangeDifficulty").val());
+                        selectedEndStep = Module.getRandomEndState(selectedStartStep, diff);
+                        carPlacement = Module.getCarLayout(selectedEndStep);
+                        cyDisplayCarPlacement(_.split(carPlacement, ","));
+                        console.log(selectedEndStep + ": " + carPlacement);
+                        displayLayoutState(selectedEndStep);
+                        if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                            state = State.EndPosSet;
+                        updateUI();
+                    });
+                    $("#btnSolve").on('click', e => {
+                        progress(0);
+                        let expSteps = Module.getExpectedSteps();
+                        console.log(expSteps);
+                        dijkstraSteps = JSON.parse(expSteps);
+                        dijkstraDone = 0;
+                        _.defer(solve);
+                    });
+                    $("#layouts").on('change', e => {
+                        let layout = parseInt($(e.target).val());
+                        if (cy)
+                            cy.destroy();
+                        cy = cytoscapeCreate();
+                        cytoscapePopulate();
+                        $("#rangeCars").prop("max", Module.getMaximumCarCount(layout));
+                        let cars = parseInt($("#rangeCars").val());
+                        console.log(Module.timeSaverSolverInit(layout, cars));
+                        state = State.LayoutSet;
+                        updateUI();
+                    });
+                    $("#rangeCars").on('change', e => {
+                        let cars = parseInt($(e.target).val());
+                        let layout = parseInt($("#layouts").val());
+                        console.log(Module.timeSaverSolverInit(layout, cars));
+                        state = State.LayoutSet;
+                        updateUI();
+                    });
+                    $("#rangeDifficulty").on('change', e => {
+                        let diff = parseInt($(e.target).val());
+                        $("#idDifficulty").html(diff);
+                    });
+                    $("#rangeStep").on('change', e => {
+                        let idx = $(e.target).val();
+                        if (idx < shortestPath.length) {
+                            let step = shortestPath[$(e.target).val()];
+                            displayLayoutState(step.i);
+                            $("#currentStep").html("Step: " + $(e.target).val() + " [" + step.i + "] <br> Loco direction: " + (step.locoDirection === "f" ? ">>>" : "<<<"));
+                        }
+                    });
+
+                    $("#btnViewStart").on('click', e => {
+                        displayLayoutState(selectedStartStep);
+                        if (state === State.Solved) {
+                            $("#rangeStep").val(0);
+                            $("#rangeStep").trigger('change');
+                        }
+                    });
+                    $("#btnViewEnd").on('click', e => {
+                        displayLayoutState(selectedEndStep);
+                        if (state === State.Solved) {
+                            $("#rangeStep").val(parseInt($("#rangeStep").prop("max")));
+                            $("#rangeStep").trigger('change');
+                        }
+                    });
+
+                    $("#chbEditStart").on('change', e => {
+                        const val = $(e.target).prop("checked");
+                        if (val) {
+                            cyAddMenus();
+                            state = State.EditStart;
+                            updateUI();
+                        }
+                        else {
+                            cyDestroyMenus();
+                            let validCarPlacement = false;
+                            if (verifyCarPlacement(carPlacement)) {
+                                let packedCP = packCarPlacement(carPlacement);
+                                let stepId = Module.getLayoutForCarPlacement(packedCP);
+                                if (stepId !== -1) {
+                                    selectedStartStep = Module.setStartState(stepId);
+                                    validCarPlacement = true;
+                                }
+                                
+                                if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                                    state = State.EndPosSet;
+                                else if (selectedStartStep >= 0)
+                                    state = State.StartPosSet;
+                                else
+                                    state = State.LayoutSet;
+                            }
+                            if (!validCarPlacement) {
+                                if (selectedStartStep !== -1) {
+                                    const carPlacementString = Module.getCarLayout(selectedStartStep);
+                                    carPlacement = _.split(carPlacementString, ",");
+                                    state = State.StartPosSet;
+                                }
+                                else {
+                                    carPlacement = emptyCarPlacement.slice();
+                                    state = State.LayoutSet;
+                                }
+                                cyDisplayCarPlacement(carPlacement);
+                                error("Layout not valid. Reverting to previous state");
+                            }
+                            updateUI();
+                        }
+                    });
+                    $("#chbEditEnd").on('change', e => {
+                        const val = $(e.target).prop("checked");
+                        if (val) {
+                            cyAddMenus();
+                            state = State.EditEnd;
+                            updateUI();
+                        }
+                        else {
+                            cyDestroyMenus();
+                            let validCarPlacement = false;
+                            if (verifyCarPlacement(carPlacement)) {
+                                let packedCP = packCarPlacement(carPlacement);
+                                let stepId = Module.getLayoutForCarPlacement(packedCP);
+                                if (stepId !== -1) {
+                                    selectedEndStep = Module.setEndState(stepId);
+                                    validCarPlacement = true;
+                                }
+
+                                if (selectedStartStep >= 0 && selectedEndStep >= 0 && selectedStartStep != selectedEndStep)
+                                    state = State.EndPosSet;
+                            }
+                            if (!validCarPlacement) {
+                                if (selectedEndStep !== -1) {
+                                    const carPlacementString = Module.getCarLayout(selectedEndStep);
+                                    carPlacement = _.split(carPlacementString, ",");
+                                    state = State.EndPosSet;
+                                }
+                                else {
+                                    carPlacement = emptyCarPlacement.slice();
+                                    state = State.StartPosSet;
+                                }
+                                cyDisplayCarPlacement(carPlacement);
+                                error("Layout not valid. Reverting to previous state");
+                            }
+                            updateUI();
+                        }
+                    });
+
+                    let updateStep = (dir) => {
+                        const val = parseInt($("#rangeStep").val()) + dir;
+                        $("#rangeStep").val(val);
+                        $("#rangeStep").trigger('change');
+                    };
+                    $("#btnStepPrev").on('click', _.bind(updateStep, this, -1));
+                    $("#btnStepNext").on('click', _.bind(updateStep, this, +1));
+
+                    $("#toggleHowto").on('click', e => {
+                        let $howto = $(".howto");
+                        if ($howto.css('display') === 'none') {
+                            $howto.show();
+                            $(".panel").addClass("panelShow");
+                            $(".panelName").show();
+                            $("#content").addClass("containerToLeft");
+                        }
+                        else {
+                            $howto.hide();
+                            $(".panel").removeClass("panelShow");
+                            $(".panelName").hide();
+                            $("#content").removeClass("containerToLeft");
+                        }
+                    });
+                    $("#toggleRules").on('click', e => {
+                        let $rules = $(".rules");
+                        if ($rules.css('display') === 'none') {
+
+                            let $howto = $(".howto");
+                            $(".panel").removeClass("panelShow");
+                            $(".panelName").hide();
+                            $("#content").removeClass("containerToLeft");
+
+                            $rules.show();
+                            $("#content").addClass("containerToLeft");
+                        }
+                        else {
+                            $rules.hide();
+                            $("#content").removeClass("containerToLeft");
+                        }
+                    });
+                    $("#toggleSettings").on('click', e => {
+                        let $settings = $(".settingsRow");
+                        if ($settings.css('display') === 'none') {
+                            $settings.show();
+                        }
+                        else {
+                            $settings.hide();
+                        }
+                    });
+
+                    $(".carName").on('change', e => {
+                        cyDisplayCarPlacement(carPlacement);
+                    });
+
+                    let layouts = Module.getLayoutCount();
+                    for (let i = 0; i < layouts; ++i)
+                        $("#layouts").append($("<option>").prop("value", i).prop("selected", i == 0 ? "selected" : "").html(Module.getLayoutName(i)));
+                    $("#layouts").trigger('change');
+                    $("#rangeDifficulty").trigger('change');
+                    M.FormSelect.init($("#layouts")[0]);
+
+                    cy = cytoscapeCreate();
+                    cytoscapePopulate();
+                    updateUI();
+
+                    setTimeout(() => {
+                        cy.fit();
+                    }, 500);
+
+                    var loadingElement = document.getElementById('loading');
+                    var contentElement = document.getElementById('content');
+                    loadingElement.hidden = true;
+                    contentElement.style.display = 'block';
+                    contentElement.hidden = false;
+                };
+
+            </script>
+            <script type='text/javascript'>
+                var statusElement = document.getElementById('status');
+                var progressElement = document.getElementById('progress');
+                var spinnerElement = document.getElementById('spinner');
+                var loadingElement = document.getElementById('loading');
+                var contentElement = document.getElementById('content');
+
+                var Module = {
+                    preRun: [],
+                    postRun: [wasmLoaded],
+                    print: (function () {
+                        var element = document.getElementById('output');
+                        if (element) element.value = ''; // clear browser cache
+                        return function (text) {
+                            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                            // These replacements are necessary if you render to raw HTML
+                            //text = text.replace(/&/g, "&amp;");
+                            //text = text.replace(/</g, "&lt;");
+                            //text = text.replace(/>/g, "&gt;");
+                            //text = text.replace('\n', '<br>', 'g');
+                            console.log(text);
+                            if (element) {
+                                element.value += text + "\n";
+                                element.scrollTop = element.scrollHeight; // focus on bottom
+                            }
+                        };
+                    })(),
+                    setStatus: function (text) {
+                        if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+                        if (text === Module.setStatus.last.text) return;
+                        var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+                        var now = Date.now();
+                        if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+                        Module.setStatus.last.time = now;
+                        Module.setStatus.last.text = text;
+                        if (m) {
+                            text = m[1];
+                            progressElement.value = parseInt(m[2]) * 100;
+                            progressElement.max = parseInt(m[4]) * 100;
+                            progressElement.hidden = false;
+                            spinnerElement.hidden = false;
+                        } else {
+                            progressElement.value = null;
+                            progressElement.max = null;
+                            progressElement.hidden = true;
+                            if (!text) spinnerElement.hidden = true;
+                        }
+                        statusElement.innerHTML = text;
+                    },
+                    totalDependencies: 0,
+                    monitorRunDependencies: function (left) {
+                        this.totalDependencies = Math.max(this.totalDependencies, left);
+                        Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
                     }
                 };
-            })(),
-            setStatus: function (text) {
-                if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
-                if (text === Module.setStatus.last.text) return;
-                var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-                var now = Date.now();
-                if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
-                Module.setStatus.last.time = now;
-                Module.setStatus.last.text = text;
-                if (m) {
-                    text = m[1];
-                    progressElement.value = parseInt(m[2]) * 100;
-                    progressElement.max = parseInt(m[4]) * 100;
-                    progressElement.hidden = false;
-                    spinnerElement.hidden = false;
-                } else {
-                    progressElement.value = null;
-                    progressElement.max = null;
-                    progressElement.hidden = true;
-                    if (!text) spinnerElement.hidden = true;
+                Module.setStatus('Downloading...');
+                window.onerror = function () {
+                    Module.setStatus('Exception thrown, see JavaScript console');
+                    spinnerElement.style.display = 'none';
+                    Module.setStatus = function (text) {
+                        if (text) console.error('[post-exception status] ' + text);
+                    };
+                };
+
+                function putStateIntoURL() {
+                    var url = window.location.protocol + "//" + window.location.host + window.location.pathname + '?';
+                    $(".settings").each((index, item) => {
+                        let $item = $(item);
+                        url += $item.attr("id") + "=" + $item.val() + "&";
+                    });
+                    window.history.pushState({ path: url }, '', url);
                 }
-                statusElement.innerHTML = text;
-            },
-            totalDependencies: 0,
-            monitorRunDependencies: function (left) {
-                this.totalDependencies = Math.max(this.totalDependencies, left);
-                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-            }
-        };
-        Module.setStatus('Downloading...');
-        window.onerror = function () {
-            Module.setStatus('Exception thrown, see JavaScript console');
-            spinnerElement.style.display = 'none';
-            Module.setStatus = function (text) {
-                if (text) console.error('[post-exception status] ' + text);
-            };
-        };
 
-        function putStateIntoURL() {
-            var url = window.location.protocol + "//" + window.location.host + window.location.pathname + '?';
-            $(".settings").each((index, item) => {
-                let $item = $(item);
-                url += $item.attr("id") + "=" + $item.val() + "&";
-            });
-            window.history.pushState({ path: url }, '', url);
-        }
+                $(function () {
+                    M.AutoInit();
 
-        $(function () {
-            M.AutoInit();
+                    let URLsp = new URLSearchParams(window.location.search);
+                    $(".settings").each((index, item) => {
+                        let $item = $(item);
+                        $item.on('change', () => { putStateIntoURL(); });
+                        $item.val(URLsp.get($item.attr("id")) || ($item.attr("placeholder") || 0));
+                    });
+                });
 
-            let URLsp = new URLSearchParams(window.location.search);
-            $(".settings").each((index, item) => {
-                let $item = $(item);
-                $item.on('change', () => { putStateIntoURL(); });
-                $item.val(URLsp.get($item.attr("id")) || ($item.attr("placeholder") || 0));
-            });
-        });
+            </script>
+            {{{ SCRIPT }}}
+            <script type="text/javascript" src="materialize.min.js"></script>
+            <script type="text/javascript" src="cytoscape.min.js"></script>
+            <script type="text/javascript" src="cytoscape-node-html-label.min.js"></script>
+            <script type="text/javascript" src="cytoscape-cxtmenu.js"></script>
 
-    </script>
-    {{{ SCRIPT }}}
-    <script type="text/javascript" src="materialize.min.js"></script>
-    <script type="text/javascript" src="cytoscape.min.js"></script>
-    <script type="text/javascript" src="cytoscape-node-html-label.min.js"></script>
 </body>
 </html>

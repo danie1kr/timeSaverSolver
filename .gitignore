@@ -44,3 +44,5 @@
 /precomputed
 /x64
 /jsTSS/Emscripten/Release Benchmark
+/tss-tests/x64/Debug Benchmark
+/jsTSS/Emscripten/Debug Benchmark
