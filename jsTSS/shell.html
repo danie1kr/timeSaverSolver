@@ -88,7 +88,7 @@
         }
 
         .cyNodeLabel {
-            font-size: smaller;
+            font-size: xx-small;
         }
 
         #header {
@@ -109,18 +109,6 @@
 
         .inline {
             display: inline;
-        }
-
-        .tutorialBadge {
-            border-radius: 5px;
-            position: relative;
-            top: -1em;
-            left: -1em;
-            z-index: 9999;
-            background-color: orange;
-            padding: 3pt;
-            text-align: center;
-            color: white;
         }
 
         .panel {
@@ -253,16 +241,19 @@
             <div class="col s4 noPadding">
                 <div class="panel">
                     <div class="panelName">Start</div>
-                    Position <span id="idStartStep"></span>
-                    <a class="waves-effect waves-light btn stateEnabled" id="btnViewStart"><span class="material-icons">search</span></a>
-
-                    <a class="waves-effect waves-light btn stateEnabled" id="btnRandomizeStart"><span class="material-icons">shuffle</span></a>
-                    <div class="switch inline">
-                        <label>
-                            <input id="chbEditStart" type="checkbox" class="stateEnabled">
-                            <span class="lever"></span>
-                            <span class="material-icons">edit</span>
-                        </label>
+                    <div>
+                        Position <span id="idStartStep"></span>
+                        <a class="waves-effect waves-light btn stateEnabled" id="btnViewStart"><span class="material-icons">search</span></a>
+                    </div>
+                    <div>
+                        <a class="waves-effect waves-light btn stateEnabled" id="btnRandomizeStart"><span class="material-icons">shuffle</span></a>
+                        <div class="switch inline">
+                            <label>
+                                <input id="chbEditStart" type="checkbox" class="stateEnabled">
+                                <span class="lever"></span>
+                                <span class="material-icons">edit</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -434,11 +425,11 @@
                 };
                 let state = State.Initial;
 
-                function status(text) {
+                function statusMsg(text) {
                     $("#msg").html(text).removeClass("error");
                 }
 
-                function error(text) {
+                function errorMsg(text) {
                     $("#msg").html(text + " - Please reload the page to start again.").addClass("error");
                     console.log(text);
                 }
@@ -472,43 +463,43 @@
                         case State.Initial:
                             {
                                 enable(["#layouts", "#rangeCars"]);
-                                status("Pick Layout and number of cars");
+                                statusMsg("Pick Layout and number of cars");
                                 break;
                             }
                         case State.LayoutSet:
                             {
                                 enable(["#layouts", "#rangeCars", "#btnRandomizeStart", "#chbEditStart"]);
-                                status("Find the starting positions for the locomotive and cars");
+                                statusMsg("Find the starting positions for the locomotive and cars");
                                 break;
                             }
                         case State.StartPosSet:
                             {
                                 enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd"]);
-                                status("Find the end positions for the locomotive and cars");
+                                statusMsg("Find the end positions for the locomotive and cars");
                                 break;
                             }
                         case State.EndPosSet:
                             {
                                 enable(["#btnRandomizeStart", "#chbEditStart", "#btnViewStart", "#rangeDifficulty", "#btnRandomizeEnd", "#chbEditEnd", "#btnViewEnd", "#btnSolve"]);
-                                status("Ready to solve");
+                                statusMsg("Ready to solve");
                                 break;
                             }
                         case State.Solved:
                             {
                                 enable(["#btnViewStart", "#btnViewEnd", "#btnStepPrev", "#btnStepNext", "#rangeStep"]);
-                                status("Browse the found solutions");
+                                statusMsg("Browse the found solutions");
                                 break;
                             }
                         case State.EditStart:
                             {
                                 enable(["#chbEditStart"]);
-                                status("Edit the locomotive and car positions in the layout");
+                                statusMsg("Edit the locomotive and car positions in the layout");
                                 break;
                             }
                         case State.EditEnd:
                             {
                                 enable(["#chbEditEnd"]);
-                                status("Edit the locomotive and car positions in the layout");
+                                statusMsg("Edit the locomotive and car positions in the layout");
                                 break;
                             }
                     }
@@ -564,6 +555,18 @@
 
                 function cyContextMenuEntries() {
                     let entries = [];
+
+                    entries.push({
+                        content: "clear",
+                        select: function (ele) {
+                            for (let i = 1; i <= 6; ++i) {
+                                if (carPlacement[i] === ele.data('id'))
+                                    carPlacement[i] = -1;
+                                break;
+                            }
+                            cyDisplayCarPlacement(carPlacement);
+                        }
+                    });
 
                     _.each(_.range(0, parseInt($("#rangeCars").val()) + 1), i => {
                         entries.push({
@@ -724,7 +727,7 @@
                             if (!progressUpdateInterval) {
                                 progressUpdateInterval = setInterval(() => {
                                     progress(dijkstraDone / dijkstraSteps.expectedIterations);
-                                    status("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
+                                    statusMsg("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
                                 }, 1000);
                             }
                             dijkstraDone += dijkstraSteps.stepIterations;
@@ -742,13 +745,13 @@
                             console.log("shortest path: \n" + _.map(shortestPath, p => { return "i: " + p.i + ", cost: " + p.cost + ", dir: " + p.locoDirection + "\n" }));
                             console.log("total cost: " + cost);
                             $("#solution").html("Steps: " + shortestPath.length + " Cost: " + cost);
-                            status("Steps: " + shortestPath.length + " Cost: " + cost);
-                            //status("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
+                            statusMsg("Steps: " + shortestPath.length + " Cost: " + cost);
+                            //statusMsg("Thinking... " + dijkstraDone + "/" + dijkstraSteps.expectedIterations);
                             state = State.Solved;
                             updateUI();
                         }
                         else if (tssState === Module.TSSState.Error) {
-                            error("error during timeSaverSolver()");
+                            errorMsg("error during timeSaverSolver()");
                         }
                         else
                             _.defer(solve);
@@ -868,7 +871,7 @@
                                     state = State.LayoutSet;
                                 }
                                 cyDisplayCarPlacement(carPlacement);
-                                error("Layout not valid. Reverting to previous state");
+                                errorMsg("Layout not valid. Reverting to previous state");
                             }
                             updateUI();
                         }
@@ -905,7 +908,7 @@
                                     state = State.StartPosSet;
                                 }
                                 cyDisplayCarPlacement(carPlacement);
-                                error("Layout not valid. Reverting to previous state");
+                                errorMsg("Layout not valid. Reverting to previous state");
                             }
                             updateUI();
                         }
